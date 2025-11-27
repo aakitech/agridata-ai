@@ -43,7 +43,7 @@ export const botUsers = createTable(
   "bot_users",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    phoneNumber: varchar("phone_number", { length: 20 }).notNull().unique(),
+    phoneNumber: varchar("phone_number", { length: 50 }).notNull().unique(),
     languagePref: varchar("language_pref", { length: 10 }).default("en"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)

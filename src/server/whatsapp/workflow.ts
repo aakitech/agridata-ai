@@ -85,14 +85,18 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
 // --- Helpers ---
 
 async function sendText(to: string, body: string) {
+  console.log(`📤 Attempting to send message to ${to}:`, body);
+  console.log(`📱 Using Twilio number: ${env.TWILIO_PHONE_NUMBER}`);
+  
   try {
-    await client.messages.create({
-      from: env.TWILIO_PHONE_NUMBER,
+    const result = await client.messages.create({
+      from: `whatsapp:${env.TWILIO_PHONE_NUMBER}`,
       to,
       body,
     });
+    console.log(`✅ Message sent successfully! SID: ${result.sid}`);
   } catch (e) {
-    console.error("Twilio Error:", e);
+    console.error("❌ Twilio Error:", e);
   }
 }
 
