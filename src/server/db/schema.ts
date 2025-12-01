@@ -60,6 +60,7 @@ export const reports = createTable("reports", {
   status: reportStatusEnum("status").default("DRAFT").notNull(),
   category: reportCategoryEnum("category"),
   mediaUrl: text("media_url"),
+  audioUrl: text("audio_url"),
   // Using text for location for now as PostGIS setup in Drizzle can be complex without extensions
   // We will store 'POINT(long lat)' string or JSON
   location: text("location"), 
