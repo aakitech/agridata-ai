@@ -1,32 +1,20 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { reports } from "~/server/db/schema";
+import { TriageService } from "~/server/modules/triage/triage-service";
 
 export const reportsRouter = createTRPCRouter({
   // Get all pending reports for triage
   getPending: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.query.reports.findMany({
-      where: (reports, { eq }) => eq(reports.status, "PENDING_TRIAGE"),
-      with: {
-        user: true,
-        media: true,
-      },
-      orderBy: (reports, { asc }) => [asc(reports.createdAt)],
-    });
+    const service = new TriageService(ctx.db);
+    return service.getPendingReports();
   }),
 
   // Get a single report by ID
   getById: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      return ctx.db.query.reports.findFirst({
-        where: (reports, { eq }) => eq(reports.id, input.id),
-        with: {
-          user: true,
-          media: true,
-        },
-      });
+      const service = new TriageService(ctx.db);
+      return service.getReportById(input.id);
     }),
 
   // Verify a report
@@ -39,19 +27,8 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [updated] = await ctx.db
-        .update(reports)
-        .set({
-          status: "VERIFIED",
-          diagnosis: input.diagnosis,
-          riskLevel: input.riskLevel,
-          verifiedAt: new Date(),
-          // verifiedBy: ctx.session?.user?.id, // Add when auth is implemented
-        })
-        .where(eq(reports.id, input.id))
-        .returning();
-
-      return updated;
+      const service = new TriageService(ctx.db);
+      return service.verifyReport(input);
     }),
 
   // Reject a report
@@ -63,17 +40,7 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [updated] = await ctx.db
-        .update(reports)
-        .set({
-          status: "REJECTED",
-          rejectionReason: input.rejectionReason,
-          verifiedAt: new Date(),
-          // verifiedBy: ctx.session?.user?.id, // Add when auth is implemented
-        })
-        .where(eq(reports.id, input.id))
-        .returning();
-
-      return updated;
+      const service = new TriageService(ctx.db);
+      return service.rejectReport(input);
     }),
 });

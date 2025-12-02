@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { handleIncomingMessage } from "~/server/whatsapp/workflow";
+import { handleIncomingMessage } from "~/server/modules/whatsapp-bot/workflow";
 
 export async function POST(req: NextRequest) {
   console.log("🔔 Webhook received!");
