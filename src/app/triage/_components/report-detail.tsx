@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
+
+// Dynamically import the map to avoid SSR issues
+const ReportMap = dynamic(
+  () => import("./report-map").then((mod) => mod.ReportMap),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-200 rounded-lg animate-pulse" /> }
+);
 
 type Report = {
   id: string;
@@ -119,8 +126,8 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
             <p className="text-sm text-gray-600 mb-2">
               Coordinates: {lat.toFixed(6)}, {lon.toFixed(6)}
             </p>
-            <div className="h-64 bg-gray-200 rounded-lg flex items-center justify-center">
-              <p className="text-gray-500">Map placeholder (install react-leaflet)</p>
+            <div className="h-64 rounded-lg overflow-hidden">
+              <ReportMap latitude={lat} longitude={lon} reportId={report.id} />
             </div>
           </div>
         ) : (
