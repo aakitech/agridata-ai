@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 import {
   index,
   pgTableCreator,
@@ -52,6 +52,12 @@ export const botUsers = createTable(
   (table) => [index("phone_number_idx").on(table.phoneNumber)]
 );
 
+export const riskLevelEnum = pgEnum("risk_level", [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+]);
+
 export const reports = createTable("reports", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
@@ -65,6 +71,14 @@ export const reports = createTable("reports", {
   // We will store 'POINT(long lat)' string or JSON
   location: text("location"), 
   description: text("description"),
+  
+  // Expert Triage Fields
+  diagnosis: text("diagnosis"),
+  riskLevel: riskLevelEnum("risk_level"),
+  rejectionReason: text("rejection_reason"),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  verifiedBy: uuid("verified_by"), // References auth.users(id) but kept loose here for simplicity
+  
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -81,3 +95,30 @@ export const botSessions = createTable("bot_sessions", {
     .notNull(),
   metadata: jsonb("metadata"),
 });
+
+// Relations
+export const botUsersRelations = relations(botUsers, ({ many, one }) => ({
+  reports: many(reports),
+  session: one(botSessions, {
+    fields: [botUsers.id],
+    references: [botSessions.userId],
+  }),
+}));
+
+export const reportsRelations = relations(reports, ({ one }) => ({
+  user: one(botUsers, {
+    fields: [reports.userId],
+    references: [botUsers.id],
+  }),
+}));
+
+export const botSessionsRelations = relations(botSessions, ({ one }) => ({
+  user: one(botUsers, {
+    fields: [botSessions.userId],
+    references: [botUsers.id],
+  }),
+  draftReport: one(reports, {
+    fields: [botSessions.draftReportId],
+    references: [reports.id],
+  }),
+}));
