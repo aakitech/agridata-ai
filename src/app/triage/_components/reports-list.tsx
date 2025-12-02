@@ -15,6 +15,11 @@ type Report = {
     phoneNumber: string;
     languagePref: string | null;
   };
+  media?: Array<{
+    id: string;
+    mediaUrl: string;
+    contentType: string | null;
+  }>;
 };
 
 interface ReportsListProps {
@@ -27,25 +32,31 @@ export function ReportsList({ reports, selectedId, onSelect }: ReportsListProps)
   return (
     <ScrollArea className="h-full">
       <div className="divide-y divide-border">
-        {reports.map((report) => (
-          <button
-            key={report.id}
-            onClick={() => onSelect(report.id)}
-            className={cn(
-              "w-full p-4 text-left transition-colors hover:bg-muted/50",
-              selectedId === report.id && "bg-muted border-l-4 border-primary pl-3"
-            )}
-          >
-            <div className="flex gap-4">
-              {/* Thumbnail */}
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted border">
-                {report.mediaUrl ? (
-                  <img
-                    src={report.mediaUrl}
-                    alt="Report"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
+        {reports.map((report) => {
+          // Get thumbnail (first media image or fallback to mediaUrl)
+          const thumbnailUrl = report.media && report.media.length > 0
+            ? report.media[0]!.mediaUrl
+            : report.mediaUrl;
+
+          return (
+            <button
+              key={report.id}
+              onClick={() => onSelect(report.id)}
+              className={cn(
+                "w-full p-4 text-left transition-colors hover:bg-muted/50",
+                selectedId === report.id && "bg-muted border-l-4 border-primary pl-3"
+              )}
+            >
+              <div className="flex gap-4">
+                {/* Thumbnail */}
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted border">
+                  {thumbnailUrl ? (
+                    <img
+                      src={thumbnailUrl}
+                      alt="Report"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
                   <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                     <ImageIcon className="h-6 w-6" />
                   </div>
@@ -78,7 +89,8 @@ export function ReportsList({ reports, selectedId, onSelect }: ReportsListProps)
               </div>
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
     </ScrollArea>
   );

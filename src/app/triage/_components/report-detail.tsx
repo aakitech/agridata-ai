@@ -24,6 +24,11 @@ type Report = {
   location: string | null;
   description: string | null;
   createdAt: Date;
+  media?: Array<{
+    id: string;
+    mediaUrl: string;
+    contentType: string | null;
+  }>;
 };
 
 interface ReportDetailProps {
@@ -83,6 +88,13 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
   const lat = coordinates ? parseFloat(coordinates[2]!) : null;
   const lon = coordinates ? parseFloat(coordinates[1]!) : null;
 
+  // Get all images (from media table or fallback to mediaUrl)
+  const images = report.media && report.media.length > 0 
+    ? report.media.map(m => m.mediaUrl)
+    : report.mediaUrl 
+    ? [report.mediaUrl] 
+    : [];
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -97,14 +109,18 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
           <CardDescription>Review the submitted evidence</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Image */}
-          {report.mediaUrl && (
-            <div className="rounded-lg overflow-hidden border bg-muted">
-              <img
-                src={report.mediaUrl}
-                alt="Crop damage"
-                className="w-full max-h-[400px] object-contain"
-              />
+          {/* Images */}
+          {images.length > 0 && (
+            <div className={images.length === 1 ? "" : "grid grid-cols-2 gap-4"}>
+              {images.map((imageUrl, index) => (
+                <div key={index} className="rounded-lg overflow-hidden border bg-muted">
+                  <img
+                    src={imageUrl}
+                    alt={`Crop damage ${index + 1}`}
+                    className="w-full max-h-[400px] object-contain"
+                  />
+                </div>
+              ))}
             </div>
           )}
 

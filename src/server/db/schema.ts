@@ -105,10 +105,30 @@ export const botUsersRelations = relations(botUsers, ({ many, one }) => ({
   }),
 }));
 
-export const reportsRelations = relations(reports, ({ one }) => ({
+export const reportsRelations = relations(reports, ({ one, many }) => ({
   user: one(botUsers, {
     fields: [reports.userId],
     references: [botUsers.id],
+  }),
+  media: many(reportMedia),
+}));
+
+export const reportMedia = createTable("report_media", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  reportId: uuid("report_id")
+    .references(() => reports.id)
+    .notNull(),
+  mediaUrl: text("media_url").notNull(),
+  contentType: text("content_type"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const reportMediaRelations = relations(reportMedia, ({ one }) => ({
+  report: one(reports, {
+    fields: [reportMedia.reportId],
+    references: [reports.id],
   }),
 }));
 

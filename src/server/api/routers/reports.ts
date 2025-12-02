@@ -6,30 +6,27 @@ import { reports } from "~/server/db/schema";
 export const reportsRouter = createTRPCRouter({
   // Get all pending reports for triage
   getPending: publicProcedure.query(async ({ ctx }) => {
-    const pendingReports = await ctx.db.query.reports.findMany({
-      where: eq(reports.status, "PENDING_TRIAGE"),
-      orderBy: (reports, { asc }) => [asc(reports.createdAt)],
+    return ctx.db.query.reports.findMany({
+      where: (reports, { eq }) => eq(reports.status, "PENDING_TRIAGE"),
       with: {
-        user: true, // Now this works with the relations we defined!
+        user: true,
+        media: true,
       },
+      orderBy: (reports, { asc }) => [asc(reports.createdAt)],
     });
-
-    return pendingReports;
   }),
 
   // Get a single report by ID
   getById: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const report = await ctx.db.query.reports.findFirst({
-        where: eq(reports.id, input.id),
+      return ctx.db.query.reports.findFirst({
+        where: (reports, { eq }) => eq(reports.id, input.id),
+        with: {
+          user: true,
+          media: true,
+        },
       });
-
-      if (!report) {
-        throw new Error("Report not found");
-      }
-
-      return report;
     }),
 
   // Verify a report

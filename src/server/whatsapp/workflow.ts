@@ -1,5 +1,5 @@
 import { db } from "~/server/db";
-import { botSessions, botUsers, reports } from "~/server/db/schema";
+import { botSessions, botUsers, reports, reportMedia } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { env } from "~/env";
 import twilio from "twilio";
@@ -147,25 +147,12 @@ async function updateState(userId: string, state: BotState, draftReportId?: stri
 // --- Handlers ---
 
 async function handleIdle(userId: string, msg: IncomingMessage) {
-  // Send interactive menu with buttons
-  try {
-    await client.messages.create({
-      from: `whatsapp:${env.TWILIO_PHONE_NUMBER}`,
-      to: msg.From,
-      body: "Mhoro! I am your crop protection assistant. How can I help you today?",
-      // Twilio doesn't support native WhatsApp buttons via API, so we use numbered list
-      // For true buttons, you'd need to use WhatsApp Business API templates
-    });
-    
-    // Send follow-up with options
-    await sendText(msg.From, "Please choose an option:\n\n1️⃣ Report Crop Problem\n2️⃣ Check Local Risk\n\nReply with 1 or 2");
-    await updateState(userId, "AWAITING_MENU_CHOICE");
-  } catch (error) {
-    console.error("Error sending menu:", error);
-    // Fallback to simple text
-    await sendText(msg.From, "Welcome to AgriData AI! 🌱\n\nHow can I help you today?\n1. Report Crop Problem 🐛\n2. Check Local Risk 🌤️\n\n(Reply with 1 or 2)");
-    await updateState(userId, "AWAITING_MENU_CHOICE");
-  }
+  // Send greeting with menu options in a single message
+  await sendText(
+    msg.From, 
+    "Mhoro! I am your crop protection assistant. 🌱\n\nHow can I help you today?\n\n1️⃣ Report Crop Problem\n2️⃣ Check Local Risk\n\nReply with 1 or 2"
+  );
+  await updateState(userId, "AWAITING_MENU_CHOICE");
 }
 
 async function handleMenuChoice(userId: string, msg: IncomingMessage) {
@@ -181,7 +168,7 @@ async function handleMenuChoice(userId: string, msg: IncomingMessage) {
 
     await sendText(
       msg.From, 
-      "📸 *Photo Required*\n\nPlease send a clear photo of the damaged plant.\n\n✅ Best results:\n• Close-up of affected leaves or stems\n• Good lighting\n• Focus on the damage\n\nTap the 📎 icon to attach a photo."
+      "📸 *Photos Required*\n\nPlease send clear photos of the damaged plant.\n\n✅ Best results:\n• Close-up of affected leaves or stems\n• Good lighting\n• Focus on the damage\n\nTap the 📎 icon to attach a photo.\n\n(You can send multiple photos. Type *DONE* when finished.)"
     );
     await updateState(userId, "AWAITING_PHOTO", report.id);
   } else if (choice === "2" || choice?.toLowerCase().includes("risk") || choice?.toLowerCase().includes("weather")) {
@@ -204,27 +191,40 @@ async function handleMenuChoice(userId: string, msg: IncomingMessage) {
 }
 
 async function handlePhoto(userId: string, session: any, msg: IncomingMessage) {
-  if (!msg.MediaUrl0) {
-    await sendText(msg.From, "Please send a photo, not text. 📸");
+  const reportId = session.draftReportId;
+  if (!reportId) {
+    await sendText(msg.From, "Session error. Restarting.");
+    await updateState(userId, "IDLE");
     return;
   }
 
-  // Save Media URL to Report
-  // In a real app, we would download and upload to Supabase Storage here.
-  // For MVP, we'll just save the Twilio URL (note: it expires eventually).
-  const reportId = session.draftReportId;
-  if (!reportId) {
-      await sendText(msg.From, "Session error. Restarting.");
-      await updateState(userId, "IDLE");
-      return;
+  // Check for "DONE" command
+  if (msg.Body?.trim().toUpperCase() === "DONE") {
+    await sendText(msg.From, "Great! Now, please share your location. 📍\n(Tap the attachment icon -> Location)");
+    await updateState(userId, "AWAITING_LOCATION", reportId);
+    return;
   }
 
-  await db.update(reports)
-    .set({ mediaUrl: msg.MediaUrl0 })
-    .where(eq(reports.id, reportId));
+  if (!msg.MediaUrl0) {
+    await sendText(msg.From, "Please send a photo or type 'DONE' if you are finished. 📸");
+    return;
+  }
 
-  await sendText(msg.From, "Got the photo! Now, please share your location. 📍\n(Tap the attachment icon -> Location)");
-  await updateState(userId, "AWAITING_LOCATION", reportId);
+  // Save Media URL to Report Media Table
+  await db.insert(reportMedia).values({
+    reportId: reportId,
+    mediaUrl: msg.MediaUrl0,
+    contentType: msg.MediaContentType0 || "image/jpeg",
+  });
+
+  // Count photos
+  const mediaCount = await db.$count(reportMedia, eq(reportMedia.reportId, reportId));
+
+  await sendText(
+    msg.From, 
+    `✅ Photo received! (Total: ${mediaCount})\n\nSend another photo or type *DONE* to finish.`
+  );
+  // Stay in AWAITING_PHOTO state
 }
 
 async function handleLocation(userId: string, session: any, msg: IncomingMessage) {
