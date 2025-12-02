@@ -3,11 +3,18 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { Separator } from "~/components/ui/separator";
+import { Check, X, MapPin, AlertTriangle } from "lucide-react";
 
 // Dynamically import the map to avoid SSR issues
 const ReportMap = dynamic(
   () => import("./report-map").then((mod) => mod.ReportMap),
-  { ssr: false, loading: () => <div className="h-64 bg-gray-200 rounded-lg animate-pulse" /> }
+  { ssr: false, loading: () => <div className="h-64 bg-muted rounded-lg animate-pulse" /> }
 );
 
 type Report = {
@@ -77,167 +84,178 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
   const lon = coordinates ? parseFloat(coordinates[1]!) : null;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Report Details</h2>
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold tracking-tight">Report Details</h2>
+        <div className="text-sm text-muted-foreground">ID: {report.id}</div>
+      </div>
 
       {/* Evidence Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-4">Evidence</h3>
-        
-        {/* Image */}
-        {report.mediaUrl && (
-          <div className="mb-4">
-            <img
-              src={report.mediaUrl}
-              alt="Crop damage"
-              className="w-full max-h-96 object-contain rounded-lg border border-gray-200"
-            />
-          </div>
-        )}
-
-        {/* Audio */}
-        {report.audioUrl && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Voice Note
-            </label>
-            <audio controls src={report.audioUrl} className="w-full" />
-          </div>
-        )}
-
-        {/* Description */}
-        {report.description && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Farmer Description
-            </label>
-            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
-              {report.description}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Context Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-4">Location</h3>
-        {lat && lon ? (
-          <div>
-            <p className="text-sm text-gray-600 mb-2">
-              Coordinates: {lat.toFixed(6)}, {lon.toFixed(6)}
-            </p>
-            <div className="h-64 rounded-lg overflow-hidden">
-              <ReportMap latitude={lat} longitude={lon} reportId={report.id} />
-            </div>
-          </div>
-        ) : (
-          <p className="text-gray-500">No location data</p>
-        )}
-      </div>
-
-      {/* Action Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold mb-4">Decision</h3>
-
-        {/* Action Toggle */}
-        <div className="flex gap-2 mb-6">
-          <button
-            type="button"
-            onClick={() => setAction("verify")}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-              action === "verify"
-                ? "bg-green-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            ✓ Verify
-          </button>
-          <button
-            type="button"
-            onClick={() => setAction("reject")}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-              action === "reject"
-                ? "bg-red-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            ✗ Reject
-          </button>
-        </div>
-
-        {/* Verify Fields */}
-        {action === "verify" && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Diagnosis <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={diagnosis}
-                onChange={(e) => setDiagnosis(e.target.value)}
-                placeholder="e.g., Fall Armyworm"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                required
+      <Card>
+        <CardHeader>
+          <CardTitle>Evidence</CardTitle>
+          <CardDescription>Review the submitted evidence</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Image */}
+          {report.mediaUrl && (
+            <div className="rounded-lg overflow-hidden border bg-muted">
+              <img
+                src={report.mediaUrl}
+                alt="Crop damage"
+                className="w-full max-h-[400px] object-contain"
               />
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Risk Level <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={riskLevel}
-                onChange={(e) => setRiskLevel(e.target.value as "LOW" | "MEDIUM" | "HIGH")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="LOW">Low - Common/Manageable</option>
-                <option value="MEDIUM">Medium - Significant Damage</option>
-                <option value="HIGH">High - Quarantine/Rapid Spread</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                High = Quarantine pests or swarming behavior
-              </p>
+          {/* Audio */}
+          {report.audioUrl && (
+            <div className="space-y-2">
+              <Label>Voice Note</Label>
+              <audio controls src={report.audioUrl} className="w-full" />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Reject Fields */}
-        {action === "reject" && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rejection Reason <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              required
+          {/* Description */}
+          {report.description && (
+            <div className="space-y-2">
+              <Label>Farmer Description</Label>
+              <div className="p-4 rounded-lg bg-muted text-sm">
+                {report.description}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Context Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Location</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {lat && lon ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                <MapPin className="h-4 w-4" />
+                <span>{lat.toFixed(6)}, {lon.toFixed(6)}</span>
+              </div>
+              <div className="h-[300px] rounded-lg overflow-hidden border">
+                <ReportMap latitude={lat} longitude={lon} reportId={report.id} />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-32 text-muted-foreground bg-muted/50 rounded-lg border border-dashed">
+              No location data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Action Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Decision</CardTitle>
+          <CardDescription>Verify or reject this report</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Action Toggle */}
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                type="button"
+                variant={action === "verify" ? "default" : "outline"}
+                className={action === "verify" ? "bg-green-600 hover:bg-green-700" : ""}
+                onClick={() => setAction("verify")}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Verify
+              </Button>
+              <Button
+                type="button"
+                variant={action === "reject" ? "destructive" : "outline"}
+                onClick={() => setAction("reject")}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Reject
+              </Button>
+            </div>
+
+            <Separator />
+
+            {/* Verify Fields */}
+            {action === "verify" && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-2">
+                  <Label htmlFor="diagnosis">Diagnosis <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="diagnosis"
+                    value={diagnosis}
+                    onChange={(e) => setDiagnosis(e.target.value)}
+                    placeholder="e.g., Fall Armyworm"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="riskLevel">Risk Level <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={riskLevel}
+                    onValueChange={(val) => setRiskLevel(val as "LOW" | "MEDIUM" | "HIGH")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LOW">Low - Common/Manageable</SelectItem>
+                      <SelectItem value="MEDIUM">Medium - Significant Damage</SelectItem>
+                      <SelectItem value="HIGH">High - Quarantine/Rapid Spread</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <AlertTriangle className="h-3 w-3" />
+                    High = Quarantine pests or swarming behavior
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Reject Fields */}
+            {action === "reject" && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-2">
+                  <Label htmlFor="reason">Rejection Reason <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={rejectionReason}
+                    onValueChange={setRejectionReason}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a reason..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Blurry">Blurry Image</SelectItem>
+                      <SelectItem value="Not a Crop">Not a Crop</SelectItem>
+                      <SelectItem value="Duplicate">Duplicate Report</SelectItem>
+                      <SelectItem value="Insufficient Info">Insufficient Information</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={verifyMutation.isPending || rejectMutation.isPending}
+              variant={action === "verify" ? "default" : "destructive"}
             >
-              <option value="">Select a reason...</option>
-              <option value="Blurry">Blurry Image</option>
-              <option value="Not a Crop">Not a Crop</option>
-              <option value="Duplicate">Duplicate Report</option>
-              <option value="Insufficient Info">Insufficient Information</option>
-            </select>
-          </div>
-        )}
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={verifyMutation.isPending || rejectMutation.isPending}
-          className={`w-full mt-6 py-3 px-4 rounded-lg font-medium text-white transition-colors ${
-            action === "verify"
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-red-600 hover:bg-red-700"
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-          {verifyMutation.isPending || rejectMutation.isPending
-            ? "Processing..."
-            : `Confirm ${action === "verify" ? "Verification" : "Rejection"}`}
-        </button>
-      </form>
+              {verifyMutation.isPending || rejectMutation.isPending
+                ? "Processing..."
+                : `Confirm ${action === "verify" ? "Verification" : "Rejection"}`}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
