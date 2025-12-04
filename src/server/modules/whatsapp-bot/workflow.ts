@@ -3,6 +3,7 @@ import { botSessions, botUsers, reports, reportMedia } from "~/server/db/schema"
 import { eq } from "drizzle-orm";
 import { env } from "~/env";
 import twilio from "twilio";
+import { MediaService } from "~/server/modules/media/media-service";
 
 // Initialize Twilio Client
 // Note: In a real app, ensure these are set. For now, we assume they are.
@@ -190,6 +191,10 @@ async function handleMenuChoice(userId: string, msg: IncomingMessage) {
   }
 }
 
+
+
+// ...
+
 async function handlePhoto(userId: string, session: any, msg: IncomingMessage) {
   const reportId = session.draftReportId;
   if (!reportId) {
@@ -210,12 +215,22 @@ async function handlePhoto(userId: string, session: any, msg: IncomingMessage) {
     return;
   }
 
-  // Save Media URL to Report Media Table
-  await db.insert(reportMedia).values({
-    reportId: reportId,
-    mediaUrl: msg.MediaUrl0,
-    contentType: msg.MediaContentType0 || "image/jpeg",
-  });
+  // Upload to Supabase Storage (with fallback)
+  const mediaService = new MediaService();
+  const contentType = msg.MediaContentType0 || "image/jpeg";
+  let mediaUrl = msg.MediaUrl0;
+
+  try {
+    // Attempt to upload to Supabase
+    mediaUrl = await mediaService.uploadFromTwilio(msg.MediaUrl0, reportId, contentType);
+    console.log(`✅ Uploaded to Supabase: ${mediaUrl}`);
+  } catch (error) {
+    console.error("⚠️ Failed to upload to Supabase, falling back to Twilio URL:", error);
+    // Fallback: mediaUrl remains as msg.MediaUrl0
+  }
+
+  // Save Media Record
+  await mediaService.saveMediaRecord(reportId, mediaUrl, contentType);
 
   // Count photos
   const mediaCount = await db.$count(reportMedia, eq(reportMedia.reportId, reportId));
