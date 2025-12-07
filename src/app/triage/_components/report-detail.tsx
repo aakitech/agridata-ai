@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Share, Check, X, MapPin, AlertTriangle } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
@@ -84,10 +84,12 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
 
 
   const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const diagnosisRef = useRef<HTMLInputElement>(null);
 
   const handleVerify = () => {
     if (!diagnosis) {
       toast.error("Please enter a diagnosis");
+      diagnosisRef.current?.focus();
       return;
     }
     if (!riskLevel) {
@@ -258,6 +260,7 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
             <div className="space-y-2">
               <Label htmlFor="diagnosis">Diagnosis <span className="text-destructive">*</span></Label>
               <Input
+                ref={diagnosisRef}
                 id="diagnosis"
                 value={diagnosis}
                 onChange={(e) => setDiagnosis(e.target.value)}
