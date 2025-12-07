@@ -39,7 +39,7 @@ interface ReportDetailProps {
 export function ReportDetail({ report, onComplete }: ReportDetailProps) {
   const [action, setAction] = useState<"verify" | "reject">("verify");
   const [diagnosis, setDiagnosis] = useState("");
-  const [riskLevel, setRiskLevel] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
+  const [riskLevel, setRiskLevel] = useState<"LOW" | "MEDIUM" | "HIGH" | undefined>(undefined);
   const [rejectionReason, setRejectionReason] = useState("");
 
   const utils = api.useUtils();
@@ -64,6 +64,10 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
     if (action === "verify") {
       if (!diagnosis) {
         alert("Please enter a diagnosis");
+        return;
+      }
+      if (!riskLevel) {
+        alert("Please select a risk level");
         return;
       }
       verifyMutation.mutate({
@@ -261,26 +265,26 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="riskLevel">Risk Level <span className="text-destructive">*</span></Label>
-                  <Select
-                    value={riskLevel}
-                    onValueChange={(val) => setRiskLevel(val as "LOW" | "MEDIUM" | "HIGH")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LOW">Low - Common/Manageable</SelectItem>
-                      <SelectItem value="MEDIUM">Medium - Significant Damage</SelectItem>
-                      <SelectItem value="HIGH">High - Quarantine/Rapid Spread</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <AlertTriangle className="h-3 w-3" />
-                    High = Quarantine pests or swarming behavior
+                  <div className="space-y-2">
+                    <Label htmlFor="riskLevel">Risk Level <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={riskLevel}
+                      onValueChange={(val) => setRiskLevel(val as "LOW" | "MEDIUM" | "HIGH")}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select risk level..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LOW">Low - Common/Manageable</SelectItem>
+                        <SelectItem value="MEDIUM">Medium - Significant Damage</SelectItem>
+                        <SelectItem value="HIGH">High - Quarantine/Rapid Spread</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <AlertTriangle className="h-3 w-3" />
+                      High = Quarantine pests or swarming behavior
+                    </div>
                   </div>
-                </div>
               </div>
             )}
 

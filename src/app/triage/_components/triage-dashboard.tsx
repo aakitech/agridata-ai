@@ -22,7 +22,7 @@ export function TriageDashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex h-full bg-background text-foreground overflow-hidden">
       {/* Left Sidebar - Reports List */}
       <div className="w-[350px] border-r flex flex-col bg-muted/10">
         <div className="p-4 border-b bg-background space-y-4">
@@ -76,6 +76,7 @@ export function TriageDashboard() {
       <div className="flex-1 overflow-y-auto bg-muted/5">
         {selectedReport ? (
           <ReportDetail
+            key={selectedReport.id}
             report={selectedReport}
             onComplete={() => {
               // Auto-select next report or clear selection
