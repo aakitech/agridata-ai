@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
@@ -46,14 +46,14 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
   
   const verifyMutation = api.reports.verify.useMutation({
     onSuccess: () => {
-      utils.reports.getPending.invalidate();
+      utils.reports.getAll.invalidate();
       onComplete();
     },
   });
 
   const rejectMutation = api.reports.reject.useMutation({
     onSuccess: () => {
-      utils.reports.getPending.invalidate();
+      utils.reports.getAll.invalidate();
       onComplete();
     },
   });
@@ -83,6 +83,8 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
     }
   };
 
+
+
   // Parse location
   const coordinates = report.location?.match(/POINT\(([^ ]+) ([^ ]+)\)/);
   const lat = coordinates ? parseFloat(coordinates[2]!) : null;
@@ -94,6 +96,34 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
     : report.mediaUrl 
     ? [report.mediaUrl] 
     : [];
+
+  // Location state
+  const [locationDetails, setLocationDetails] = useState<{
+    country?: string;
+    state?: string;
+    suburb?: string;
+    city?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (lat && lon) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.address) {
+            setLocationDetails({
+              country: data.address.country,
+              state: data.address.state || data.address.province,
+              suburb: data.address.suburb || data.address.neighborhood,
+              city: data.address.city || data.address.town || data.address.village,
+            });
+          }
+        })
+        .catch(err => console.error("Geocoding error:", err));
+    } else {
+      setLocationDetails(null);
+    }
+  }, [lat, lon]);
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -125,7 +155,6 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
           )}
 
 
-
           {/* Description */}
           {report.description && (
             <div className="space-y-2">
@@ -145,8 +174,33 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
         </CardHeader>
         <CardContent>
           {lat && lon ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+            <div className="space-y-4">
+              {locationDetails && (
+                <div className="grid grid-cols-2 gap-4">
+                  {locationDetails.country && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Country</Label>
+                      <div className="font-medium">{locationDetails.country}</div>
+                    </div>
+                  )}
+                  {locationDetails.state && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Province/State</Label>
+                      <div className="font-medium">{locationDetails.state}</div>
+                    </div>
+                  )}
+                  {(locationDetails.city || locationDetails.suburb) && (
+                    <div className="space-y-1 col-span-2">
+                      <Label className="text-xs text-muted-foreground">Area</Label>
+                      <div className="font-medium">
+                        {[locationDetails.city, locationDetails.suburb].filter(Boolean).join(", ")}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
                 <span>{lat.toFixed(6)}, {lon.toFixed(6)}</span>
               </div>

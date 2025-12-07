@@ -5,14 +5,17 @@ import { eq } from "drizzle-orm";
 export class TriageService {
   constructor(private database: typeof db) {}
 
-  async getPendingReports() {
+  async getReportsByStatus(status: "PENDING_TRIAGE" | "VERIFIED" | "REJECTED" = "PENDING_TRIAGE") {
     return this.database.query.reports.findMany({
-      where: (reports, { eq }) => eq(reports.status, "PENDING_TRIAGE"),
+      where: (reports, { eq }) => eq(reports.status, status),
       with: {
         user: true,
         media: true,
       },
-      orderBy: (reports, { asc }) => [asc(reports.createdAt)],
+      orderBy: (reports, { desc, asc }) => 
+        status === "PENDING_TRIAGE" 
+          ? [asc(reports.createdAt)] 
+          : [desc(reports.verifiedAt)],
     });
   }
 

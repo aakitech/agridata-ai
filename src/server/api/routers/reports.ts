@@ -3,11 +3,17 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { TriageService } from "~/server/modules/triage/triage-service";
 
 export const reportsRouter = createTRPCRouter({
-  // Get all pending reports for triage
-  getPending: publicProcedure.query(async ({ ctx }) => {
-    const service = new TriageService(ctx.db);
-    return service.getPendingReports();
-  }),
+  // Get reports by status
+  getAll: publicProcedure
+    .input(
+      z.object({
+        status: z.enum(["PENDING_TRIAGE", "VERIFIED", "REJECTED"]).optional().default("PENDING_TRIAGE"),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const service = new TriageService(ctx.db);
+      return service.getReportsByStatus(input.status);
+    }),
 
   // Get a single report by ID
   getById: publicProcedure
