@@ -1,0 +1,111 @@
+# AgriData AI - Development Rules
+
+## Architecture
+Read [.docs/ARCHITECTURE.md](.docs/ARCHITECTURE.md) for complete architecture guide.
+
+## Quick Reference
+
+### Backend Structure
+```
+src/server/
+├── api/routers/        # Thin tRPC endpoints - delegate to services
+├── modules/            # Business logic - services & domain logic
+└── db/schema.ts        # Database schemas & relations
+```
+
+### Frontend Structure
+```
+src/
+├── app/[route]/
+│   ├── page.tsx        # Route page
+│   └── _components/    # Route-specific components
+├── components/
+│   ├── ui/             # shadcn/ui (DO NOT MODIFY)
+│   └── shared/         # Reusable components
+```
+
+## Rules
+
+### Backend Development
+1. **Routers are THIN** - Only tRPC procedures, validation, delegation
+2. **Services are THICK** - All business logic goes in `src/server/modules/`
+3. **One service per module** - e.g., `TriageService`, `AuthService`
+4. **Always validate inputs** - Use Zod schemas in routers
+5. **Use Drizzle relations** - Define in schema for type-safe joins
+
+### Frontend Development
+1. **Route-specific components** → `src/app/[route]/_components/`
+2. **Reusable components** → `src/components/shared/`
+3. **Never modify** → `src/components/ui/` (shadcn/ui)
+4. **Use tRPC hooks** - `api.[module].[procedure].useQuery()`
+5. **No frontend services** - tRPC is your service layer
+
+### File Organization
+- New API endpoint? → Create router in `src/server/api/routers/`
+- New business logic? → Create service in `src/server/modules/[module]/`
+- New page? → Create in `src/app/[route]/page.tsx`
+- New component? → Start in `_components/`, move to `shared/` if reused
+
+### Naming
+- Files: `kebab-case.tsx`
+- Components: `PascalCase`
+- Services: `PascalCase` with `Service` suffix
+- Functions: `camelCase`
+
+### Database
+- All schemas in `src/server/db/schema.ts`
+- Define relations for type-safe joins
+- Use Drizzle ORM, not raw SQL
+
+## Example: Adding a New Feature
+
+### Backend
+```typescript
+// 1. Create service
+// src/server/modules/analytics/analytics-service.ts
+export class AnalyticsService {
+  constructor(private db: typeof db) {}
+  async getStats() { /* logic */ }
+}
+
+// 2. Create router
+// src/server/api/routers/analytics.ts
+export const analyticsRouter = createTRPCRouter({
+  getStats: publicProcedure.query(async ({ ctx }) => {
+    const service = new AnalyticsService(ctx.db);
+    return service.getStats();
+  }),
+});
+
+// 3. Register in root.ts
+export const appRouter = createTRPCRouter({
+  analytics: analyticsRouter,
+});
+```
+
+### Frontend
+```typescript
+// 1. Create page
+// src/app/analytics/page.tsx
+export default function AnalyticsPage() {
+  return <AnalyticsDashboard />;
+}
+
+// 2. Create component
+// src/app/analytics/_components/analytics-dashboard.tsx
+export function AnalyticsDashboard() {
+  const stats = api.analytics.getStats.useQuery();
+  return <div>{/* UI */}</div>;
+}
+```
+
+## Don'ts
+- ❌ Business logic in routers
+- ❌ Modifying `src/components/ui/`
+- ❌ Creating "manager" or "factory" classes
+- ❌ Mixing frontend and backend code
+- ❌ Skipping input validation
+- ❌ Over-engineering with too many layers
+
+## Questions?
+See [.docs/ARCHITECTURE.md](.docs/ARCHITECTURE.md) for detailed guidance.
