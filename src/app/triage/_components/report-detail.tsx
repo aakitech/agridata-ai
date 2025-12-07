@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Share, Check, X, MapPin, AlertTriangle } from "lucide-react";
 import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
@@ -9,7 +10,22 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Separator } from "~/components/ui/separator";
-import { Check, X, MapPin, AlertTriangle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "~/components/ui/dialog";
+
+// ... inside ReportDetail component
+
+
+
+
+
 
 // Dynamically import the map to avoid SSR issues
 const ReportMap = dynamic(
@@ -37,7 +53,6 @@ interface ReportDetailProps {
 }
 
 export function ReportDetail({ report, onComplete }: ReportDetailProps) {
-  const [action, setAction] = useState<"verify" | "reject">("verify");
   const [diagnosis, setDiagnosis] = useState("");
   const [riskLevel, setRiskLevel] = useState<"LOW" | "MEDIUM" | "HIGH" | undefined>(undefined);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -58,35 +73,36 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (action === "verify") {
-      if (!diagnosis) {
-        alert("Please enter a diagnosis");
-        return;
-      }
-      if (!riskLevel) {
-        alert("Please select a risk level");
-        return;
-      }
-      verifyMutation.mutate({
-        id: report.id,
-        diagnosis,
-        riskLevel,
-      });
-    } else {
-      if (!rejectionReason) {
-        alert("Please select a rejection reason");
-        return;
-      }
-      rejectMutation.mutate({
-        id: report.id,
-        rejectionReason,
-      });
+
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+
+  const handleVerify = () => {
+    if (!diagnosis) {
+      alert("Please enter a diagnosis");
+      return;
     }
+    if (!riskLevel) {
+      alert("Please select a risk level");
+      return;
+    }
+    verifyMutation.mutate({
+      id: report.id,
+      diagnosis,
+      riskLevel,
+    });
   };
 
+  const handleReject = () => {
+    if (!rejectionReason) {
+      alert("Please select a rejection reason");
+      return;
+    }
+    rejectMutation.mutate({
+      id: report.id,
+      rejectionReason,
+    });
+    setIsRejectOpen(false);
+  };
 
 
   // Parse location
@@ -226,104 +242,101 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
           <CardTitle>Decision</CardTitle>
           <CardDescription>Verify or reject this report</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Action Toggle */}
-            <div className="grid grid-cols-2 gap-4">
-              <Button
-                type="button"
-                variant={action === "verify" ? "default" : "outline"}
-                className={action === "verify" ? "bg-green-600 hover:bg-green-700" : ""}
-                onClick={() => setAction("verify")}
-              >
-                <Check className="mr-2 h-4 w-4" />
-                Verify
-              </Button>
-              <Button
-                type="button"
-                variant={action === "reject" ? "destructive" : "outline"}
-                onClick={() => setAction("reject")}
-              >
-                <X className="mr-2 h-4 w-4" />
-                Reject
-              </Button>
+        <CardContent className="space-y-6">
+          
+          {/* Verification Fields (Always Visible) */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="diagnosis">Diagnosis <span className="text-destructive">*</span></Label>
+              <Input
+                id="diagnosis"
+                value={diagnosis}
+                onChange={(e) => setDiagnosis(e.target.value)}
+                placeholder="e.g., Fall Armyworm"
+                required
+              />
             </div>
 
-            <Separator />
+            <div className="space-y-2">
+              <Label htmlFor="riskLevel">Risk Level <span className="text-destructive">*</span></Label>
+              <Select
+                value={riskLevel}
+                onValueChange={(val) => setRiskLevel(val as "LOW" | "MEDIUM" | "HIGH")}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select risk level..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LOW">Low - Common/Manageable</SelectItem>
+                  <SelectItem value="MEDIUM">Medium - Significant Damage</SelectItem>
+                  <SelectItem value="HIGH">High - Quarantine/Rapid Spread</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <AlertTriangle className="h-3 w-3" />
+                High = Quarantine pests or swarming behavior
+              </div>
+            </div>
+          </div>
 
-            {/* Verify Fields */}
-            {action === "verify" && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                <div className="space-y-2">
-                  <Label htmlFor="diagnosis">Diagnosis <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="diagnosis"
-                    value={diagnosis}
-                    onChange={(e) => setDiagnosis(e.target.value)}
-                    placeholder="e.g., Fall Armyworm"
-                    required
-                  />
-                </div>
+          <Separator />
 
+          {/* Action Buttons */}
+          <div className="flex gap-4">
+            <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" className="flex-1">
+                  <X className="mr-2 h-4 w-4" />
+                  Reject Report
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Reject Report</DialogTitle>
+                  <DialogDescription>
+                    Please provide a reason for rejecting this report. This feedback helps improve the system.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="riskLevel">Risk Level <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="reason">Rejection Reason <span className="text-destructive">*</span></Label>
                     <Select
-                      value={riskLevel}
-                      onValueChange={(val) => setRiskLevel(val as "LOW" | "MEDIUM" | "HIGH")}
+                      value={rejectionReason}
+                      onValueChange={setRejectionReason}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select risk level..." />
+                        <SelectValue placeholder="Select a reason..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="LOW">Low - Common/Manageable</SelectItem>
-                        <SelectItem value="MEDIUM">Medium - Significant Damage</SelectItem>
-                        <SelectItem value="HIGH">High - Quarantine/Rapid Spread</SelectItem>
+                        <SelectItem value="Blurry">Blurry Image</SelectItem>
+                        <SelectItem value="Not a Crop">Not a Crop</SelectItem>
+                        <SelectItem value="Duplicate">Duplicate Report</SelectItem>
+                        <SelectItem value="Insufficient Info">Insufficient Information</SelectItem>
                       </SelectContent>
                     </Select>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <AlertTriangle className="h-3 w-3" />
-                      High = Quarantine pests or swarming behavior
-                    </div>
                   </div>
-              </div>
-            )}
-
-            {/* Reject Fields */}
-            {action === "reject" && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Rejection Reason <span className="text-destructive">*</span></Label>
-                  <Select
-                    value={rejectionReason}
-                    onValueChange={setRejectionReason}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a reason..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Blurry">Blurry Image</SelectItem>
-                      <SelectItem value="Not a Crop">Not a Crop</SelectItem>
-                      <SelectItem value="Duplicate">Duplicate Report</SelectItem>
-                      <SelectItem value="Insufficient Info">Insufficient Information</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
-              </div>
-            )}
+                <DialogFooter>
+                   <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Cancel</Button>
+                   <Button variant="destructive" onClick={handleReject} disabled={rejectMutation.isPending}>
+                     {rejectMutation.isPending ? "Rejecting..." : "Confirm Rejection"}
+                   </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={verifyMutation.isPending || rejectMutation.isPending}
-              variant={action === "verify" ? "default" : "destructive"}
+            <Button 
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white" 
+              onClick={handleVerify}
+              disabled={verifyMutation.isPending}
             >
-              {verifyMutation.isPending || rejectMutation.isPending
-                ? "Processing..."
-                : `Confirm ${action === "verify" ? "Verification" : "Rejection"}`}
+              <Check className="mr-2 h-4 w-4" />
+              {verifyMutation.isPending ? "Verifying..." : "Verify Report"}
             </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
+
     </div>
   );
 }
