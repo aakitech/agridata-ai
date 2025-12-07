@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Share, Check, X, MapPin, AlertTriangle } from "lucide-react";
 import dynamic from "next/dynamic";
+import { toast } from "sonner";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -62,14 +63,22 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
   const verifyMutation = api.reports.verify.useMutation({
     onSuccess: () => {
       utils.reports.getAll.invalidate();
+      toast.success("Report verified successfully");
       onComplete();
+    },
+    onError: (err) => {
+      toast.error(`Verification failed: ${err.message}`);
     },
   });
 
   const rejectMutation = api.reports.reject.useMutation({
     onSuccess: () => {
       utils.reports.getAll.invalidate();
+      toast.success("Report rejected");
       onComplete();
+    },
+    onError: (err) => {
+      toast.error(`Rejection failed: ${err.message}`);
     },
   });
 
@@ -78,11 +87,11 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
 
   const handleVerify = () => {
     if (!diagnosis) {
-      alert("Please enter a diagnosis");
+      toast.error("Please enter a diagnosis");
       return;
     }
     if (!riskLevel) {
-      alert("Please select a risk level");
+      toast.error("Please select a risk level");
       return;
     }
     verifyMutation.mutate({
@@ -94,7 +103,7 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
 
   const handleReject = () => {
     if (!rejectionReason) {
-      alert("Please select a rejection reason");
+      toast.error("Please select a rejection reason");
       return;
     }
     rejectMutation.mutate({
