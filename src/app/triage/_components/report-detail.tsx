@@ -20,7 +20,7 @@ const ReportMap = dynamic(
 type Report = {
   id: string;
   mediaUrl: string | null;
-  audioUrl: string | null;
+
   location: string | null;
   description: string | null;
   createdAt: Date;
@@ -124,13 +124,7 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
             </div>
           )}
 
-          {/* Audio */}
-          {report.audioUrl && (
-            <div className="space-y-2">
-              <Label>Voice Note</Label>
-              <audio controls src={report.audioUrl} className="w-full" />
-            </div>
-          )}
+
 
           {/* Description */}
           {report.description && (

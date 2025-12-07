@@ -278,7 +278,7 @@ async function handleLocation(userId: string, session: any, msg: IncomingMessage
       
       await sendText(
         msg.From, 
-        "📍 Location received!\n\nFinally, please describe what you see.\n\n💬 You can:\n• Type a message\n• Send a voice note 🎙️\n\nDescribe the symptoms, when you noticed them, and how widespread the problem is."
+        "📍 Location received!\n\nFinally, please describe what you see.\n\n💬 Please type a message describing the symptoms, when you noticed them, and how widespread the problem is."
       );
       await updateState(userId, "AWAITING_DESCRIPTION", reportId);
     }
@@ -295,21 +295,7 @@ async function handleDescription(userId: string, session: any, msg: IncomingMess
     return;
   }
 
-  // Check if this is an audio message
-  const isAudio = msg.MediaContentType0?.includes("audio");
-  
-  if (isAudio && msg.MediaUrl0) {
-    // Save audio URL
-    await db.update(reports)
-      .set({ 
-        audioUrl: msg.MediaUrl0,
-        description: "Voice note provided",
-        status: "PENDING_TRIAGE"
-      })
-      .where(eq(reports.id, reportId));
-    
-    await sendText(msg.From, `🎙️ Voice note received!\n\nReport #${reportId.slice(0, 8)} saved. Thank you for helping us protect our crops. 🌱\n\nOur team will review it soon.`);
-  } else if (msg.Body) {
+  if (msg.Body) {
     // Save text description
     await db.update(reports)
       .set({ 
@@ -320,7 +306,7 @@ async function handleDescription(userId: string, session: any, msg: IncomingMess
     
     await sendText(msg.From, `✅ Report #${reportId.slice(0, 8)} received!\n\nThank you for helping us protect our crops. 🌱\n\nWe'll notify you if an alert is issued in your area.`);
   } else {
-    await sendText(msg.From, "Please send a text description or voice note describing the problem.");
+    await sendText(msg.From, "Please send a text description describing the problem.");
     return;
   }
   
