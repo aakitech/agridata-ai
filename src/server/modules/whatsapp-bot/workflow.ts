@@ -1,12 +1,11 @@
 import { db } from "~/server/db";
-import { botSessions, botUsers, reports, reportMedia } from "~/server/db/schema";
+import { botSessions, appUsers, reports, reportMedia } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { env } from "~/env";
 import twilio from "twilio";
 import { MediaService } from "~/server/modules/media/media-service";
 
 // Initialize Twilio Client
-// Note: In a real app, ensure these are set. For now, we assume they are.
 const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
 
 type IncomingMessage = {
@@ -18,25 +17,21 @@ type IncomingMessage = {
   Longitude?: string;
 };
 
-type BotState = "IDLE" | "AWAITING_MENU_CHOICE" | "AWAITING_PHOTO" | "AWAITING_LOCATION" | "AWAITING_DESCRIPTION";
+type BotState = "IDLE" | "AWAITING_LABEL" | "AWAITING_PHOTO_COUNT" | "AWAITING_LOCATION";
 
 export async function handleIncomingMessage(msg: IncomingMessage) {
   const phoneNumber = msg.From;
 
-  // 1. Get or Create User
-  let user = await db.query.botUsers.findFirst({
-    where: eq(botUsers.phoneNumber, phoneNumber),
+  // 1. Whitelist Check (Middleware)
+  const user = await db.query.appUsers.findFirst({
+    where: eq(appUsers.phoneNumber, phoneNumber),
   });
 
-  if (!user) {
-    const [newUser] = await db
-      .insert(botUsers)
-      .values({ phoneNumber })
-      .returning();
-    user = newUser;
+  if (!user || !user.isActive) {
+    console.log(`⛔ Access denied for ${phoneNumber}`);
+    await sendText(phoneNumber, "Welcome to AgriData AI. This is a closed beta system.\n\nPlease contact admin@agridata.ai to request access.");
+    return;
   }
-
-  if (!user) throw new Error("Failed to create user");
 
   // 2. Get or Create Session
   let session = await db.query.botSessions.findFirst({
@@ -44,6 +39,7 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
   });
 
   if (!session) {
+    // Check if session creation works with foreign key constraint (user must exist, which we confirmed)
     const [newSession] = await db
       .insert(botSessions)
       .values({ userId: user.id, currentState: "IDLE" })
@@ -61,77 +57,39 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
       case "IDLE":
         await handleIdle(user.id, msg);
         break;
-      case "AWAITING_MENU_CHOICE":
-        await handleMenuChoice(user.id, msg);
+      case "AWAITING_LABEL":
+        await handleLabel(user.id, session, msg);
         break;
-      case "AWAITING_PHOTO":
-        await handlePhoto(user.id, session, msg);
+      case "AWAITING_PHOTO_COUNT":
+        await handlePhotoCount(user.id, session, msg);
         break;
       case "AWAITING_LOCATION":
         await handleLocation(user.id, session, msg);
         break;
-      case "AWAITING_DESCRIPTION":
-        await handleDescription(user.id, session, msg);
-        break;
       default:
         // Reset if unknown state
-        await sendText(phoneNumber, "Something went wrong. Resetting...");
+        await sendText(phoneNumber, "System update. Resetting conversation...");
         await updateState(user.id, "IDLE");
     }
   } catch (error) {
     console.error("Error in state machine:", error);
     await sendText(phoneNumber, "An error occurred. Please try again.");
+    await updateState(user.id, "IDLE");
   }
 }
 
 // --- Helpers ---
 
 async function sendText(to: string, body: string) {
-  console.log(`📤 Attempting to send message to ${to}:`, body);
-  console.log(`📱 Using Twilio number: ${env.TWILIO_PHONE_NUMBER}`);
-  
+  console.log(`📤 Message to ${to}: ${body}`);
   try {
-    const result = await client.messages.create({
+    await client.messages.create({
       from: `whatsapp:${env.TWILIO_PHONE_NUMBER}`,
       to,
       body,
     });
-    console.log(`✅ Message sent successfully! SID: ${result.sid}`);
   } catch (e) {
     console.error("❌ Twilio Error:", e);
-  }
-}
-
-async function handleWeatherCheck(to: string, latitude: string, longitude: string) {
-  try {
-    // Call Open-Meteo API
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m&timezone=auto`
-    );
-    
-    const data = await response.json() as any;
-    const temp = Math.round(data.current.temperature_2m);
-    const humidity = data.current.relative_humidity_2m;
-    
-    // Simple risk assessment
-    let riskLevel = "Low";
-    let riskMessage = "Conditions look good.";
-    
-    if (temp > 28 && humidity < 60) {
-      riskLevel = "⚠️ High";
-      riskMessage = "Hot and dry conditions favor Aphids and Spider Mites. Scout your fields!";
-    } else if (temp > 25 && humidity > 80) {
-      riskLevel = "⚠️ Moderate";
-      riskMessage = "Warm and humid conditions may promote fungal diseases. Monitor closely.";
-    }
-    
-    await sendText(
-      to,
-      `📍 *Weather Update*\n\n🌡️ Temperature: ${temp}°C\n💧 Humidity: ${humidity}%\n\n${riskLevel}: ${riskMessage}\n\nStay vigilant! 🌱`
-    );
-  } catch (error) {
-    console.error("Weather API error:", error);
-    await sendText(to, "Sorry, I couldn't fetch the weather data right now. Please try again later.");
   }
 }
 
@@ -140,175 +98,146 @@ async function updateState(userId: string, state: BotState, draftReportId?: stri
     .set({ 
         currentState: state, 
         lastActive: new Date(),
-        draftReportId: draftReportId ?? undefined
+        draftReportId: draftReportId ?? undefined // Set to null if undefined is passed? No, keep it if not strictly cleared.
+        // Actually, if we pass undefined, Drizzle ignores it?
+        // We should pass null if we want to clear it.
+        // For now, only update if provided or explicitly null.
     })
     .where(eq(botSessions.userId, userId));
+    
+    // Explicit update for draftReportId if needed would be better.
+    if (draftReportId !== undefined) {
+         await db.update(botSessions)
+            .set({ draftReportId: draftReportId })
+            .where(eq(botSessions.userId, userId));
+    }
 }
 
 // --- Handlers ---
 
 async function handleIdle(userId: string, msg: IncomingMessage) {
-  // Send greeting with menu options in a single message
-  await sendText(
-    msg.From, 
-    "Mhoro! I am your crop protection assistant. 🌱\n\nHow can I help you today?\n\n1️⃣ Report Crop Problem\n2️⃣ Check Local Risk\n\nReply with 1 or 2"
-  );
-  await updateState(userId, "AWAITING_MENU_CHOICE");
+  // Trigger: Expecting Image or "Hi"
+  
+  if (msg.MediaUrl0) {
+    // User sent an image immediately. Start flow.
+    await startReportFlow(userId, msg);
+  } else {
+    // User sent text.
+    await sendText(
+      msg.From, 
+      "Hello! 👋\n\nI am ready to collect data. Please **send a photo** of what you are observing."
+    );
+    // Stay IDLE.
+  }
 }
 
-async function handleMenuChoice(userId: string, msg: IncomingMessage) {
-  const choice = msg.Body?.trim();
-
-  if (choice === "1" || choice?.toLowerCase().includes("report") || choice?.toLowerCase().includes("problem")) {
-    // Create Draft Report
+async function startReportFlow(userId: string, msg: IncomingMessage) {
+    // 1. Create Report
     const [report] = await db.insert(reports)
-        .values({ userId, status: "DRAFT" })
+        .values({ 
+            userId, 
+            orgId: (await db.query.appUsers.findFirst({ where: eq(appUsers.id, userId) }))!.orgId, // Fetch orgId
+            status: "DRAFT" 
+        })
         .returning();
     
     if (!report) throw new Error("Failed to create report");
 
-    await sendText(
-      msg.From, 
-      "📸 *Photos Required*\n\nPlease send clear photos of the damaged plant.\n\n✅ Best results:\n• Close-up of affected leaves or stems\n• Good lighting\n• Focus on the damage\n\nTap the 📎 icon to attach a photo.\n\n(You can send multiple photos. Type *DONE* when finished.)"
-    );
-    await updateState(userId, "AWAITING_PHOTO", report.id);
-  } else if (choice === "2" || choice?.toLowerCase().includes("risk") || choice?.toLowerCase().includes("weather")) {
-    // Set intent for weather check
-    await db.update(botSessions)
-      .set({ 
-        metadata: { intent: "WEATHER" },
-        lastActive: new Date()
-      })
-      .where(eq(botSessions.userId, userId));
-    
-    await sendText(
-      msg.From,
-      "📍 *Location Required*\n\nTo check the risk in your area, I need your location.\n\nTap the 📎 (Paperclip) icon → Location → 'Send Your Current Location'"
-    );
-    await updateState(userId, "AWAITING_LOCATION");
-  } else {
-    await sendText(msg.From, "I didn't understand that. Please reply with:\n\n1️⃣ for Report Crop Problem\n2️⃣ for Check Local Risk");
-  }
+    // 2. Handle Image
+    await processImage(report.id, msg);
+
+    // 3. Ask for Label
+    await sendText(msg.From, "📸 Photo received!\n\n**What is this?**\n(e.g., Fall Armyworm, Desert Locust)");
+    await updateState(userId, "AWAITING_LABEL", report.id);
 }
 
+async function processImage(reportId: string, msg: IncomingMessage) {
+    if (!msg.MediaUrl0) return;
 
+    const mediaService = new MediaService();
+    // Default to image/jpeg if not provided
+    const contentType = msg.MediaContentType0 || "image/jpeg";
+    
+    let mediaUrl = msg.MediaUrl0;
 
-// ...
+    try {
+        // Upload to Supabase
+        mediaUrl = await mediaService.uploadFromTwilio(msg.MediaUrl0, reportId, contentType);
+    } catch (error) {
+        console.error("Upload failed, using Twilio URL fallback", error);
+    }
 
-async function handlePhoto(userId: string, session: any, msg: IncomingMessage) {
-  const reportId = session.draftReportId;
-  if (!reportId) {
-    await sendText(msg.From, "Session error. Restarting.");
-    await updateState(userId, "IDLE");
-    return;
-  }
+    // Save Media Record
+    await mediaService.saveMediaRecord(reportId, mediaUrl, contentType);
+    
+    // Also update main report media_url for thumbnail/convenience
+    await db.update(reports).set({ mediaUrl }).where(eq(reports.id, reportId));
+}
 
-  // Check for "DONE" command
-  if (msg.Body?.trim().toUpperCase() === "DONE") {
-    await sendText(msg.From, "Great! Now, please share your location. 📍\n(Tap the attachment icon -> Location)");
+async function handleLabel(userId: string, session: any, msg: IncomingMessage) {
+    const reportId = session.draftReportId;
+    if (!reportId) return reset(userId, msg.From);
+
+    if (msg.Body) {
+        // Save Label
+        await db.update(reports)
+            .set({ label: msg.Body })
+            .where(eq(reports.id, reportId));
+        
+        // Ask for Count
+        await sendText(msg.From, "Got it. **How many?**\n(Reply with a number or type 'SKIP')");
+        await updateState(userId, "AWAITING_PHOTO_COUNT", reportId);
+    } else {
+        await sendText(msg.From, "Please type the name of the pest or object.");
+    }
+}
+
+async function handlePhotoCount(userId: string, session: any, msg: IncomingMessage) {
+    const reportId = session.draftReportId;
+    if (!reportId) return reset(userId, msg.From);
+
+    const text = msg.Body?.trim().toUpperCase();
+    
+    if (text && text !== "SKIP") {
+        await db.update(reports)
+            .set({ quantity: text })
+            .where(eq(reports.id, reportId));
+    }
+
+    // Ask for Location
+    await sendText(
+        msg.From, 
+        "Almost done! Please share your **Location**. 📍\n(Tap 📎 -> Location -> Send Current Location)"
+    );
     await updateState(userId, "AWAITING_LOCATION", reportId);
-    return;
-  }
-
-  if (!msg.MediaUrl0) {
-    await sendText(msg.From, "Please send a photo or type 'DONE' if you are finished. 📸");
-    return;
-  }
-
-  // Upload to Supabase Storage (with fallback)
-  const mediaService = new MediaService();
-  const contentType = msg.MediaContentType0 || "image/jpeg";
-  let mediaUrl = msg.MediaUrl0;
-
-  try {
-    // Attempt to upload to Supabase
-    mediaUrl = await mediaService.uploadFromTwilio(msg.MediaUrl0, reportId, contentType);
-    console.log(`✅ Uploaded to Supabase: ${mediaUrl}`);
-  } catch (error) {
-    console.error("⚠️ Failed to upload to Supabase, falling back to Twilio URL:", error);
-    // Fallback: mediaUrl remains as msg.MediaUrl0
-  }
-
-  // Save Media Record
-  await mediaService.saveMediaRecord(reportId, mediaUrl, contentType);
-
-  // Count photos
-  const mediaCount = await db.$count(reportMedia, eq(reportMedia.reportId, reportId));
-
-  await sendText(
-    msg.From, 
-    `✅ Photo received! (Total: ${mediaCount})\n\nSend another photo or type *DONE* to finish.`
-  );
-  // Stay in AWAITING_PHOTO state
 }
 
 async function handleLocation(userId: string, session: any, msg: IncomingMessage) {
-  if (msg.Latitude && msg.Longitude) {
-    const locationStr = `POINT(${msg.Longitude} ${msg.Latitude})`;
-    
-    // Check if this is for weather or reporting
-    const sessionData = await db.query.botSessions.findFirst({
-      where: eq(botSessions.userId, userId),
-    });
-    
-    const intent = (sessionData?.metadata as any)?.intent;
-    
-    if (intent === "WEATHER") {
-      // Weather check flow
-      await handleWeatherCheck(msg.From, msg.Latitude, msg.Longitude);
-      
-      // Clear metadata and return to IDLE
-      await db.update(botSessions)
-        .set({ metadata: null, lastActive: new Date() })
-        .where(eq(botSessions.userId, userId));
-      
-      await updateState(userId, "IDLE");
+    const reportId = session.draftReportId;
+    if (!reportId) return reset(userId, msg.From);
+
+    if (msg.Latitude && msg.Longitude) {
+        const locationStr = `POINT(${msg.Longitude} ${msg.Latitude})`;
+        
+        await db.update(reports)
+            .set({ 
+                location: locationStr, 
+                status: "PENDING_TRIAGE" // Mark as ready
+            })
+            .where(eq(reports.id, reportId));
+        
+        await sendText(msg.From, "✅ **Report Saved!**\n\nThank you for your observation. You can send another photo anytime.");
+        await updateState(userId, "IDLE"); // Clear draftReportId implicitly or explicitly? 
+        // We should clear draftReportId.
+        await db.update(botSessions).set({ draftReportId: null }).where(eq(botSessions.userId, userId));
+
     } else {
-      // Report flow
-      const reportId = session.draftReportId;
-      if (!reportId) {
-        await sendText(msg.From, "Session error. Restarting.");
-        await updateState(userId, "IDLE");
-        return;
-      }
-      
-      await db.update(reports)
-        .set({ location: locationStr })
-        .where(eq(reports.id, reportId));
-      
-      await sendText(
-        msg.From, 
-        "📍 Location received!\n\nFinally, please describe what you see.\n\n💬 Please type a message describing the symptoms, when you noticed them, and how widespread the problem is."
-      );
-      await updateState(userId, "AWAITING_DESCRIPTION", reportId);
+        await sendText(msg.From, "Please send a Location attachment. 📍");
     }
-  } else {
-    await sendText(msg.From, "Please share your location using the attachment menu. 📍\n\nTap 📎 → Location → 'Send Your Current Location'");
-  }
 }
 
-async function handleDescription(userId: string, session: any, msg: IncomingMessage) {
-  const reportId = session.draftReportId;
-  if (!reportId) {
-    await sendText(msg.From, "Session error. Restarting.");
+async function reset(userId: string, phone: string) {
+    await sendText(phone, "Session expired or invalid. Let's start over.");
     await updateState(userId, "IDLE");
-    return;
-  }
-
-  if (msg.Body) {
-    // Save text description
-    await db.update(reports)
-      .set({ 
-        description: msg.Body,
-        status: "PENDING_TRIAGE"
-      })
-      .where(eq(reports.id, reportId));
-    
-    await sendText(msg.From, `✅ Report #${reportId.slice(0, 8)} received!\n\nThank you for helping us protect our crops. 🌱\n\nWe'll notify you if an alert is issued in your area.`);
-  } else {
-    await sendText(msg.From, "Please send a text description describing the problem.");
-    return;
-  }
-  
-  await updateState(userId, "IDLE");
+    await db.update(botSessions).set({ draftReportId: null }).where(eq(botSessions.userId, userId));
 }

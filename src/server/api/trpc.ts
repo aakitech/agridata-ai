@@ -6,11 +6,15 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { createClient } from "@supabase/supabase-js";
 
 import { db } from "~/server/db";
+import { env } from "~/env";
+import { appUsers } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * 1. CONTEXT
@@ -25,8 +29,46 @@ import { db } from "~/server/db";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
+  const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  
+  // Get token from header
+  const authHeader = opts.headers.get("authorization");
+  const token = authHeader?.split(" ")[1];
+  
+  console.log(`[TRPC Context] Auth Header present: ${!!authHeader}, Token length: ${token?.length ?? 0}`);
+
+  let user = null;
+  let appUser = null;
+
+  if (token) {
+    const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
+    
+    if (error) {
+        console.error(`[TRPC Context] Supabase Auth Error: ${error.message}`);
+    }
+
+    if (supabaseUser && !error) {
+      console.log(`[TRPC Context] Supabase User verified: ${supabaseUser.email} (${supabaseUser.id})`);
+      user = supabaseUser;
+      // Fetch internal App User profile
+      appUser = await db.query.appUsers.findFirst({
+        where: eq(appUsers.authId, supabaseUser.id),
+      });
+      
+      if (!appUser) {
+          console.warn(`[TRPC Context] ⚠️ App User not found for Auth ID: ${supabaseUser.id}`);
+      } else {
+          console.log(`[TRPC Context] App User found: ${appUser.role} (Org: ${appUser.orgId})`);
+      }
+    }
+  } else {
+      console.log("[TRPC Context] No token found in request");
+  }
+
   return {
     db,
+    user,     // Supabase Auth User
+    appUser,  // Internal DB User (with Org ID)
     ...opts,
   };
 };
@@ -104,3 +146,26 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * are logged in.
  */
 export const publicProcedure = t.procedure.use(timingMiddleware);
+
+/**
+ * Protected (authenticated) procedure
+ *
+ * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
+ * the session is valid and guarantees `ctx.session.user` is not null.
+ *
+ * @see https://trpc.io/docs/procedures
+ */
+export const protectedProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(async ({ ctx, next }) => {
+    if (!ctx.user || !ctx.appUser) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+    return next({
+      ctx: {
+        // infers the `user` and `appUser` as non-nullable
+        user: ctx.user,
+        appUser: ctx.appUser,
+      },
+    });
+  });

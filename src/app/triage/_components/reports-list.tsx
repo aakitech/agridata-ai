@@ -12,8 +12,8 @@ type Report = {
   createdAt: Date;
   category: "PEST" | "DISEASE" | "WEATHER" | null;
   user?: {
-    phoneNumber: string;
-    languagePref: string | null;
+    phoneNumber: string | null;
+    // languagePref removed as it's not in app_users
   };
   media?: Array<{
     id: string;

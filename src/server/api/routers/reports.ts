@@ -1,30 +1,31 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { TriageService } from "~/server/modules/triage/triage-service";
 
 export const reportsRouter = createTRPCRouter({
   // Get reports by status
-  getAll: publicProcedure
+  getAll: protectedProcedure
     .input(
       z.object({
         status: z.enum(["PENDING_TRIAGE", "VERIFIED", "REJECTED"]).optional().default("PENDING_TRIAGE"),
       })
     )
     .query(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db);
+      // Pass orgId from authenticated user context
+      const service = new TriageService(ctx.db, ctx.appUser.orgId);
       return service.getReportsByStatus(input.status);
     }),
 
   // Get a single report by ID
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db);
+      const service = new TriageService(ctx.db, ctx.appUser.orgId);
       return service.getReportById(input.id);
     }),
 
   // Verify a report
-  verify: publicProcedure
+  verify: protectedProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -33,12 +34,12 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db);
-      return service.verifyReport(input);
+      const service = new TriageService(ctx.db, ctx.appUser.orgId);
+      return service.verifyReport(input, ctx.appUser.id);
     }),
 
   // Reject a report
-  reject: publicProcedure
+  reject: protectedProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -46,7 +47,7 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db);
-      return service.rejectReport(input);
+      const service = new TriageService(ctx.db, ctx.appUser.orgId);
+      return service.rejectReport(input, ctx.appUser.id);
     }),
 });
