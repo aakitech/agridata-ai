@@ -23,7 +23,7 @@ export class TriageService {
       },
       orderBy: (reports, { desc, asc }) => 
         status === "PENDING_TRIAGE" 
-          ? [asc(reports.createdAt)] 
+          ? [desc(reports.createdAt)] 
           : [desc(reports.verifiedAt)],
     });
   }
