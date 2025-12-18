@@ -40,6 +40,7 @@ export const botStateEnum = pgEnum("bot_state", [
 ]);
 
 export const userRoleEnum = pgEnum("user_role", [
+  "super_admin",
   "admin",
   "officer",
 ]);

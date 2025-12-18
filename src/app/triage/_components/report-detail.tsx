@@ -41,6 +41,13 @@ type Report = {
   location: string | null;
   description: string | null;
   createdAt: Date;
+  organization?: {
+    name: string;
+  };
+  user?: {
+    fullName: string | null;
+    phoneNumber: string | null;
+  };
   media?: Array<{
     id: string;
     mediaUrl: string;
@@ -159,7 +166,19 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight">Report Details</h2>
+        <div className="space-y-1">
+            <h2 className="text-2xl font-bold tracking-tight">Report Details</h2>
+            <div className="flex items-center gap-2">
+                {report.organization && (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                        {report.organization.name}
+                    </span>
+                )}
+                <span className="text-sm text-muted-foreground">
+                    by {report.user?.fullName || report.user?.phoneNumber || "Unknown User"}
+                </span>
+            </div>
+        </div>
         <div className="text-sm text-muted-foreground">ID: {report.id}</div>
       </div>
 

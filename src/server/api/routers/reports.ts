@@ -8,19 +8,20 @@ export const reportsRouter = createTRPCRouter({
     .input(
       z.object({
         status: z.enum(["PENDING_TRIAGE", "VERIFIED", "REJECTED"]).optional().default("PENDING_TRIAGE"),
+        filterOrgId: z.string().uuid().optional(),
       })
     )
     .query(async ({ ctx, input }) => {
       // Pass orgId from authenticated user context
-      const service = new TriageService(ctx.db, ctx.appUser.orgId);
-      return service.getReportsByStatus(input.status);
+      const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
+      return service.getReportsByStatus(input.status, input.filterOrgId);
     }),
 
   // Get a single report by ID
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db, ctx.appUser.orgId);
+      const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
       return service.getReportById(input.id);
     }),
 
@@ -34,7 +35,7 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db, ctx.appUser.orgId);
+      const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
       return service.verifyReport(input, ctx.appUser.id);
     }),
 
@@ -47,7 +48,7 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db, ctx.appUser.orgId);
+      const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
       return service.rejectReport(input, ctx.appUser.id);
     }),
 });

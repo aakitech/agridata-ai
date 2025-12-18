@@ -11,6 +11,9 @@ type Report = {
   mediaUrl: string | null;
   createdAt: Date;
   category: "PEST" | "DISEASE" | "WEATHER" | null;
+  organization?: {
+    name: string;
+  };
   user?: {
     phoneNumber: string | null;
     // languagePref removed as it's not in app_users
@@ -73,6 +76,11 @@ export function ReportsList({ reports, selectedId, onSelect }: ReportsListProps)
                     <Badge variant="secondary" className="text-[10px] px-1.5 h-5">
                       {report.category}
                     </Badge>
+                  )}
+                  {report.organization && (
+                     <Badge variant="outline" className="text-[10px] px-1.5 h-5 truncate max-w-[80px]">
+                        {report.organization.name}
+                     </Badge>
                   )}
                 </div>
                 

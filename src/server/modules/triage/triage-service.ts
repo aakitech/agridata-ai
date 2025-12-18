@@ -3,25 +3,38 @@ import { reports } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export class TriageService {
-  constructor(private database: typeof db, private orgId?: string) {}
+  constructor(private database: typeof db, private orgId: string | undefined, private userRole: "super_admin" | "admin" | "officer") {}
 
-  async getReportsByStatus(status: "PENDING_TRIAGE" | "VERIFIED" | "REJECTED" = "PENDING_TRIAGE") {
-    // If orgId is present, filter by it. If not (e.g. system usage?), maybe fetch all? 
-    // For safety, we should assume orgId is required for this service in this context.
-    // If orgId is missing, return empty or throw? 
-    // Let's assume passed orgId is required for dashboard usage.
-    if (!this.orgId) return [];
+  async getReportsByStatus(status: "PENDING_TRIAGE" | "VERIFIED" | "REJECTED" = "PENDING_TRIAGE", filterOrgId?: string) {
+    // If not super admin, orgId is required
+    if (this.userRole !== "super_admin" && !this.orgId) return [];
 
     return this.database.query.reports.findMany({
-      where: (reports, { eq, and }) => and(
+      where: (reports, { eq, and }) => {
+        const conditions = [
           eq(reports.status, status),
-          eq(reports.orgId, this.orgId!)
-      ),
+        ];
+
+        // Apply Org ID filter:
+        // 1. If Super Admin AND filterOrgId is provided -> Filter by that org
+        // 2. If NOT Super Admin -> Enforce specific org
+        // 3. If Super Admin AND no filter -> Show all (no condition added)
+        if (this.userRole === "super_admin") {
+          if (filterOrgId) {
+            conditions.push(eq(reports.orgId, filterOrgId));
+          }
+        } else {
+           conditions.push(eq(reports.orgId, this.orgId!));
+        }
+        
+        return and(...conditions);
+      },
       with: {
         user: true,
         media: true,
+        organization: true, // Always fetch organization for display
       },
-      orderBy: (reports, { desc, asc }) => 
+      orderBy: (reports, { desc }) => 
         status === "PENDING_TRIAGE" 
           ? [desc(reports.createdAt)] 
           : [desc(reports.verifiedAt)],
@@ -29,16 +42,22 @@ export class TriageService {
   }
 
   async getReportById(id: string) {
-    if (!this.orgId) return null;
+    if (this.userRole !== "super_admin" && !this.orgId) return null;
 
     return this.database.query.reports.findFirst({
-      where: (reports, { eq, and }) => and(
-          eq(reports.id, id),
-          eq(reports.orgId, this.orgId!)
-      ),
+      where: (reports, { eq, and }) => {
+        const conditions = [eq(reports.id, id)];
+        
+        if (this.userRole !== "super_admin") {
+          conditions.push(eq(reports.orgId, this.orgId!));
+        }
+        
+        return and(...conditions);
+      },
       with: {
         user: true,
         media: true,
+        organization: true,
       },
     });
   }

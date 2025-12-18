@@ -9,17 +9,21 @@ import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 type TriageStatus = "PENDING_TRIAGE" | "VERIFIED" | "REJECTED";
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+
+// ...
+
 export function TriageDashboard() {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [status, setStatus] = useState<TriageStatus>("PENDING_TRIAGE");
+  const [filterOrgId, setFilterOrgId] = useState<string | undefined>(undefined);
   
-  const { data: reports, isLoading } = api.reports.getAll.useQuery({ status });
+  const { data: reports, isLoading } = api.reports.getAll.useQuery({ status, filterOrgId });
+  const { data: orgs } = api.organizations.getAll.useQuery();
+  
   const selectedReport = reports?.find((r) => r.id === selectedReportId);
 
-  // Auto-select first report if none selected and we have reports
-  if (!selectedReportId && reports && reports.length > 0) {
-    setSelectedReportId(reports[0]!.id);
-  }
+  // ...
 
   return (
     <div className="flex h-full bg-background text-foreground overflow-hidden">
@@ -32,6 +36,21 @@ export function TriageDashboard() {
               Review and verify crop reports
             </p>
           </div>
+
+          {/* Org Filter (Only show if multiple orgs exist) */}
+          {orgs && orgs.length > 0 && (
+             <Select value={filterOrgId ?? "all"} onValueChange={(val) => setFilterOrgId(val === "all" ? undefined : val)}>
+                <SelectTrigger className="h-8 text-xs">
+                   <SelectValue placeholder="All Organizations" />
+                </SelectTrigger>
+                <SelectContent>
+                   <SelectItem value="all">All Organizations</SelectItem>
+                   {orgs.map((org: { id: string; name: string }) => (
+                      <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                   ))}
+                </SelectContent>
+             </Select>
+          )}
           
           <Tabs value={status} onValueChange={(v) => setStatus(v as TriageStatus)} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
