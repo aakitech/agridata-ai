@@ -136,21 +136,10 @@ export class AnalyticsService {
   }
 
   async getRecentReports(limit: number = 5, filterOrgId?: string) {
-      // Logic:
-      // 1. If Super Admin AND filter -> Filter by that Org
-      // 2. If Super Admin AND NO filter -> No filter
-      // 3. If Org Admin -> Filter by Own Org
-      
-      let orgFilter = undefined;
-      
-      if (this.userRole !== "super_admin") {
-          orgFilter = eq(reports.orgId, this.orgId!);
-      } else if (filterOrgId) {
-          orgFilter = eq(reports.orgId, filterOrgId);
-      }
+      const whereClause = this.getCombinedFilter(filterOrgId);
 
       return this.database.query.reports.findMany({
-          where: orgFilter ? (reports, { eq }) => eq(reports.orgId, this.userRole !== "super_admin" ? this.orgId! : filterOrgId!) : undefined,
+          where: whereClause,
           with: {
               organization: true,
               user: true, 
@@ -180,7 +169,7 @@ export class AnalyticsService {
         .limit(100); // Limit for performance on overview
 
       return results.map(r => {
-          const coordinates = r.location?.match(/POINT\(([^ ]+) ([^ ]+)\)/);
+          const coordinates = r.location?.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
           return {
               id: r.id,
               lat: coordinates ? parseFloat(coordinates[2]!) : null,

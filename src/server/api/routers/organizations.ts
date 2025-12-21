@@ -5,11 +5,15 @@ import { organizations } from "~/server/db/schema";
 
 export const organizationsRouter = createTRPCRouter({
   getAll: authProcedure.query(async ({ ctx }) => {
-    // Only allow if user is an admin? 
-    // For now, let's allow all authenticated users to see orgs (for selection), 
-    // or maybe restrict. 
-    // Given the requirement is for "Super Admin" type flows, let's keep it simple.
-    
+    // If user has a profile, and is not a super_admin, only return their own organization
+    if (ctx.appUser && ctx.appUser.role !== "super_admin") {
+      return ctx.db.query.organizations.findMany({
+        where: (orgs, { eq }) => eq(orgs.id, ctx.appUser!.orgId),
+        orderBy: (orgs, { asc }) => [asc(orgs.name)],
+      });
+    }
+
+    // Otherwise (onboarding or super admin), return all organizations
     return ctx.db.query.organizations.findMany({
       orderBy: (orgs, { asc }) => [asc(orgs.name)],
     });

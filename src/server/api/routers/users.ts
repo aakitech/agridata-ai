@@ -4,6 +4,15 @@ import { appUsers, organizations } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export const usersRouter = createTRPCRouter({
+  getMe: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db.query.appUsers.findFirst({
+      where: eq(appUsers.authId, ctx.user.id),
+      with: {
+        organization: true,
+      },
+    });
+  }),
+
   getAll: protectedProcedure.query(async ({ ctx }) => {
     // Check if user is Super Admin (Internal Org)
     // We can check slug or ID. Slug is more readable but requires a join or separate query.

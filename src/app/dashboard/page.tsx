@@ -20,6 +20,9 @@ export default function DashboardPage() {
   const [filterOrgId, setFilterOrgId] = useState<string | undefined>(undefined);
   const [range, setRange] = useState<"7d" | "30d">("7d");
 
+  // Fetch Current User
+  const { data: me } = api.users.getMe.useQuery();
+
   // Fetch Stats
   const { data: stats, isLoading: statsLoading } = api.analytics.getStats.useQuery({ filterOrgId });
   // Fetch Trends
@@ -62,8 +65,8 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
-              {/* Org Filter (Only show if multiple orgs exist) */}
-              {orgs && orgs.length > 0 && (
+              {/* Org Filter (Only show for super_admin) */}
+              {me?.role === "super_admin" && orgs && orgs.length > 0 && (
                 <Select value={filterOrgId ?? "all"} onValueChange={(val) => setFilterOrgId(val === "all" ? undefined : val)}>
                     <SelectTrigger className="w-[200px] h-9">
                         <SelectValue placeholder="All Organizations" />
@@ -75,6 +78,12 @@ export default function DashboardPage() {
                         ))}
                     </SelectContent>
                 </Select>
+              )}
+
+              {me?.role !== "super_admin" && me?.organization && (
+                  <Badge variant="outline" className="h-9 px-3 text-sm font-normal">
+                      {me.organization.name}
+                  </Badge>
               )}
 
               <Select value={range} onValueChange={(val) => setRange(val as "7d" | "30d")}>
@@ -112,7 +121,7 @@ export default function DashboardPage() {
             )}
          </div>
 
-         <div className="bg-card border rounded-xl p-4 h-[450px] overflow-hidden">
+         <div className="bg-card border rounded-xl p-4 h-[450px] overflow-y-auto">
             {activity && <RecentActivity reports={activity as any} />}
          </div>
       </div>

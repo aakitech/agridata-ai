@@ -15,20 +15,20 @@ The Analytics Dashboard complements the operational Triage tool by providing str
 A row of key metric cards at the top of the dashboard.
 - **Total Reports**: Volume of data coming in.
 - **Reports this Week**: Trend indicator (up/down).
-- **Active Scouts**: Number of unique users submitting data.
-- **Risk Overview**: Percentage of High vs Low risk reports.
+- **Active Scouts**: Number of unique user IDs submitting reports.
+- **Risk Overview (High Risk Alerts)**: A real-time count of reports that have been triaged as "HIGH" risk. It highlights the volume of critical outbreaks requiring immediate response.
 
 ### 2.2 Geographic Visualization (The Map)
 A visual representation of *where* data is coming from in Zimbabwe.
-- **Component**: Leaflet Map (reusing existing map infrastructure).
+- **Data Source**: Aggregates all reports with valid GPS coordinates.
+- **Zimbabwe Context**: The map centers on Zimbabwe by default. Markers are placed based on the `location` field (stored as WKT POINT strings).
 - **Features**:
-    - **Clustering**: Group nearby reports to avoid clutter.
-    - **Heatmap Layer**: Optional view to show density of outbreaks.
-    - **Filters**: By Date Range, Pest Type.
+    - **Live Markers**: Each marker represents a report. Clicking shows the diagnosis and risk level.
+    - **Color Coding**: Markers represent the risk level (via badge color in the popup).
 
 ### 2.3 Charts & Trends
 - **Reports Over Time**: Line/Area chart showing submission volume (Daily/Weekly).
-- **Pest Distribution**: Pie/Bar chart showing most common pests/diseases.
+- **Pest Distribution**: A bar chart visualizing the frequency of different pests/diseases based on **verified** reports. It groups reports by their `diagnosis` field to show which threats are most prevalent.
 - **Status Breakdown**: Verified vs Rejected vs Pending.
 
 ### 2.4 Data Table (Recent Activity)

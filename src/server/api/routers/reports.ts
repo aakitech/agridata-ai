@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { TRPCError } from "@trpc/server";
 import { TriageService } from "~/server/modules/triage/triage-service";
 
 export const reportsRouter = createTRPCRouter({
@@ -12,6 +13,9 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only super admins can access triage" });
+      }
       // Pass orgId from authenticated user context
       const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
       return service.getReportsByStatus(input.status, input.filterOrgId);
@@ -21,6 +25,9 @@ export const reportsRouter = createTRPCRouter({
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only super admins can access triage" });
+      }
       const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
       return service.getReportById(input.id);
     }),
@@ -35,6 +42,9 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
       const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
       return service.verifyReport(input, ctx.appUser.id);
     }),
@@ -48,6 +58,9 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
       const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
       return service.rejectReport(input, ctx.appUser.id);
     }),
