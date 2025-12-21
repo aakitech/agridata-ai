@@ -46,14 +46,20 @@ async function seed() {
   // 3. Create dummy reports
   const pests = ["Fall Armyworm", "Maize Lethal Necrosis", "Locusts", "Leaf Rust", "Grey Leaf Spot"];
   const locations = [
-    { name: "Harare", lon: 31.0335, lat: -17.8252 },
-    { name: "Bulawayo", lon: 28.5765, lat: -20.1465 },
-    { name: "Mutare", lon: 32.6670, lat: -18.9727 },
-    { name: "Gweru", lon: 29.8167, lat: -19.45 },
-    { name: "Masvingo", lon: 30.8333, lat: -20.0667 },
+    { name: "Harare", lon: 31.05, lat: -17.83 },
+    { name: "Bulawayo", lon: 28.58, lat: -20.15 },
+    { name: "Mutare", lon: 32.67, lat: -18.97 },
+    { name: "Gweru", lon: 29.82, lat: -19.45 },
+    { name: "Masvingo", lon: 30.83, lat: -20.07 },
     { name: "Chinhoyi", lon: 30.2, lat: -17.35 },
     { name: "Bindura", lon: 31.33, lat: -17.3 },
     { name: "Marondera", lon: 31.55, lat: -18.18 },
+    { name: "Victoria Falls", lon: 25.84, lat: -17.93 },
+    { name: "Beitbridge", lon: 29.99, lat: -22.21 },
+    { name: "Kariba", lon: 28.8, lat: -16.52 },
+    { name: "Hwange", lon: 26.48, lat: -18.37 },
+    { name: "Chipinge", lon: 32.62, lat: -20.2 },
+    { name: "Gwanda", lon: 29.0, lat: -20.94 },
   ];
 
   const statuses: Array<"PENDING_TRIAGE" | "VERIFIED" | "REJECTED"> = ["PENDING_TRIAGE", "VERIFIED", "REJECTED"];
