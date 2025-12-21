@@ -28,41 +28,55 @@ import { eq } from "drizzle-orm";
  *
  * @see https://trpc.io/docs/server/context
  */
+import { createClient as createSupabaseServerClient } from "~/lib/supabase/server";
+
+/**
+ * 1. CONTEXT
+ *
+ * This section defines the "contexts" that are available in the backend API.
+ *
+ * These allow you to access things when processing a request, like the database, the session, etc.
+ *
+ * This helper generates the "internals" for a tRPC context. The API handler and RSC clients each
+ * wrap this and provides the required context.
+ *
+ * @see https://trpc.io/docs/server/context
+ */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  
-  // Get token from header
+  // Try to get token from header first (for client-side tRPC calls)
   const authHeader = opts.headers.get("authorization");
   const token = authHeader?.split(" ")[1];
   
-  console.log(`[TRPC Context] Auth Header present: ${!!authHeader}, Token length: ${token?.length ?? 0}`);
-
   let user = null;
   let appUser = null;
 
   if (token) {
+    // Client-side call with Bearer token
+    const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
     const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
     
-    if (error) {
-        console.error(`[TRPC Context] Supabase Auth Error: ${error.message}`);
-    }
-
     if (supabaseUser && !error) {
-      console.log(`[TRPC Context] Supabase User verified: ${supabaseUser.email} (${supabaseUser.id})`);
       user = supabaseUser;
-      // Fetch internal App User profile
-      appUser = await db.query.appUsers.findFirst({
-        where: eq(appUsers.authId, supabaseUser.id),
-      });
-      
-      if (!appUser) {
-          console.warn(`[TRPC Context] ⚠️ App User not found for Auth ID: ${supabaseUser.id}`);
-      } else {
-          console.log(`[TRPC Context] App User found: ${appUser.role} (Org: ${appUser.orgId})`);
-      }
     }
   } else {
-      console.log("[TRPC Context] No token found in request");
+    // Likely a Server Component call or missing token. Check cookies via server client.
+    try {
+      const supabase = await createSupabaseServerClient();
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+      if (supabaseUser) {
+        user = supabaseUser;
+      }
+    } catch (e) {
+      // Cookies might not be available in all contexts (e.g. some internal calls)
+      console.log("[TRPC Context] No token and cookies unavailable");
+    }
+  }
+
+  // If we have a Supabase user, fetch the internal profile
+  if (user) {
+    appUser = await db.query.appUsers.findFirst({
+      where: eq(appUsers.authId, user.id),
+    });
   }
 
   return {
@@ -148,12 +162,27 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 export const publicProcedure = t.procedure.use(timingMiddleware);
 
 /**
- * Protected (authenticated) procedure
+ * Auth procedure (Supabase Session only)
+ * 
+ * Used for onboarding where the user is logged in but doesn't have a profile yet.
+ */
+export const authProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(async ({ ctx, next }) => {
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+    return next({
+      ctx: {
+        user: ctx.user,
+      },
+    });
+  });
+
+/**
+ * Protected (authenticated & profiled) procedure
  *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
- *
- * @see https://trpc.io/docs/procedures
+ * Requires both a Supabase session AND an internal app_users profile.
  */
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)

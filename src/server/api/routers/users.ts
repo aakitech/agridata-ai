@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, authProcedure } from "~/server/api/trpc";
 import { appUsers, organizations } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -78,6 +78,37 @@ export const usersRouter = createTRPCRouter({
           phoneNumber: phone,
           orgId: targetOrgId,
           role: "officer",
+          isActive: true,
+        })
+        .returning();
+
+      return user;
+    }),
+
+  onboard: authProcedure
+    .input(
+      z.object({
+        fullName: z.string().min(1),
+        orgId: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Ensure no profile exists yet
+      const existing = await ctx.db.query.appUsers.findFirst({
+        where: eq(appUsers.authId, ctx.user.id),
+      });
+
+      if (existing) {
+        throw new Error("Profile already exists.");
+      }
+
+      const [user] = await ctx.db
+        .insert(appUsers)
+        .values({
+          authId: ctx.user.id,
+          fullName: input.fullName,
+          orgId: input.orgId,
+          role: "officer", // Default role
           isActive: true,
         })
         .returning();

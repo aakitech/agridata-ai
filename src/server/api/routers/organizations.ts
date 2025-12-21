@@ -1,10 +1,10 @@
 
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, authProcedure } from "~/server/api/trpc";
 import { organizations } from "~/server/db/schema";
 
 export const organizationsRouter = createTRPCRouter({
-  getAll: protectedProcedure.query(async ({ ctx }) => {
+  getAll: authProcedure.query(async ({ ctx }) => {
     // Only allow if user is an admin? 
     // For now, let's allow all authenticated users to see orgs (for selection), 
     // or maybe restrict. 
