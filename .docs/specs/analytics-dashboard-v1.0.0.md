@@ -6,8 +6,9 @@
 The Analytics Dashboard complements the operational Triage tool by providing strategic insights. It aggregates data collected via the WhatsApp bot to show trends, distributions, and geographic spread.
 
 ### Target Audience
-- **Super Admins**: View platform-wide statistics and filter by Organization.
-- **Organization Admins (e.g., MPBC)**: View statistics specific to their own organization's data.
+- **Super Admins**: Internal team with global access to all organizations and the Triage dashboard. (Primary channel: Web).
+- **Organization Admins**: Primary users of the Analytics Dashboard. They manage their organization's data. (Primary channel: Web, **Default for signups**).
+- **Officers (Scouts)**: Field team members who use the WhatsApp Bot for data ingestion. (Primary channel: WhatsApp).
 
 ## 2. Core Features
 

@@ -1,7 +1,15 @@
-import Link from "next/link";
 import { HydrateClient } from "~/trpc/server";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { createTRPCContext } from "~/server/api/trpc";
 
 export default async function Home() {
+  const ctx = await createTRPCContext({ headers: await headers() });
+  
+  if (ctx.user) {
+    redirect("/dashboard");
+  }
+
   return (
     <HydrateClient>
       <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">

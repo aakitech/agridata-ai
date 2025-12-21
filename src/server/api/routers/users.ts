@@ -117,7 +117,7 @@ export const usersRouter = createTRPCRouter({
           authId: ctx.user.id,
           fullName: input.fullName,
           orgId: input.orgId,
-          role: "officer", // Default role
+          role: "admin", // Default role for dashboard (web) users
           isActive: true,
         })
         .returning();

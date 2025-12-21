@@ -1,11 +1,19 @@
-
-import { login, signup } from "./actions";
+import { login, signup, resendVerification } from "./actions";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { createTRPCContext } from "~/server/api/trpc";
 
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const ctx = await createTRPCContext({ headers: await headers() });
+  
+  if (ctx.user) {
+    redirect("/dashboard");
+  }
+
   const params = await searchParams;
   const error = params.error;
 
@@ -70,6 +78,15 @@ export default async function LoginPage({
             >
               Sign up
             </button>
+          </div>
+
+          <div className="text-center mt-4">
+             <button
+               formAction={resendVerification}
+               className="text-xs text-gray-400 hover:text-green-600 underline"
+             >
+               Didn't get an email? Resend Verification
+             </button>
           </div>
         </form>
       </div>
