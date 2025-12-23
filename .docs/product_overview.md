@@ -1,0 +1,59 @@
+# AgriData AI: Product Overview & Features
+
+Welcome to AgriData AI. This document provides a high-level overview of our platform's capabilities, user roles, and how we manage data across different organizations.
+
+## 1. The Core Mission
+AgriData AI is designed to bridge the gap between field-level pest/disease reporting and strategic agricultural management. We provide a seamless flow of information from the field (via WhatsApp) to a centralized analytics dashboard for decision-makers.
+
+---
+
+## 2. Key Features
+
+### 📡 Data Ingestion (WhatsApp Bot)
+The primary way data enters our system. Field team members (Scouts/Officers) use a conversational WhatsApp interface to:
+- **Report Sightings**: Submit photos and details of pests or diseases.
+- **GPS Tagging**: Automatically capture the geographic location of the sighting.
+- **Simplicity**: No app to install; works on low-bandwidth connections.
+
+### 📊 Analytics Dashboard
+A visual command center for managers and researchers.
+- **Interactive Map**: View a geographic spread of sightings across Zimbabwe. Markers are color-coded by risk level.
+- **Statistical Scorecards**: Real-time counts of total reports, weekly trends, and active field members.
+- **Pest Distribution**: Bar charts showing which pests are currently the most prevalent based on verified data.
+- **Recent Activity Feed**: A live list of incoming reports with quick links to details.
+
+### 🛡️ Triage System
+An operational tool for internal experts to verify incoming data.
+- **Review Workflow**: Experts examine photos and descriptions to confirm or reject reports.
+- **Risk Assessment**: Assign risk levels (Low, Medium, High) to sightings to trigger appropriate responses.
+
+---
+
+## 3. User Roles & Access Control
+Access to information is strictly controlled to ensure data privacy and operational focus. Our system uses "Multi-Tenancy," meaning multiple organizations use the same platform but cannot see each other's data.
+
+### 👤 User Types
+
+| Role | Who is it for? | Primary Interface | Access Level |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | Internal Platform Team | Web Dashboard | **Global**: Can see all organizations, perform Triage, and manage users platform-wide. |
+| **Org Admin** | Managers / Researchers | Web Dashboard | **Organization-only**: Access to their specific organization's analytics and maps. |
+| **Officer (Scout)** | Extension Officers / Farmers | WhatsApp Bot | **Field-only**: Can submit reports but generally does not access the web dashboard. |
+
+### 🔐 How Access is Protected
+- **Organization Isolation**: When an Admin or Officer belongs to an organization (e.g., "MPBC"), they are technologically "fenced" into that organization. They cannot see sightings, reports, or users from any other group.
+- **Feature Gating**: 
+    - Only **Super Admins** can see the "Triage" menu.
+    - Only **Super Admins** can use the "Organization Switcher" on the dashboard to view data from different groups.
+- **Identity Verification**: All users must sign up and complete an onboarding profile before accessing any dashboard features.
+
+---
+
+## 4. Onboarding Workflow
+For new platform users, the flow is:
+1. **Sign Up**: Register with an email and password.
+2. **Onboard**: Select your Organization and provide your name. Web signups default to the **Admin** role for that organization.
+3. **Access**: Once onboarded, users are immediately directed to their organization's specific dashboard.
+
+---
+*AgriData AI — Empowering agriculture through data-driven insights.*
