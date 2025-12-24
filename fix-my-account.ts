@@ -49,13 +49,16 @@ async function main() {
 
     if (!internalOrg) throw new Error("Internal organization not found. please run seed first.");
 
-    const [newProfile] = await db.insert(appUsers).values({
+    const result = await db.insert(appUsers).values({
       authId: authUser.id,
       fullName: "Test Admin",
       orgId: internalOrg.id,
       role: "super_admin",
       isActive: true,
     }).returning();
+    
+    const newProfile = result[0];
+    if (!newProfile) throw new Error("Failed to create profile.");
     userId = newProfile.id;
     console.log("✅ Profile created and promoted.");
   } else {
