@@ -35,38 +35,9 @@ export async function login(formData: FormData) {
   redirect("/dashboard");
 }
 
+// Public signup is disabled for White Glove Authentication
 export async function signup(formData: FormData) {
-  const supabase = await createClient();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  console.log(`[Signup Attempt] Email: ${email}`);
-
-  const { data: authData, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.error(`[Signup Error] Email: ${email}, Message: ${error.message}`);
-    redirect("/login?error=" + encodeURIComponent(error.message));
-  }
-
-  console.log(`[Signup Result] User: ${authData.user?.email}, Session: ${!!authData.session}`);
-
-  revalidatePath("/", "layout");
-
-  if (!authData.session) {
-    // Check if the user already exists but is unconfirmed
-    if (authData.user && authData.user.identities?.length === 0) {
-       console.log(`[Signup Info] User ${email} already exists but might be unconfirmed.`);
-       redirect("/login?error=" + encodeURIComponent("This email is already registered but not verified. Check your spam or click 'Resend Verification'."));
-    }
-    
-    redirect("/login?error=" + encodeURIComponent("Registration successful! Check your email for a verification link. (Note: Supabase limits emails to 3 per hour on the free tier)"));
-  }
-
-  redirect("/dashboard");
+  redirect("/login?error=" + encodeURIComponent("Public signup is disabled. Please contact an administrator for an invite."));
 }
 
 export async function resendVerification(formData: FormData) {

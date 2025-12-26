@@ -62,6 +62,7 @@ export const appUsers = createTable(
       .references(() => organizations.id)
       .notNull(),
     authId: uuid("auth_id"), // Link to Supabase Auth (for Dashboard users)
+    email: text("email"), // Cached email for display
     phoneNumber: varchar("phone_number", { length: 50 }).unique(), // For Bot users
     fullName: text("full_name"),
     role: userRoleEnum("role").default("officer").notNull(),

@@ -1,4 +1,4 @@
-import { login, signup, resendVerification } from "./actions";
+import { login, resendVerification } from "./actions";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createTRPCContext } from "~/server/api/trpc";
@@ -71,12 +71,6 @@ export default async function LoginPage({
               className="group relative flex w-full justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
             >
               Log in
-            </button>
-            <button
-              formAction={signup}
-              className="group relative flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            >
-              Sign up
             </button>
           </div>
 
