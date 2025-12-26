@@ -14,15 +14,7 @@ export const usersRouter = createTRPCRouter({
   }),
 
   getAll: protectedProcedure.query(async ({ ctx }) => {
-    // Check if user is Super Admin (Internal Org)
-    // We can check slug or ID. Slug is more readable but requires a join or separate query.
-    // Since we have the orgId in appUser, let's fetch the org to check slug.
-    
-    const userOrg = await ctx.db.query.organizations.findFirst({
-        where: eq(organizations.id, ctx.appUser.orgId),
-    });
-
-    const isSuperAdmin = userOrg?.slug === "internal";
+    const isSuperAdmin = ctx.appUser.role === "super_admin";
 
     return ctx.db.query.appUsers.findMany({
       where: isSuperAdmin 
@@ -49,8 +41,8 @@ export const usersRouter = createTRPCRouter({
       
       // If orgId is provided, check if user is allowed to set it
       if (input.orgId && input.orgId !== ctx.appUser.orgId) {
-        if (ctx.appUser.role !== "admin") {
-           throw new Error("Only admins can add users to other organizations.");
+        if (ctx.appUser.role !== "super_admin") {
+           throw new Error("Only super admins can add users to other organizations.");
         }
         targetOrgId = input.orgId;
       }

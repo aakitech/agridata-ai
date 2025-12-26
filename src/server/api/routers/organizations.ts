@@ -22,8 +22,8 @@ export const organizationsRouter = createTRPCRouter({
   create: protectedProcedure
     .input(z.object({ name: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-        if (ctx.appUser.role !== "admin") {
-            throw new Error("Only admins can create organizations");
+        if (ctx.appUser.role !== "super_admin") {
+            throw new Error("Only super admins can create organizations");
         }
 
         const slug = input.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
