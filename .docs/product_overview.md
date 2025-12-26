@@ -36,9 +36,9 @@ Access to information is strictly controlled to ensure data privacy and operatio
 
 | Role | Who is it for? | Primary Interface | Access Level |
 | :--- | :--- | :--- | :--- |
-| **Super Admin** | Internal Platform Team | Web Dashboard | **Global**: Can see all organizations, perform Triage, and manage users platform-wide. |
-| **Org Admin** | Managers / Researchers | Web Dashboard | **Organization-only**: Access to their specific organization's analytics and maps. |
-| **Officer (Scout)** | Extension Officers / Farmers | WhatsApp Bot | **Field-only**: Can submit reports but generally does not access the web dashboard. |
+| **Super Admin** | Platform Owner / Internal Team | Web Dashboard | **Global**: Can manage all organizations, switch between them, and perform system-wide triage. |
+| **Org Admin** | Client Managers | Web Dashboard | **Organization-only**: Manage their own users and view analytics for their specific group. |
+| **Officer (Scout)** | Field Staff | WhatsApp Bot | **Field-only**: Submit sightings via WhatsApp. No dashboard access. |
 
 ### 🔐 How Access is Protected
 - **Organization Isolation**: When an Admin or Officer belongs to an organization (e.g., "MPBC"), they are technologically "fenced" into that organization. They cannot see sightings, reports, or users from any other group.
@@ -50,10 +50,20 @@ Access to information is strictly controlled to ensure data privacy and operatio
 ---
 
 ## 4. Onboarding Workflow
-For new platform users, the flow is:
-1. **Sign Up**: Register with an email and password.
-2. **Onboard**: Select your Organization and provide your name. Web signups default to the **Admin** role for that organization.
-3. **Access**: Once onboarded, users are immediately directed to their organization's specific dashboard.
+AgriData AI uses an **invite-only** system to maintain security and multi-tenant isolation. There is no public registration.
+
+### 🏁 Initial Setup (Bootstrap)
+The very first **Super Admin** is created via the command line:
+```bash
+pnpm run bootstrap-admin <email> <password>
+```
+This ensures the core platform owner has the necessary permissions to start setting up organizations.
+
+### ✉️ Standard Onboarding
+1. **Invite**: A Super Admin or Org Admin sends an invite via the Dashboard.
+2. **Verify**: The new user receives an email or a manual link to confirm their identity.
+3. **Set Password**: Users land on the `/accept-invite` page to set their credentials.
+4. **Access**: Once setup is complete, they are granted access to their dashboard.
 
 ---
 *AgriData AI — Empowering agriculture through data-driven insights.*

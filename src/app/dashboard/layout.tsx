@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Settings, ClipboardList, LogOut } from "lucide-react";
+import { LayoutDashboard, Settings, ClipboardList, LogOut, Users } from "lucide-react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { logout } from "../login/actions";
@@ -36,13 +36,22 @@ export default async function DashboardLayout({
             <span className="sr-only">Dashboard</span>
           </Link>
           {ctx.appUser.role === "super_admin" && (
-            <Link
-              href="/triage"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-            >
-              <ClipboardList className="h-5 w-5" />
-              <span className="sr-only">Triage</span>
-            </Link>
+            <>
+              <Link
+                href="/triage"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+              >
+                <ClipboardList className="h-5 w-5" />
+                <span className="sr-only">Triage</span>
+              </Link>
+              <Link
+                href="/admin/users"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+              >
+                <Users className="h-5 w-5" />
+                <span className="sr-only">User Management</span>
+              </Link>
+            </>
           )}
           <Link
             href="/settings"

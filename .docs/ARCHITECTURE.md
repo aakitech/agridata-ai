@@ -286,9 +286,9 @@ export const reportsRelations = relations(reports, ({ one, many }) => ({
 ### ✅ DO
 - Keep routers thin - delegate to services
 - Put route-specific components in `_components/`
-- Use tRPC for all API calls (no REST)
-- Define relations in schema for type-safe joins
-- Use Zod for input validation
+- **Use tRPC for all core application data & mutations**: This provides full end-to-end type safety and is our default for dashboard features.
+- **Use Server Actions for Auth/Form-based entry points**: Use Actions for Login, Logout, and simple form-POSTs that require direct server redirects or specific cookie management (like Supabase Auth).
+- Use Zod for input validation in both layers.
 - Create services for reusable business logic
 
 ### ❌ DON'T
