@@ -1,0 +1,49 @@
+trigger:
+  branches:
+    include:
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: Vercel-Deploy-Variables
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm install -g pnpm
+    displayName: 'Install pnpm'
+
+  - script: |
+      pnpm install
+    displayName: 'Install dependencies'
+
+  - script: |
+      npm install -g vercel
+    displayName: 'Install Vercel CLI'
+
+  - script: |
+      vercel pull --yes --environment=production --token=$(VERCEL_TOKEN)
+    displayName: 'Pull Vercel environment information'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
+
+  - script: |
+      vercel build --prod --token=$(VERCEL_TOKEN)
+    displayName: 'Build project artifacts'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
+
+  - script: |
+      vercel deploy --prebuilt --prod --token=$(VERCEL_TOKEN)
+    displayName: 'Deploy to Vercel'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
