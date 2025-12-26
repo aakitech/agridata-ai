@@ -232,13 +232,13 @@ export default function UsersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        user.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
+                      className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        user.status === "ACTIVE" ? "bg-green-100 text-green-800" :
+                        user.status === "PENDING" ? "bg-yellow-100 text-yellow-800 animate-pulse" :
+                        "bg-red-100 text-red-800"
                       }`}
                     >
-                      {user.isActive ? "Active" : "Inactive"}
+                      {user.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">

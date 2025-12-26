@@ -116,4 +116,12 @@ export const usersRouter = createTRPCRouter({
 
       return user;
     }),
+
+  activate: protectedProcedure.mutation(async ({ ctx }) => {
+    return ctx.db
+      .update(appUsers)
+      .set({ status: "ACTIVE" })
+      .where(eq(appUsers.authId, ctx.user.id))
+      .returning();
+  }),
 });

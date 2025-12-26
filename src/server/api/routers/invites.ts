@@ -53,7 +53,8 @@ export const invitesRouter = createTRPCRouter({
 
       console.log(`[Invites] Inviting ${input.email} to org ${targetOrgId} as ${input.role}`);
 
-      const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/callback?next=/accept-invite`;
+      // Redirect directly to the client-side accept-invite page to handle hash fragments
+      const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invite`;
       
       let userId: string;
       let inviteLink: string | undefined;
@@ -123,6 +124,7 @@ export const invitesRouter = createTRPCRouter({
           role: input.role,
           fullName: input.fullName,
           email: input.email, // Cache email
+          status: "PENDING",
           isActive: true,
         });
       } catch (dbError: any) {
@@ -156,7 +158,8 @@ export const invitesRouter = createTRPCRouter({
         // Ideally we check if user belongs to admin's org before resending
         // checking limits etc. For now we trust Supabase to handle rate limits/idempotency.
         
-        const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/callback?next=/accept-invite`;
+        // Redirect directly to the client-side accept-invite page to handle hash fragments
+        const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invite`;
 
         const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
             input.email,

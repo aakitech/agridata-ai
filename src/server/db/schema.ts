@@ -39,6 +39,12 @@ export const botStateEnum = pgEnum("bot_state", [
   "AWAITING_LOCATION",
 ]);
 
+export const userStatusEnum = pgEnum("user_status", [
+  "PENDING",
+  "ACTIVE",
+  "SUSPENDED",
+]);
+
 export const userRoleEnum = pgEnum("user_role", [
   "super_admin",
   "admin",
@@ -66,6 +72,7 @@ export const appUsers = createTable(
     phoneNumber: varchar("phone_number", { length: 50 }).unique(), // For Bot users
     fullName: text("full_name"),
     role: userRoleEnum("role").default("officer").notNull(),
+    status: userStatusEnum("status").default("ACTIVE").notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
