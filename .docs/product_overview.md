@@ -40,6 +40,13 @@ Access to information is strictly controlled to ensure data privacy and operatio
 | **Org Admin** | Client Managers | Web Dashboard | **Organization-only**: Manage their own users and view analytics for their specific group. |
 | **Officer (Scout)** | Field Staff | WhatsApp Bot | **Field-only**: Submit sightings via WhatsApp. No dashboard access. |
 
+### 📈 User Status Lifecycle
+Every dashboard user (Super Admin or Org Admin) follows a lifecycle to ensure account security:
+
+- **PENDING**: The user has been invited but has not yet set their password. They appear in the User Management list but cannot access the dashboard.
+- **ACTIVE**: Setup is complete. The user has set their own password and can log in normally.
+- **SUSPENDED**: Access has been manually revoked. The user profile remains in the database for historical reporting but cannot log in.
+
 ### 🔐 How Access is Protected
 - **Organization Isolation**: When an Admin or Officer belongs to an organization (e.g., "MPBC"), they are technologically "fenced" into that organization. They cannot see sightings, reports, or users from any other group.
 - **Feature Gating**: 
