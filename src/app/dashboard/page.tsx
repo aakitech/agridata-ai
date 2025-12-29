@@ -55,7 +55,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 p-1 sm:p-2 animate-in fade-in duration-500 overflow-x-hidden">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
@@ -68,7 +68,7 @@ export default function DashboardPage() {
               {/* Org Filter (Only show for super_admin) */}
               {me?.role === "super_admin" && orgs && orgs.length > 0 && (
                 <Select value={filterOrgId ?? "all"} onValueChange={(val) => setFilterOrgId(val === "all" ? undefined : val)}>
-                    <SelectTrigger className="w-[200px] h-9">
+                    <SelectTrigger className="w-[180px] sm:w-[200px] h-9">
                         <SelectValue placeholder="All Organizations" />
                     </SelectTrigger>
                     <SelectContent>
@@ -87,7 +87,7 @@ export default function DashboardPage() {
               )}
 
               <Select value={range} onValueChange={(val) => setRange(val as "7d" | "30d")}>
-                  <SelectTrigger className="w-[120px] h-9">
+                  <SelectTrigger className="w-[140px] h-9">
                       <SelectValue placeholder="Range" />
                   </SelectTrigger>
                   <SelectContent>

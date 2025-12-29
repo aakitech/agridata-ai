@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { LayoutDashboard, Settings, ClipboardList, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, Settings, ClipboardList, LogOut, Users, Building2 } from "lucide-react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { logout } from "../login/actions";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
+import { Breadcrumbs } from "~/components/shared/breadcrumbs";
+import { SidebarNav } from "./_components/sidebar-nav";
 
 export default async function DashboardLayout({
   children,
@@ -27,40 +29,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-screen w-full bg-muted/40">
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
-        <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-          <Link
-            href="/dashboard"
-            className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
-          >
-            <LayoutDashboard className="h-4 w-4 transition-all group-hover:scale-110" />
-            <span className="sr-only">Dashboard</span>
-          </Link>
-          {ctx.appUser.role === "super_admin" && (
-            <>
-              <Link
-                href="/triage"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-              >
-                <ClipboardList className="h-5 w-5" />
-                <span className="sr-only">Triage</span>
-              </Link>
-              <Link
-                href="/admin/users"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-              >
-                <Users className="h-5 w-5" />
-                <span className="sr-only">User Management</span>
-              </Link>
-            </>
-          )}
-          <Link
-            href="/settings"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-          >
-            <Settings className="h-5 w-5" />
-            <span className="sr-only">Settings</span>
-          </Link>
-        </nav>
+        <SidebarNav role={ctx.appUser.role} />
         <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
            <div className="flex flex-col items-center gap-1 mb-2">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
@@ -79,9 +48,14 @@ export default async function DashboardLayout({
            </form>
         </nav>
       </aside>
-      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14 w-full">
-        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 overflow-auto">
-          {children}
+      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14 w-full h-screen">
+        <main className="flex-1 flex flex-col gap-4 p-4 sm:px-6 sm:py-0 overflow-hidden">
+          <div className="pt-4 px-2">
+            <Breadcrumbs />
+          </div>
+          <div className="flex-1 overflow-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

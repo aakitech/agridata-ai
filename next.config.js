@@ -6,6 +6,25 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
+  async redirects() {
+    return [
+      {
+        source: '/admin/users',
+        destination: '/dashboard/admin/users',
+        permanent: true,
+      },
+      {
+        source: '/admin/organizations',
+        destination: '/dashboard/admin/organizations',
+        permanent: true,
+      },
+      {
+        source: '/triage',
+        destination: '/dashboard/triage',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
