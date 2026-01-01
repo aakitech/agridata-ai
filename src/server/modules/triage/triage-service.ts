@@ -3,7 +3,7 @@ import { reports } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export class TriageService {
-  constructor(private database: typeof db, private orgId: string | undefined, private userRole: "super_admin" | "admin" | "officer") {}
+  constructor(private database: typeof db, private orgId: string | undefined, private userRole: "super_admin" | "org_admin" | "officer") {}
 
   async getReportsByStatus(status: "PENDING_TRIAGE" | "VERIFIED" | "REJECTED" = "PENDING_TRIAGE", filterOrgId?: string) {
     // If not super admin, orgId is required
@@ -67,9 +67,13 @@ export class TriageService {
     diagnosis: string;
     riskLevel: "LOW" | "MEDIUM" | "HIGH";
   }, verifiedBy?: string) {
-    if (!this.orgId) throw new Error("Org ID required");
+    if (this.userRole !== "super_admin" && !this.orgId) throw new Error("Org ID required");
 
-    // We rely on 'where' clause to ensure ownership
+    // Super admins can verify any report. Org admins can only verify their own.
+    const whereClause = this.userRole === "super_admin" 
+      ? eq(reports.id, input.id)
+      : and(eq(reports.id, input.id), eq(reports.orgId, this.orgId!));
+
     const [updated] = await this.database
       .update(reports)
       .set({
@@ -79,14 +83,19 @@ export class TriageService {
         verifiedAt: new Date(),
         verifiedBy: verifiedBy, 
       })
-      .where(and(eq(reports.id, input.id), eq(reports.orgId, this.orgId)))
+      .where(whereClause)
       .returning();
 
     return updated;
   }
 
   async rejectReport(input: { id: string; rejectionReason: string }, verifiedBy?: string) {
-    if (!this.orgId) throw new Error("Org ID required");
+    if (this.userRole !== "super_admin" && !this.orgId) throw new Error("Org ID required");
+
+    // Super admins can reject any report. Org admins can only reject their own.
+    const whereClause = this.userRole === "super_admin" 
+      ? eq(reports.id, input.id)
+      : and(eq(reports.id, input.id), eq(reports.orgId, this.orgId!));
 
     const [updated] = await this.database
       .update(reports)
@@ -96,7 +105,7 @@ export class TriageService {
         verifiedAt: new Date(),
         verifiedBy: verifiedBy, 
       })
-      .where(and(eq(reports.id, input.id), eq(reports.orgId, this.orgId)))
+      .where(whereClause)
       .returning();
 
     return updated;

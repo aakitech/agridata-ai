@@ -33,7 +33,7 @@ export default function UsersPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [inviteOrgId, setInviteOrgId] = useState<string>("");
-  const [inviteRole, setInviteRole] = useState<"admin" | "officer">("admin");
+  const [inviteRole, setInviteRole] = useState<"org_admin" | "officer">("org_admin");
 
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [createdLink, setCreatedLink] = useState("");
@@ -134,12 +134,12 @@ export default function UsersPage() {
 
                <div className="space-y-2">
                 <Label htmlFor="inviteRole">Role</Label>
-                <Select value={inviteRole} onValueChange={(val: "admin" | "officer") => setInviteRole(val)}>
+                <Select value={inviteRole} onValueChange={(val: "org_admin" | "officer") => setInviteRole(val)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Organization Admin</SelectItem>
+                    <SelectItem value="org_admin">Organization Admin</SelectItem>
                     <SelectItem value="officer">Field Officer</SelectItem>
                   </SelectContent>
                 </Select>
@@ -224,7 +224,7 @@ export default function UsersPage() {
                   <td className="px-4 py-3 capitalize">
                     <span className={`px-2 py-1 rounded text-xs border ${
                         user.role === 'super_admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                        user.role === 'admin' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        user.role === 'org_admin' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                         'bg-gray-50 text-gray-700 border-gray-200'
                     }`}>
                         {user.role}

@@ -92,17 +92,17 @@ async function bootstrapAdmin(email: string) {
   });
 
   if (existingUser) {
-    console.log(`⚠️  User already exists in app_users. Updating role to 'admin'...`);
+    console.log(`⚠️  User already exists in app_users. Updating role to 'super_admin'...`);
     await db.update(appUsers)
-        .set({ role: "admin", isActive: true })
+        .set({ role: "super_admin", isActive: true })
         .where(eq(appUsers.id, existingUser.id));
     console.log("✅ User updated.");
   } else {
-    console.log(`✨ Creating new Admin User...`);
+    console.log(`✨ Creating new Super Admin User...`);
     await db.insert(appUsers).values({
         authId: user.id,
         orgId: internalOrg.id,
-        role: "admin",
+        role: "super_admin",
         fullName: email.split("@")[0], // Fallback name
         isActive: true,
     });

@@ -4,7 +4,7 @@ import { eq, and, sql, desc, gte, lte, count } from "drizzle-orm";
 import { subDays, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 
 export class AnalyticsService {
-  constructor(private database: typeof db, private orgId: string | undefined, private userRole: "super_admin" | "admin" | "officer") {}
+  constructor(private database: typeof db, private orgId: string | undefined, private userRole: "super_admin" | "org_admin" | "officer") {}
 
   private getOrgFilter() {
     if (this.userRole === "super_admin") {

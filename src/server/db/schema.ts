@@ -9,6 +9,7 @@ import {
   jsonb,
   pgEnum,
   boolean,
+  integer,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -47,7 +48,7 @@ export const userStatusEnum = pgEnum("user_status", [
 
 export const userRoleEnum = pgEnum("user_role", [
   "super_admin",
-  "admin",
+  "org_admin",
   "officer",
 ]);
 
@@ -120,6 +121,10 @@ export const reports = createTable("reports", {
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
   verifiedBy: uuid("verified_by"), // References app_users(id) presumably, or auth id
   
+  // Enhancement tracking
+  enhancementCount: integer("enhancement_count").default(0).notNull(),
+  lastEnhancementAt: timestamp("last_enhancement_at", { withTimezone: true }),
+  
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -165,6 +170,7 @@ export const reportsRelations = relations(reports, ({ one, many }) => ({
     references: [appUsers.id],
   }),
   media: many(reportMedia),
+  enhancements: many(triageEnhancements),
 }));
 
 export const reportMedia = createTable("report_media", {
@@ -196,3 +202,49 @@ export const botSessionsRelations = relations(botSessions, ({ one }) => ({
     references: [reports.id],
   }),
 }));
+
+// Triage Enhancements (Soft Triage)
+export const enhancementTypeEnum = pgEnum("enhancement_type", [
+  "label_hint",
+  "quality",
+  "context",
+  "follow_up",
+  "internal",
+]);
+
+export const triageEnhancements = createTable(
+  "triage_enhancements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reportId: uuid("report_id")
+      .references(() => reports.id, { onDelete: "cascade" })
+      .notNull(),
+    addedBy: uuid("added_by")
+      .references(() => appUsers.id, { onDelete: "cascade" })
+      .notNull(),
+    enhancementType: enhancementTypeEnum("enhancement_type").notNull(),
+    enhancementText: text("enhancement_text").notNull(),
+    isInternal: boolean("is_internal").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => [
+    index("triage_enhancements_report_id_idx").on(table.reportId),
+    index("triage_enhancements_added_by_idx").on(table.addedBy),
+  ]
+);
+
+export const triageEnhancementsRelations = relations(
+  triageEnhancements,
+  ({ one }) => ({
+    report: one(reports, {
+      fields: [triageEnhancements.reportId],
+      references: [reports.id],
+    }),
+    addedByUser: one(appUsers, {
+      fields: [triageEnhancements.addedBy],
+      references: [appUsers.id],
+    }),
+  })
+);
