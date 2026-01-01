@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, authProcedure } from "~/server/api/trpc";
+import { TRPCError } from "@trpc/server";
 import { appUsers, organizations } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -52,14 +53,7 @@ export const usersRouter = createTRPCRouter({
       
       // Ensure specific prefix for bot compatibility if missing
       if (!phone.startsWith("whatsapp:")) {
-         // If it starts with +, good. If not, maybe append +?
-         // Optimistic assumption: User enters +263...
-         if (!phone.startsWith("+")) {
-             // Basic attempt to fix validation or throw error?
-             // Let's assume input might be 077... -> requires country code.
-             // For now, let's just prepend whatsapp: and trust valid input for now, 
-             // but ideally we should validate E.164.
-         }
+         // Optimistic assumption: User enters +263... (valid E.164)
          phone = `whatsapp:${phone}`;
       }
 
@@ -90,38 +84,60 @@ export const usersRouter = createTRPCRouter({
     .input(
       z.object({
         fullName: z.string().min(1),
-        orgId: z.string().uuid(),
+        orgId: z.string().uuid().optional(), // Make optional
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Ensure no profile exists yet
-      const existing = await ctx.db.query.appUsers.findFirst({
+      // 🔒 CRITICAL FIX: Check for existing PENDING profile from invite
+      const existingProfile = await ctx.db.query.appUsers.findFirst({
         where: eq(appUsers.authId, ctx.user.id),
       });
 
-      if (existing) {
-        throw new Error("Profile already exists.");
+      if (existingProfile) {
+        if (existingProfile.status === "PENDING") {
+          // ✅ ACTIVATE existing profile instead of error
+          const [user] = await ctx.db
+            .update(appUsers)
+            .set({ 
+              status: "ACTIVE",
+              fullName: input.fullName || existingProfile.fullName
+            })
+            .where(eq(appUsers.authId, ctx.user.id))
+            .returning();
+          return user;
+        }
+        throw new Error("Profile already exists and is active.");
       }
 
-      const [user] = await ctx.db
-        .insert(appUsers)
-        .values({
-          authId: ctx.user.id,
-          fullName: input.fullName,
-          orgId: input.orgId,
-          role: "org_admin", // Default role for dashboard (web) users
-          isActive: true,
-        })
-        .returning();
+      // 🔒 CRITICAL FIX: Only allow org creation, not joining existing orgs
+      if (input.orgId) {
+        throw new Error(
+          "Invitation required to join existing organizations. " +
+          "Please contact an administrator for an invitation."
+        );
+      }
 
-      return user;
+      // Alternative: Create new organization (future enhancement)
+      throw new Error(
+        "Please contact an administrator to receive an invitation " +
+        "to join an existing organization."
+      );
     }),
 
   activate: protectedProcedure.mutation(async ({ ctx }) => {
-    return ctx.db
+    const [user] = await ctx.db
       .update(appUsers)
       .set({ status: "ACTIVE" })
       .where(eq(appUsers.authId, ctx.user.id))
       .returning();
+
+    if (!user) {
+      throw new TRPCError({
+        code: "NOT_FOUND", 
+        message: "User profile not found"
+      });
+    }
+
+    return user;
   }),
 });

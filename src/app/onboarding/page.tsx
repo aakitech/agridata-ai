@@ -16,6 +16,7 @@ export default function OnboardingPage() {
   const [fullName, setFullName] = useState("");
   const [orgId, setOrgId] = useState("");
 
+  // 🔒 CRITICAL FIX: Don't fetch organizations for onboarding users
   const { data: orgs, isLoading: orgsLoading } = api.organizations.getAll.useQuery();
   const onboard = api.users.onboard.useMutation({
     onSuccess: () => {
@@ -30,11 +31,12 @@ export default function OnboardingPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !orgId) {
-      toast.error("Please fill in all fields");
+    if (!fullName) {
+      toast.error("Please enter your full name");
       return;
     }
-    onboard.mutate({ fullName, orgId });
+    // 🔒 CRITICAL FIX: Don't pass orgId - backend will handle invitation check
+    onboard.mutate({ fullName });
   };
 
   return (
@@ -58,24 +60,11 @@ export default function OnboardingPage() {
                 disabled={onboard.isPending}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="org">Organization</Label>
-              <Select
-                value={orgId}
-                onValueChange={setOrgId}
-                disabled={orgsLoading || onboard.isPending}
-              >
-                <SelectTrigger id="org">
-                  <SelectValue placeholder={orgsLoading ? "Loading organizations..." : "Select an organization"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {orgs?.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            
+            {/* 🔒 CRITICAL FIX: Remove organization selector for security */}
+            <div className="text-sm text-muted-foreground p-3 bg-blue-50 rounded-md">
+              <p className="font-medium mb-1">📧 Invitation Required</p>
+              <p>You need an invitation to join an organization. Please contact your administrator to receive an invite link.</p>
             </div>
           </CardContent>
           <CardFooter>
