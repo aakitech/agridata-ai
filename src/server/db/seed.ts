@@ -91,7 +91,7 @@ async function seed() {
     const daysAgo = Math.floor(Math.random() * 30);
     const createdAt = subDays(new Date(), daysAgo);
 
-    const imageUrl = IMAGE_URLS[i % IMAGE_URLS.length];
+    const imageUrl = IMAGE_URLS[i % IMAGE_URLS.length]!;
     
     const [newReport] = await db.insert(reports).values({
       orgId: org.id,
@@ -107,7 +107,7 @@ async function seed() {
       verifiedAt: status !== "PENDING_TRIAGE" ? new Date() : null,
     }).returning();
 
-    if (newReport) {
+    if (newReport && imageUrl) {
       // Add record to report_media table
       await db.insert(reportMedia).values({
         reportId: newReport.id,
