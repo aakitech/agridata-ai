@@ -10,7 +10,8 @@ export const invitesRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
       z.object({
-        email: z.string().email(),
+        email: z.string().email().optional(),
+        phoneNumber: z.string().optional(),
         orgId: z.string().uuid(),
         role: z.enum(userRoleEnum.enumValues),
         fullName: z.string().min(1),
@@ -18,11 +19,9 @@ export const invitesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // 1. Authorization & Scoping
-      // If super_admin, can invite to any org.
-      // If admin, can ONLY invite to own org.
       let targetOrgId = input.orgId;
 
-if (ctx.appUser.role === "org_admin") {
+      if (ctx.appUser.role === "org_admin") {
          if (input.orgId !== ctx.appUser.orgId) {
              throw new TRPCError({
                  code: "FORBIDDEN",
@@ -30,7 +29,6 @@ if (ctx.appUser.role === "org_admin") {
              });
          }
          
-         // 🔒 CRITICAL SECURITY FIX: Block super_admin role assignment
          if (input.role === "super_admin") {
              throw new TRPCError({
                  code: "FORBIDDEN",
@@ -40,12 +38,63 @@ if (ctx.appUser.role === "org_admin") {
          
          targetOrgId = ctx.appUser.orgId;
        } else if (ctx.appUser.role !== "super_admin") {
-         // Officers cannot invite
          throw new TRPCError({
              code: "FORBIDDEN",
              message: "Insufficient permissions to invite users."
          });
        }
+
+      // --- SPECIAL FLOW: FIELD OFFICERS (Phone Only) ---
+      if (input.role === "officer") {
+         if (!input.phoneNumber) {
+             throw new TRPCError({
+                 code: "BAD_REQUEST",
+                 message: "Phone number is required for Field Officers."
+             });
+         }
+
+         // Check if phone number is already registered
+         const existingUser = await ctx.db.query.appUsers.findFirst({
+             where: eq(appUsers.phoneNumber, input.phoneNumber)
+         });
+
+         if (existingUser) {
+             throw new TRPCError({
+                 code: "CONFLICT",
+                 message: "This phone number is already registered to a user."
+             });
+         }
+
+         // Direct DB Insert (No Auth User created yet)
+         try {
+             const [newUser] = await ctx.db.insert(appUsers).values({
+               orgId: targetOrgId,
+               role: input.role,
+               fullName: input.fullName,
+               phoneNumber: input.phoneNumber,
+               email: input.email || null, // Optional for officers
+               status: "ACTIVE", // Officers are active immediately for WhatsApp
+               isActive: true,
+             }).returning();
+
+             if (!newUser) throw new Error("Failed to return new user");
+             return { success: true, userId: newUser.id };
+         } catch (dbError: any) {
+             console.error("[Invites] DB Error:", dbError);
+             throw new TRPCError({
+                 code: "INTERNAL_SERVER_ERROR",
+                 message: "Failed to create officer profile.",
+             });
+         }
+      }
+
+      // --- STANDARD FLOW: DASHBOARD USERS (Email + Supabase Auth) ---
+      if (!input.email) {
+          throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Email is required for Dashboard Users."
+          });
+      }
 
       // 2. Initialize Supabase Admin Client
       if (!env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -61,8 +110,7 @@ if (ctx.appUser.role === "org_admin") {
       );
 
       console.log(`[Invites] Inviting ${input.email} to org ${targetOrgId} as ${input.role}`);
-
-      // Redirect directly to the client-side accept-invite page to handle hash fragments
+      
       const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invite`;
       
       let userId: string;
@@ -73,7 +121,6 @@ if (ctx.appUser.role === "org_admin") {
       const existingUser = users?.find(u => u.email === input.email);
 
       if (existingUser && existingUser.email_confirmed_at) {
-         // User already confirmed, no need to invite (they should log in)
          throw new TRPCError({
              code: "BAD_REQUEST",
              message: "User is already registered and confirmed. They can log in directly."
@@ -81,8 +128,7 @@ if (ctx.appUser.role === "org_admin") {
       }
 
       if (existingUser) {
-          // User exists but not confirmed, use generateLink immediately (safer than re-inviting often)
-          console.log("[Invites] User exists but unconfirmed, generating link directly...");
+          // User exists but unopened, regenerate link
           const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
             type: "invite",
             email: input.email,
@@ -95,7 +141,6 @@ if (ctx.appUser.role === "org_admin") {
       } else {
           // 4. Fresh Invite
           try {
-            // Attempt standard invite (sends email)
             const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
                 input.email,
                 { redirectTo: redirectUrl }
@@ -106,7 +151,6 @@ if (ctx.appUser.role === "org_admin") {
           } catch (err: any) {
               console.warn("[Invites] Standard invite failed, attempting fallback generation...", err.message);
               
-              // Fallback: Generate Link manually
               const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
                 type: "invite",
                 email: input.email,
@@ -125,20 +169,19 @@ if (ctx.appUser.role === "org_admin") {
           }
       }
 
-      // 4. Create Internal Profile (Pre-onboarding)
+      // 4. Create Internal Profile
       try {
         await ctx.db.insert(appUsers).values({
           authId: userId,
           orgId: targetOrgId,
           role: input.role,
           fullName: input.fullName,
-          email: input.email, // Cache email
+          email: input.email, 
           status: "PENDING",
           isActive: true,
         });
       } catch (dbError: any) {
         console.error("[Invites] DB Error:", dbError);
-        // Clean up Auth user if DB fails? For now, throw error.
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to create user profile.",

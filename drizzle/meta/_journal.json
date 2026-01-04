@@ -8,6 +8,13 @@
       "when": 1764184931443,
       "tag": "0000_left_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767480791839,
+      "tag": "0001_first_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }

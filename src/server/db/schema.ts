@@ -46,6 +46,12 @@ export const userStatusEnum = pgEnum("user_status", [
   "SUSPENDED",
 ]);
 
+export const sessionStatusEnum = pgEnum("session_status", [
+  "ACTIVE",
+  "COMPLETED",
+  "RESET",
+]);
+
 export const userRoleEnum = pgEnum("user_role", [
   "super_admin",
   "org_admin",
@@ -56,6 +62,8 @@ export const organizations = createTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  activeWorkflow: text("active_workflow"),
+  workflowConfig: jsonb("workflow_config"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -104,8 +112,10 @@ export const reports = createTable("reports", {
   category: reportCategoryEnum("category"),
   
   // Dynamic Collection Fields
+  workflowId: text("workflow_id"),
   label: text("label"), // Replaces explicit category inference in some cases
   quantity: text("quantity"), // captured via bot
+  dataPayload: jsonb("data_payload"),
   
   mediaUrl: text("media_url"),
 
@@ -134,6 +144,10 @@ export const botSessions = createTable("bot_sessions", {
   userId: uuid("user_id")
     .references(() => appUsers.id)
     .primaryKey(), // One session per user
+  workflowId: text("workflow_id"),
+  currentStep: text("current_step"),
+  dataCollected: jsonb("data_collected"),
+  status: sessionStatusEnum("status").default("ACTIVE").notNull(),
   currentState: botStateEnum("current_state").default("IDLE").notNull(),
   draftReportId: uuid("draft_report_id").references(() => reports.id),
   lastActive: timestamp("last_active", { withTimezone: true })
