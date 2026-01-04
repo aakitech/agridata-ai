@@ -52,9 +52,18 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
         httpBatchStreamLink({
           transformer: SuperJSON,
           url: getBaseUrl() + "/api/trpc",
-          headers: () => {
+          headers: async () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");
+            
+            // Inject Supabase Auth Token
+            const { supabase } = await import("~/lib/supabase/client");
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session?.access_token) {
+              headers.set("authorization", `Bearer ${session.access_token}`);
+            }
+            
             return headers;
           },
         }),

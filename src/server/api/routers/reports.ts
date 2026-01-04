@@ -1,30 +1,39 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { TRPCError } from "@trpc/server";
 import { TriageService } from "~/server/modules/triage/triage-service";
 
 export const reportsRouter = createTRPCRouter({
   // Get reports by status
-  getAll: publicProcedure
+  getAll: protectedProcedure
     .input(
       z.object({
         status: z.enum(["PENDING_TRIAGE", "VERIFIED", "REJECTED"]).optional().default("PENDING_TRIAGE"),
+        filterOrgId: z.string().uuid().optional(),
       })
     )
     .query(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db);
-      return service.getReportsByStatus(input.status);
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only super admins can access triage" });
+      }
+      // Pass orgId from authenticated user context
+      const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
+      return service.getReportsByStatus(input.status, input.filterOrgId);
     }),
 
   // Get a single report by ID
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db);
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only super admins can access triage" });
+      }
+      const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
       return service.getReportById(input.id);
     }),
 
   // Verify a report
-  verify: publicProcedure
+  verify: protectedProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -33,12 +42,15 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db);
-      return service.verifyReport(input);
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
+      return service.verifyReport(input, ctx.appUser.id);
     }),
 
   // Reject a report
-  reject: publicProcedure
+  reject: protectedProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -46,7 +58,10 @@ export const reportsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const service = new TriageService(ctx.db);
-      return service.rejectReport(input);
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const service = new TriageService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
+      return service.rejectReport(input, ctx.appUser.id);
     }),
 });

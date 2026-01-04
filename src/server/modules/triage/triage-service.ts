@@ -1,30 +1,63 @@
 import { db } from "~/server/db";
 import { reports } from "~/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export class TriageService {
-  constructor(private database: typeof db) {}
+  constructor(private database: typeof db, private orgId: string | undefined, private userRole: "super_admin" | "admin" | "officer") {}
 
-  async getReportsByStatus(status: "PENDING_TRIAGE" | "VERIFIED" | "REJECTED" = "PENDING_TRIAGE") {
+  async getReportsByStatus(status: "PENDING_TRIAGE" | "VERIFIED" | "REJECTED" = "PENDING_TRIAGE", filterOrgId?: string) {
+    // If not super admin, orgId is required
+    if (this.userRole !== "super_admin" && !this.orgId) return [];
+
     return this.database.query.reports.findMany({
-      where: (reports, { eq }) => eq(reports.status, status),
+      where: (reports, { eq, and }) => {
+        const conditions = [
+          eq(reports.status, status),
+        ];
+
+        // Apply Org ID filter:
+        // 1. If Super Admin AND filterOrgId is provided -> Filter by that org
+        // 2. If NOT Super Admin -> Enforce specific org
+        // 3. If Super Admin AND no filter -> Show all (no condition added)
+        if (this.userRole === "super_admin") {
+          if (filterOrgId) {
+            conditions.push(eq(reports.orgId, filterOrgId));
+          }
+        } else {
+           conditions.push(eq(reports.orgId, this.orgId!));
+        }
+        
+        return and(...conditions);
+      },
       with: {
         user: true,
         media: true,
+        organization: true, // Always fetch organization for display
       },
-      orderBy: (reports, { desc, asc }) => 
+      orderBy: (reports, { desc }) => 
         status === "PENDING_TRIAGE" 
-          ? [asc(reports.createdAt)] 
+          ? [desc(reports.createdAt)] 
           : [desc(reports.verifiedAt)],
     });
   }
 
   async getReportById(id: string) {
+    if (this.userRole !== "super_admin" && !this.orgId) return null;
+
     return this.database.query.reports.findFirst({
-      where: (reports, { eq }) => eq(reports.id, id),
+      where: (reports, { eq, and }) => {
+        const conditions = [eq(reports.id, id)];
+        
+        if (this.userRole !== "super_admin") {
+          conditions.push(eq(reports.orgId, this.orgId!));
+        }
+        
+        return and(...conditions);
+      },
       with: {
         user: true,
         media: true,
+        organization: true,
       },
     });
   }
@@ -33,7 +66,10 @@ export class TriageService {
     id: string;
     diagnosis: string;
     riskLevel: "LOW" | "MEDIUM" | "HIGH";
-  }) {
+  }, verifiedBy?: string) {
+    if (!this.orgId) throw new Error("Org ID required");
+
+    // We rely on 'where' clause to ensure ownership
     const [updated] = await this.database
       .update(reports)
       .set({
@@ -41,24 +77,26 @@ export class TriageService {
         diagnosis: input.diagnosis,
         riskLevel: input.riskLevel,
         verifiedAt: new Date(),
-        // verifiedBy: ctx.session?.user?.id, // Add when auth is implemented
+        verifiedBy: verifiedBy, 
       })
-      .where(eq(reports.id, input.id))
+      .where(and(eq(reports.id, input.id), eq(reports.orgId, this.orgId)))
       .returning();
 
     return updated;
   }
 
-  async rejectReport(input: { id: string; rejectionReason: string }) {
+  async rejectReport(input: { id: string; rejectionReason: string }, verifiedBy?: string) {
+    if (!this.orgId) throw new Error("Org ID required");
+
     const [updated] = await this.database
       .update(reports)
       .set({
         status: "REJECTED",
         rejectionReason: input.rejectionReason,
         verifiedAt: new Date(),
-        // verifiedBy: ctx.session?.user?.id, // Add when auth is implemented
+        verifiedBy: verifiedBy, 
       })
-      .where(eq(reports.id, input.id))
+      .where(and(eq(reports.id, input.id), eq(reports.orgId, this.orgId)))
       .returning();
 
     return updated;

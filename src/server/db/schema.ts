@@ -8,6 +8,7 @@ import {
   text,
   jsonb,
   pgEnum,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -33,23 +34,55 @@ export const reportCategoryEnum = pgEnum("report_category", [
 
 export const botStateEnum = pgEnum("bot_state", [
   "IDLE",
-  "AWAITING_MENU_CHOICE",
-  "AWAITING_PHOTO",
+  "AWAITING_LABEL", // Changed from AWAITING_MENU_CHOICE
+  "AWAITING_PHOTO_COUNT", // Changed from AWAITING_PHOTO
   "AWAITING_LOCATION",
-  "AWAITING_DESCRIPTION",
 ]);
 
-export const botUsers = createTable(
-  "bot_users",
+export const userStatusEnum = pgEnum("user_status", [
+  "PENDING",
+  "ACTIVE",
+  "SUSPENDED",
+]);
+
+export const userRoleEnum = pgEnum("user_role", [
+  "super_admin",
+  "admin",
+  "officer",
+]);
+
+export const organizations = createTable("organizations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const appUsers = createTable(
+  "app_users",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    phoneNumber: varchar("phone_number", { length: 50 }).notNull().unique(),
-    languagePref: varchar("language_pref", { length: 10 }).default("en"),
+    orgId: uuid("org_id")
+      .references(() => organizations.id)
+      .notNull(),
+    authId: uuid("auth_id"), // Link to Supabase Auth (for Dashboard users)
+    email: text("email"), // Cached email for display
+    phoneNumber: varchar("phone_number", { length: 50 }).unique(), // For Bot users
+    fullName: text("full_name"),
+    role: userRoleEnum("role").default("officer").notNull(),
+    status: userStatusEnum("status").default("ACTIVE").notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
   },
-  (table) => [index("phone_number_idx").on(table.phoneNumber)]
+  (table) => [
+    index("phone_number_idx").on(table.phoneNumber),
+    index("auth_id_idx").on(table.authId),
+    index("org_id_idx").on(table.orgId),
+  ]
 );
 
 export const riskLevelEnum = pgEnum("risk_level", [
@@ -60,11 +93,19 @@ export const riskLevelEnum = pgEnum("risk_level", [
 
 export const reports = createTable("reports", {
   id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id")
+    .references(() => organizations.id)
+    .notNull(),
   userId: uuid("user_id")
-    .references(() => botUsers.id)
+    .references(() => appUsers.id)
     .notNull(),
   status: reportStatusEnum("status").default("DRAFT").notNull(),
   category: reportCategoryEnum("category"),
+  
+  // Dynamic Collection Fields
+  label: text("label"), // Replaces explicit category inference in some cases
+  quantity: text("quantity"), // captured via bot
+  
   mediaUrl: text("media_url"),
 
   // Using text for location for now as PostGIS setup in Drizzle can be complex without extensions
@@ -77,7 +118,7 @@ export const reports = createTable("reports", {
   riskLevel: riskLevelEnum("risk_level"),
   rejectionReason: text("rejection_reason"),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
-  verifiedBy: uuid("verified_by"), // References auth.users(id) but kept loose here for simplicity
+  verifiedBy: uuid("verified_by"), // References app_users(id) presumably, or auth id
   
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
@@ -86,7 +127,7 @@ export const reports = createTable("reports", {
 
 export const botSessions = createTable("bot_sessions", {
   userId: uuid("user_id")
-    .references(() => botUsers.id)
+    .references(() => appUsers.id)
     .primaryKey(), // One session per user
   currentState: botStateEnum("current_state").default("IDLE").notNull(),
   draftReportId: uuid("draft_report_id").references(() => reports.id),
@@ -97,18 +138,31 @@ export const botSessions = createTable("bot_sessions", {
 });
 
 // Relations
-export const botUsersRelations = relations(botUsers, ({ many, one }) => ({
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+  users: many(appUsers),
+  reports: many(reports),
+}));
+
+export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [appUsers.orgId],
+    references: [organizations.id],
+  }),
   reports: many(reports),
   session: one(botSessions, {
-    fields: [botUsers.id],
+    fields: [appUsers.id],
     references: [botSessions.userId],
   }),
 }));
 
 export const reportsRelations = relations(reports, ({ one, many }) => ({
-  user: one(botUsers, {
+  organization: one(organizations, {
+    fields: [reports.orgId],
+    references: [organizations.id],
+  }),
+  user: one(appUsers, {
     fields: [reports.userId],
-    references: [botUsers.id],
+    references: [appUsers.id],
   }),
   media: many(reportMedia),
 }));
@@ -133,9 +187,9 @@ export const reportMediaRelations = relations(reportMedia, ({ one }) => ({
 }));
 
 export const botSessionsRelations = relations(botSessions, ({ one }) => ({
-  user: one(botUsers, {
+  user: one(appUsers, {
     fields: [botSessions.userId],
-    references: [botUsers.id],
+    references: [appUsers.id],
   }),
   draftReport: one(reports, {
     fields: [botSessions.draftReportId],

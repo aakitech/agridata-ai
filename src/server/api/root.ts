@@ -1,6 +1,11 @@
-import { healthRouter } from "~/server/api/routers/health";
+import { analyticsRouter } from "~/server/api/routers/analytics";
+import { organizationsRouter } from "~/server/api/routers/organizations";
 import { reportsRouter } from "~/server/api/routers/reports";
+import { usersRouter } from "~/server/api/routers/users";
+import { healthRouter } from "~/server/api/routers/health";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
+
+import { invitesRouter } from "~/server/api/routers/invites";
 
 /**
  * This is the primary router for your server.
@@ -8,8 +13,12 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  health: healthRouter,
+  analytics: analyticsRouter,
+  organizations: organizationsRouter,
   reports: reportsRouter,
+  users: usersRouter,
+  health: healthRouter,
+  invites: invitesRouter,
 });
 
 // export type definition of API

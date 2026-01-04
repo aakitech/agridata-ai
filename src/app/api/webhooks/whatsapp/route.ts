@@ -1,5 +1,22 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { handleIncomingMessage } from "~/server/modules/whatsapp-bot/workflow";
+import { env } from "~/env";
+import crypto from 'crypto';
+
+/**
+ * Validates Twilio webhook signature to ensure request is from Twilio
+ */
+function validateTwilioSignature(token: string, signature: string, url: string, body: string): boolean {
+  const expectedSignature = crypto
+    .createHmac('sha1', token)
+    .update(url + body)
+    .digest('base64');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
 
 export async function POST(req: NextRequest) {
   console.log("🔔 Webhook received!");
@@ -17,13 +34,21 @@ export async function POST(req: NextRequest) {
     
     console.log("📋 Parsed body:", JSON.stringify(body, null, 2));
 
-    // 2. Validate Twilio Signature (Optional for local dev, critical for prod)
-    // In a real app, you'd check the X-Twilio-Signature header
-    // const signature = req.headers.get("x-twilio-signature");
-    // const url = env.AppUrl + "/api/webhooks/whatsapp";
-    // if (!validateRequest(env.TWILIO_AUTH_TOKEN, signature || "", url, body)) {
-    //   return new NextResponse("Unauthorized", { status: 401 });
-    // }
+    // 2. Validate Twilio Signature (CRITICAL for production security)
+    const signature = req.headers.get("x-twilio-signature");
+    const url = env.NEXT_PUBLIC_APP_URL + "/api/webhooks/whatsapp";
+    
+    if (!signature) {
+      console.error("❌ Missing Twilio signature header");
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+    
+    if (!validateTwilioSignature(env.TWILIO_AUTH_TOKEN, signature, url, text)) {
+      console.error("❌ Invalid Twilio signature");
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+    
+    console.log("✅ Twilio signature validated");
 
     // 3. Process the message
     // Twilio sends form-urlencoded data
