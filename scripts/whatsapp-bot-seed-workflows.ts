@@ -28,12 +28,28 @@ async function seedWorkflows() {
     id: "mpbc_trap",
     name: "MPBC - Trap Monitoring",
     steps: [
-      { id: "trap_id", question: "Trap Monitoring Initialized. 🪤\n\nWhat is the **Trap ID**?", type: "text" },
-      { id: "pest_name", question: "What **pest** is being monitored?", type: "text" },
-      { id: "count", question: "What is the **count** observed in the trap?", type: "number", validation: { min: 0 } },
-      { id: "trap_type", question: "What is the **trap type**? (Optional)", type: "text", optional: true },
-      { id: "photo", question: "Please upload a **photo** of the trap.", type: "photo", optional: true },
-      { id: "location", question: "Please share the trap **GPS Location**. 📍", type: "location" }
+      { 
+        id: "pest_name", 
+        question: "Welcome, {{OfficerName}} 👋\nYou’re now recording MPBC pest monitoring data.\n\nThis flow will help you log trap observations for your current location.\nLet’s get started.\n\n🐛 What **pest** are you monitoring today?\n(Hint: Moths, Bollworms, etc.)", 
+        type: "text" 
+      },
+      { 
+        id: "count", 
+        question: "🔢 How many **pests** were caught in the trap?", 
+        type: "number", 
+        validation: { min: 0 } 
+      },
+      { 
+        id: "photo", 
+        question: "Optional: Take a **photo** of the catch. 📸\n(Type 'SKIP' or 'NEXT' if you don't have one)", 
+        type: "photo", 
+        optional: true 
+      },
+      { 
+        id: "location", 
+        question: "Final step: Please share the trap **GPS Location**. 📍", 
+        type: "location" 
+      }
     ]
   };
 

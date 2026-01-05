@@ -82,7 +82,9 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
   }
 
   // 5. Initialize Processor
-  const processor = new WorkflowProcessor(workflowConfig, user.id, org.id);
+  // Use Name if available, otherwise fallback to phone number
+  const officerName = user.fullName || phoneNumber;
+  const processor = new WorkflowProcessor(workflowConfig, user.id, org.id, officerName);
 
   try {
     const result = await processor.processMessage(session, msg);

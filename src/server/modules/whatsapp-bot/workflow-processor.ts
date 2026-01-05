@@ -12,11 +12,17 @@ export class WorkflowProcessor {
   private config: WorkflowConfig;
   private userId: string;
   private orgId: string;
+  private officerName: string;
 
-  constructor(config: WorkflowConfig, userId: string, orgId: string) {
+  constructor(config: WorkflowConfig, userId: string, orgId: string, officerName: string) {
     this.config = config;
     this.userId = userId;
     this.orgId = orgId;
+    this.officerName = officerName;
+  }
+
+  private formatMessage(text: string): string {
+    return text.replace(/{{OfficerName}}/g, this.officerName);
   }
 
   async processMessage(session: any, msg: any): Promise<{ message: string; done: boolean }> {
@@ -27,7 +33,7 @@ export class WorkflowProcessor {
     if (!currentStepId) {
       const firstStep = this.config.steps[0]!;
       await this.updateSession(firstStep.id, data);
-      return { message: firstStep.question, done: false };
+      return { message: this.formatMessage(firstStep.question), done: false };
     }
 
     // 2. Process Current Step Input
@@ -63,8 +69,11 @@ export class WorkflowProcessor {
   private async validateInput(step: WorkflowStep, msg: any, existingData: SessionData): Promise<{ valid: boolean; value?: any; error?: string }> {
     const text = msg.Body?.trim();
 
-    if (text?.toUpperCase() === 'SKIP' && step.optional) {
-      return { valid: true, value: null };
+    if (step.optional) {
+       const upper = text?.toUpperCase();
+       if (upper === 'SKIP' || upper === 'NEXT') {
+         return { valid: true, value: null };
+       }
     }
 
     switch (step.type) {
