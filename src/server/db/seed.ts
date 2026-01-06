@@ -1,17 +1,30 @@
 import { db } from "./index.js";
-import { organizations, reports, appUsers } from "./schema.js";
+import { organizations, reports, appUsers, reportMedia } from "./schema.js";
 import { subDays } from "date-fns";
 import { eq } from "drizzle-orm";
+
+const IMAGE_URLS = [
+  "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=800&q=80",
+  "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&q=80",
+  "https://images.unsplash.com/photo-1592982537447-7440770cbfc9?w=800&q=80",
+  "https://images.unsplash.com/photo-1595113316349-9faec304395e?w=800&q=80",
+  "https://images.unsplash.com/photo-1589923188900-85dae523342b?w=800&q=80",
+];
 
 async function seed() {
   console.log("🌱 Seeding data...");
 
   // 1. Find or verify MPBC(Test)
-  const mpbcTestId = 'c8794bdf-28db-486b-9178-e74eea7f779b';
-  const [org] = await db.select().from(organizations).where(eq(organizations.id, mpbcTestId));
+  const mpbcTestId = '65c4a12a-f398-4be7-9cb6-7b8e9526e86d';
+  let [org] = await db.select().from(organizations).where(eq(organizations.id, mpbcTestId));
   
   if (!org) {
-    console.error("Organization MPBC(Test) not found. Please create it first.");
+    // Fallback search by slug
+    [org] = await db.select().from(organizations).where(eq(organizations.slug, "mpbc-test-"));
+  }
+
+  if (!org) {
+    console.error("Organization MPBC(Test) not found. Please create it first via the dashboard.");
     return;
   }
 
@@ -78,18 +91,49 @@ async function seed() {
     const daysAgo = Math.floor(Math.random() * 30);
     const createdAt = subDays(new Date(), daysAgo);
 
-    await db.insert(reports).values({
+    const imageUrl = IMAGE_URLS[i % IMAGE_URLS.length]!;
+    
+    const [newReport] = await db.insert(reports).values({
       orgId: org.id,
       userId: user.id,
       status: status,
       riskLevel: risk,
       diagnosis: diagnosis,
+      mediaUrl: imageUrl,
       location: `POINT(${loc.lon} ${loc.lat})`,
       description: `Test report from ${loc.name} ${i}`,
       category: "PEST",
       createdAt: createdAt,
       verifiedAt: status !== "PENDING_TRIAGE" ? new Date() : null,
-    });
+    }).returning();
+
+    if (newReport && imageUrl) {
+      // Add record to report_media table
+      await db.insert(reportMedia).values({
+        reportId: newReport.id,
+        mediaUrl: imageUrl,
+        contentType: "image/jpeg",
+      });
+    }
+
+    // 4. Add some enhancements to first 5 reports
+    if (i < 5 && newReport) {
+      const { triageEnhancements } = await import("./schema.js");
+      await db.insert(triageEnhancements).values({
+        reportId: newReport.id,
+        addedBy: user.id, // Just using the same scout for dummy data
+        enhancementType: i % 2 === 0 ? "quality" : "context",
+        enhancementText: i % 2 === 0 
+          ? "Photo is slightly blurry but identifiable." 
+          : "Nearby fields also showing similar symptoms.",
+        isInternal: false,
+      });
+
+      // Update count
+      await db.update(reports)
+        .set({ enhancementCount: 1, lastEnhancementAt: new Date() })
+        .where(eq(reports.id, newReport.id));
+    }
   }
 
   console.log("✅ Seeding complete!");

@@ -27,7 +27,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen w-full bg-muted/40">
+    <div className="flex h-full w-full bg-muted/40">
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
         <SidebarNav role={ctx.appUser.role} />
         <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
@@ -48,7 +48,7 @@ export default async function DashboardLayout({
            </form>
         </nav>
       </aside>
-      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14 w-full h-screen">
+      <div className="flex flex-col sm:gap-4 sm:pl-14 w-full h-full">
         <main className="flex-1 flex flex-col gap-4 p-4 sm:px-6 sm:py-0 overflow-hidden">
           <div className="pt-4 px-2">
             <Breadcrumbs />

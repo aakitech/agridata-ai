@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Share, Check, X, MapPin, AlertTriangle } from "lucide-react";
+import { Share, Check, X, MapPin, AlertTriangle, Info } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { api } from "~/trpc/react";
@@ -20,13 +20,10 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "~/components/ui/dialog";
-
-// ... inside ReportDetail component
-
-
-
-
-
+import { Alert, AlertDescription } from "~/components/ui/alert";
+import { canHardTriage } from "~/lib/permissions";
+import { EnhancementForm } from "./enhancement-form";
+import { EnhancementList } from "./enhancement-list";
 
 // Dynamically import the map to avoid SSR issues
 const ReportMap = dynamic(
@@ -37,7 +34,6 @@ const ReportMap = dynamic(
 type Report = {
   id: string;
   mediaUrl: string | null;
-
   location: string | null;
   description: string | null;
   createdAt: Date;
@@ -58,14 +54,18 @@ type Report = {
 interface ReportDetailProps {
   report: Report;
   onComplete: () => void;
+  userRole: "super_admin" | "org_admin" | "officer";
 }
 
-export function ReportDetail({ report, onComplete }: ReportDetailProps) {
+export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps) {
   const [diagnosis, setDiagnosis] = useState("");
   const [riskLevel, setRiskLevel] = useState<"LOW" | "MEDIUM" | "HIGH" | undefined>(undefined);
   const [rejectionReason, setRejectionReason] = useState("");
 
   const utils = api.useUtils();
+  
+  // Check if user can perform hard triage actions
+  const canTriage = canHardTriage(userRole);
   
   const verifyMutation = api.reports.verify.useMutation({
     onSuccess: () => {
@@ -128,40 +128,18 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
   const lat = coordinates ? parseFloat(coordinates[2]!) : null;
   const lon = coordinates ? parseFloat(coordinates[1]!) : null;
 
+  // Server-side reverse geocoding via tRPC
+  const { data: addressData, isLoading: isGeocoding } = api.reports.reverseGeocode.useQuery(
+    { lat: lat!, lon: lon! },
+    { enabled: !!lat && !!lon, staleTime: Infinity }
+  );
+
   // Get all images (from media table or fallback to mediaUrl)
   const images = report.media && report.media.length > 0 
     ? report.media.map(m => m.mediaUrl)
     : report.mediaUrl 
     ? [report.mediaUrl] 
     : [];
-
-  // Location state
-  const [locationDetails, setLocationDetails] = useState<{
-    country?: string;
-    state?: string;
-    suburb?: string;
-    city?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (lat && lon) {
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.address) {
-            setLocationDetails({
-              country: data.address.country,
-              state: data.address.state || data.address.province,
-              suburb: data.address.suburb || data.address.neighborhood,
-              city: data.address.city || data.address.town || data.address.village,
-            });
-          }
-        })
-        .catch(err => console.error("Geocoding error:", err));
-    } else {
-      setLocationDetails(null);
-    }
-  }, [lat, lon]);
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -225,30 +203,32 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
         <CardContent>
           {lat && lon ? (
             <div className="space-y-4">
-              {locationDetails && (
+              {isGeocoding ? (
+                <div className="h-20 bg-muted animate-pulse rounded-lg" />
+              ) : addressData ? (
                 <div className="grid grid-cols-2 gap-4">
-                  {locationDetails.country && (
+                  {addressData.country && (
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Country</Label>
-                      <div className="font-medium">{locationDetails.country}</div>
+                      <div className="font-medium">{addressData.country}</div>
                     </div>
                   )}
-                  {locationDetails.state && (
+                  {addressData.state && (
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Province/State</Label>
-                      <div className="font-medium">{locationDetails.state}</div>
+                      <div className="font-medium">{addressData.state}</div>
                     </div>
                   )}
-                  {(locationDetails.city || locationDetails.suburb) && (
+                  {(addressData.city || addressData.suburb) && (
                     <div className="space-y-1 col-span-2">
                       <Label className="text-xs text-muted-foreground">Area</Label>
                       <div className="font-medium">
-                        {[locationDetails.city, locationDetails.suburb].filter(Boolean).join(", ")}
+                        {[addressData.city, addressData.suburb].filter(Boolean).join(", ")}
                       </div>
                     </div>
                   )}
                 </div>
-              )}
+              ) : null}
               
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
@@ -266,107 +246,136 @@ export function ReportDetail({ report, onComplete }: ReportDetailProps) {
         </CardContent>
       </Card>
 
-      {/* Action Form */}
+      {/* Annotations Section - Visible to all roles */}
       <Card>
         <CardHeader>
-          <CardTitle>Decision</CardTitle>
-          <CardDescription>Verify or reject this report</CardDescription>
+          <CardTitle>Annotations</CardTitle>
+          <CardDescription>Add context, quality flags, or internal notes</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          
-          {/* Verification Fields (Always Visible) */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="diagnosis">Diagnosis <span className="text-destructive">*</span></Label>
-              <Input
-                ref={diagnosisRef}
-                id="diagnosis"
-                value={diagnosis}
-                onChange={(e) => setDiagnosis(e.target.value)}
-                placeholder="e.g., Fall Armyworm"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="riskLevel">Risk Level <span className="text-destructive">*</span></Label>
-              <Select
-                value={riskLevel}
-                onValueChange={(val) => setRiskLevel(val as "LOW" | "MEDIUM" | "HIGH")}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select risk level..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="LOW">Low - Common/Manageable</SelectItem>
-                  <SelectItem value="MEDIUM">Medium - Significant Damage</SelectItem>
-                  <SelectItem value="HIGH">High - Quarantine/Rapid Spread</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <AlertTriangle className="h-3 w-3" />
-                High = Quarantine pests or swarming behavior
-              </div>
-            </div>
-          </div>
-
+          <EnhancementForm reportId={report.id} />
           <Separator />
-
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
-              <DialogTrigger asChild>
-                <Button variant="destructive" className="flex-1">
-                  <X className="mr-2 h-4 w-4" />
-                  Reject Report
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Reject Report</DialogTitle>
-                  <DialogDescription>
-                    Please provide a reason for rejecting this report. This feedback helps improve the system.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reason">Rejection Reason <span className="text-destructive">*</span></Label>
-                    <Select
-                      value={rejectionReason}
-                      onValueChange={setRejectionReason}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a reason..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Blurry">Blurry Image</SelectItem>
-                        <SelectItem value="Not a Crop">Not a Crop</SelectItem>
-                        <SelectItem value="Duplicate">Duplicate Report</SelectItem>
-                        <SelectItem value="Insufficient Info">Insufficient Information</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                   <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Cancel</Button>
-                   <Button variant="destructive" onClick={handleReject} disabled={rejectMutation.isPending}>
-                     {rejectMutation.isPending ? "Rejecting..." : "Confirm Rejection"}
-                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <Button 
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white" 
-              onClick={handleVerify}
-              disabled={verifyMutation.isPending}
-            >
-              <Check className="mr-2 h-4 w-4" />
-              {verifyMutation.isPending ? "Verifying..." : "Verify Report"}
-            </Button>
-          </div>
+          <EnhancementList reportId={report.id} />
         </CardContent>
       </Card>
+
+      {/* Action Form - Only for super_admin */}
+      {canTriage ? (
+        <Card className="border-2 border-primary/20 shadow-md">
+          <CardHeader className="bg-primary/5">
+            <CardTitle className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-primary" />
+              AI Training & Ground Truth
+            </CardTitle>
+            <CardDescription className="text-primary/80">
+              Expert verification for AI model training. This "Ground Truth" data is used to calibrate detection algorithms.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-6">
+            
+            {/* Verification Fields */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="diagnosis">Final Diagnosis <span className="text-destructive">*</span></Label>
+                <Input
+                  ref={diagnosisRef}
+                  id="diagnosis"
+                  value={diagnosis}
+                  onChange={(e) => setDiagnosis(e.target.value)}
+                  placeholder="e.g., Fall Armyworm"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="riskLevel">Severity Risk Level <span className="text-destructive">*</span></Label>
+                <Select
+                  value={riskLevel}
+                  onValueChange={(val) => setRiskLevel(val as "LOW" | "MEDIUM" | "HIGH")}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select risk level..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LOW">Low - Common/Manageable</SelectItem>
+                    <SelectItem value="MEDIUM">Medium - Significant Damage</SelectItem>
+                    <SelectItem value="HIGH">High - Quarantine/Rapid Spread</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <AlertTriangle className="h-3 w-3" />
+                  High = Quarantine pests or swarming behavior
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex-1">
+                    <X className="mr-2 h-4 w-4" />
+                    Discard Report
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Discard Report</DialogTitle>
+                    <DialogDescription>
+                      This report will be marked as invalid and excluded from AI training sets.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reason">Rejection Reason <span className="text-destructive">*</span></Label>
+                      <Select
+                        value={rejectionReason}
+                        onValueChange={setRejectionReason}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a reason..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Blurry">Blurry Image</SelectItem>
+                          <SelectItem value="Not a Crop">Not a Crop</SelectItem>
+                          <SelectItem value="Duplicate">Duplicate Report</SelectItem>
+                          <SelectItem value="Insufficient Info">Insufficient Information</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                     <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Cancel</Button>
+                     <Button variant="destructive" onClick={handleReject} disabled={rejectMutation.isPending}>
+                       {rejectMutation.isPending ? "Discarding..." : "Confirm Discard"}
+                     </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Button 
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg" 
+                onClick={handleVerify}
+                disabled={verifyMutation.isPending}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                {verifyMutation.isPending ? "Saving..." : "Approve as Ground Truth"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        /* Info banner for org_admin users */
+        <Alert className="bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            Final verification of reports is handled by expert reviewers to ensure consistent model training and data quality.
+            You can add annotations above to provide context and flag issues.
+          </AlertDescription>
+        </Alert>
+      )}
 
     </div>
   );

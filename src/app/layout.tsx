@@ -18,20 +18,24 @@ const geist = Geist({
   variable: "--font-geist-sans",
 });
 
+import { TooltipProvider } from "~/components/ui/tooltip";
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable}`}>
-      <body className="flex flex-col min-h-screen">
+      <body className="flex flex-col h-screen overflow-hidden">
         <TRPCReactProvider>
-          <div className="flex-1 flex flex-col">
-            {children}
-          </div>
-          <footer className="py-2 text-center text-xs text-muted-foreground bg-muted/20 border-t print:hidden">
-            AgriData AI
-          </footer>
-          <Toaster />
+          <TooltipProvider>
+            <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+              {children}
+            </div>
+            <footer className="py-2 text-center text-xs text-muted-foreground bg-muted/20 border-t print:hidden shrink-0">
+              AgriData AI
+            </footer>
+            <Toaster />
+          </TooltipProvider>
         </TRPCReactProvider>
       </body>
     </html>

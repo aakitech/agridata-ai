@@ -6,24 +6,24 @@ import { ReportsList } from "./reports-list";
 import { ReportDetail } from "./report-detail";
 import { Loader2, Inbox, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-
-type TriageStatus = "PENDING_TRIAGE" | "VERIFIED" | "REJECTED";
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 
-// ...
+type TriageStatus = "PENDING_TRIAGE" | "VERIFIED" | "REJECTED";
 
 export function TriageDashboard() {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [status, setStatus] = useState<TriageStatus>("PENDING_TRIAGE");
   const [filterOrgId, setFilterOrgId] = useState<string | undefined>(undefined);
   
+  // Get current user's role
+  const { data: me } = api.users.getMe.useQuery();
+  const userRole = me?.role ?? "officer";
+  const isSuperAdmin = userRole === "super_admin";
+  
   const { data: reports, isLoading } = api.reports.getAll.useQuery({ status, filterOrgId });
   const { data: orgs } = api.organizations.getAll.useQuery();
   
   const selectedReport = reports?.find((r) => r.id === selectedReportId);
-
-  // ...
 
   return (
     <div className="flex h-full bg-background text-foreground overflow-hidden">
@@ -31,14 +31,18 @@ export function TriageDashboard() {
       <div className="w-[350px] border-r flex flex-col bg-muted/10">
         <div className="p-4 border-b bg-background space-y-4">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">Triage</h1>
+            <h1 className="text-xl font-semibold tracking-tight">
+              {isSuperAdmin ? "Triage" : "Review Reports"}
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Review and verify crop reports
+              {isSuperAdmin 
+                ? "Review and verify crop reports" 
+                : "Review reports and add annotations"}
             </p>
           </div>
 
-          {/* Org Filter (Only show if multiple orgs exist) */}
-          {orgs && orgs.length > 0 && (
+          {/* Org Filter (Only show for super_admin with multiple orgs) */}
+          {isSuperAdmin && orgs && orgs.length > 0 && (
              <Select value={filterOrgId ?? "all"} onValueChange={(val) => setFilterOrgId(val === "all" ? undefined : val)}>
                 <SelectTrigger className="h-8 text-xs">
                    <SelectValue placeholder="All Organizations" />
@@ -50,6 +54,14 @@ export function TriageDashboard() {
                    ))}
                 </SelectContent>
              </Select>
+          )}
+          
+          {/* Org display for org_admin */}
+          {!isSuperAdmin && me?.organization && (
+            <div className="text-xs px-2 py-1 bg-muted rounded">
+              <span className="text-muted-foreground">Organization: </span>
+              <span className="font-medium">{me.organization.name}</span>
+            </div>
           )}
           
           <Tabs value={status} onValueChange={(v) => setStatus(v as TriageStatus)} className="w-full">
@@ -97,6 +109,7 @@ export function TriageDashboard() {
           <ReportDetail
             key={selectedReport.id}
             report={selectedReport}
+            userRole={userRole}
             onComplete={() => {
               // Auto-select next report or clear selection
               const currentIndex = reports?.findIndex((r) => r.id === selectedReportId);

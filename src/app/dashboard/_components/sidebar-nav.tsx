@@ -54,33 +54,33 @@ function NavLink({ href, icon: Icon, label }: NavLinkProps) {
 
 export function SidebarNav({ role }: { role: string }) {
   return (
-    <ShadTooltipProvider>
-      <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+    <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+      <NavLink
+        href="/dashboard"
+        icon={LayoutDashboard}
+        label="Dashboard"
+      />
+      {(role === "super_admin" || role === "org_admin") && (
         <NavLink
-          href="/dashboard"
-          icon={LayoutDashboard}
-          label="Dashboard"
+          href="/dashboard/triage"
+          icon={ClipboardList}
+          label="Triage"
         />
-        {role === "super_admin" && (
-          <>
-            <NavLink
-              href="/dashboard/triage"
-              icon={ClipboardList}
-              label="Triage"
-            />
-            <NavLink
-              href="/dashboard/admin/organizations"
-              icon={Building2}
-              label="Organizations"
-            />
-            <NavLink
-              href="/dashboard/admin/users"
-              icon={Users}
-              label="User Management"
-            />
-          </>
-        )}
-      </nav>
-    </ShadTooltipProvider>
+      )}
+      {role === "super_admin" && (
+        <>
+          <NavLink
+            href="/dashboard/admin/organizations"
+            icon={Building2}
+            label="Organizations"
+          />
+          <NavLink
+            href="/dashboard/admin/users"
+            icon={Users}
+            label="User Management"
+          />
+        </>
+      )}
+    </nav>
   );
 }

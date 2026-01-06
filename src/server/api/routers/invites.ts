@@ -22,21 +22,30 @@ export const invitesRouter = createTRPCRouter({
       // If admin, can ONLY invite to own org.
       let targetOrgId = input.orgId;
 
-      if (ctx.appUser.role === "admin") {
+if (ctx.appUser.role === "org_admin") {
          if (input.orgId !== ctx.appUser.orgId) {
              throw new TRPCError({
                  code: "FORBIDDEN",
-                 message: "Admins can only invite users to their own organization."
+                 message: "Org admins can only invite users to their own organization."
              });
          }
+         
+         // 🔒 CRITICAL SECURITY FIX: Block super_admin role assignment
+         if (input.role === "super_admin") {
+             throw new TRPCError({
+                 code: "FORBIDDEN",
+                 message: "Only super admins can assign super_admin role."
+             });
+         }
+         
          targetOrgId = ctx.appUser.orgId;
-      } else if (ctx.appUser.role !== "super_admin") {
+       } else if (ctx.appUser.role !== "super_admin") {
          // Officers cannot invite
          throw new TRPCError({
              code: "FORBIDDEN",
              message: "Insufficient permissions to invite users."
          });
-      }
+       }
 
       // 2. Initialize Supabase Admin Client
       if (!env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -142,7 +151,7 @@ export const invitesRouter = createTRPCRouter({
   resend: protectedProcedure
     .input(z.object({ email: z.string().email() }))
     .mutation(async ({ ctx, input }) => {
-        if (ctx.appUser.role !== "super_admin" && ctx.appUser.role !== "admin") {
+        if (ctx.appUser.role !== "super_admin" && ctx.appUser.role !== "org_admin") {
             throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
         }
 
