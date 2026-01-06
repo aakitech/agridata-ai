@@ -22,8 +22,6 @@ import { Label } from "~/components/ui/label";
 import { toast } from "sonner";
 
 export default function UsersPage() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [fullName, setFullName] = useState("");
   // Invite User State
   const utils = api.useUtils();
   const { data: users, isLoading } = api.users.getAll.useQuery();
@@ -31,6 +29,7 @@ export default function UsersPage() {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePhone, setInvitePhone] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [inviteOrgId, setInviteOrgId] = useState<string>("");
   const [inviteRole, setInviteRole] = useState<"org_admin" | "officer">("org_admin");
@@ -42,6 +41,7 @@ export default function UsersPage() {
     onSuccess: (data) => {
       setInviteOpen(false);
       setInviteEmail("");
+      setInvitePhone("");
       setInviteName("");
       setInviteOrgId("");
       void utils.users.getAll.invalidate();
@@ -67,7 +67,8 @@ export default function UsersPage() {
     }
     
     inviteUser.mutate({
-      email: inviteEmail,
+      email: inviteRole === "org_admin" ? inviteEmail : undefined,
+      phoneNumber: inviteRole === "officer" ? invitePhone : undefined,
       fullName: inviteName,
       orgId: inviteOrgId,
       role: inviteRole,
@@ -95,28 +96,6 @@ export default function UsersPage() {
             </DialogHeader>
             <form onSubmit={handleInviteSubmit} className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="inviteEmail">Email Address</Label>
-                <Input
-                  id="inviteEmail"
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="inviteName">Full Name</Label>
-                <Input
-                  id="inviteName"
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
                 <Label htmlFor="inviteOrg">Organization</Label>
                 <Select value={inviteOrgId} onValueChange={setInviteOrgId}>
                   <SelectTrigger>
@@ -143,6 +122,44 @@ export default function UsersPage() {
                     <SelectItem value="officer">Field Officer</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {inviteRole === "org_admin" ? (
+                 <div className="space-y-2">
+                   <Label htmlFor="inviteEmail">Email Address</Label>
+                   <Input
+                     id="inviteEmail"
+                     type="email"
+                     value={inviteEmail}
+                     onChange={(e) => setInviteEmail(e.target.value)}
+                     placeholder="user@example.com"
+                     required
+                   />
+                 </div>
+              ) : (
+                 <div className="space-y-2">
+                   <Label htmlFor="invitePhone">Phone Number</Label>
+                   <Input
+                     id="invitePhone"
+                     type="tel"
+                     value={invitePhone}
+                     onChange={(e) => setInvitePhone(e.target.value)}
+                     placeholder="+263..."
+                     required
+                   />
+                   <p className="text-xs text-muted-foreground">International format (e.g. +263...)</p>
+                 </div>
+              )}
+               
+              <div className="space-y-2">
+                <Label htmlFor="inviteName">Full Name</Label>
+                <Input
+                  id="inviteName"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  placeholder="John Doe"
+                  required
+                />
               </div>
 
               <Button type="submit" className="w-full" disabled={inviteUser.isPending}>

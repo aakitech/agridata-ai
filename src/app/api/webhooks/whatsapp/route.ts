@@ -38,17 +38,23 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get("x-twilio-signature");
     const url = env.NEXT_PUBLIC_APP_URL + "/api/webhooks/whatsapp";
     
-    if (!signature) {
-      console.error("❌ Missing Twilio signature header");
-      return new NextResponse("Unauthorized", { status: 401 });
+    // In development (e.g. ngrok), the URL might not match what Twilio sees.
+    // We skip validation in dev to make testing easier.
+    if (env.NODE_ENV === "development") {
+      console.log("⚠️ Skipping Twilio signature validation in development");
+    } else {
+      if (!signature) {
+        console.error("❌ Missing Twilio signature header");
+        return new NextResponse("Unauthorized", { status: 401 });
+      }
+      
+      if (!validateTwilioSignature(env.TWILIO_AUTH_TOKEN, signature, url, text)) {
+        console.error("❌ Invalid Twilio signature");
+        return new NextResponse("Unauthorized", { status: 401 });
+      }
     }
     
-    if (!validateTwilioSignature(env.TWILIO_AUTH_TOKEN, signature, url, text)) {
-      console.error("❌ Invalid Twilio signature");
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-    
-    console.log("✅ Twilio signature validated");
+    console.log("✅ Twilio request accepted");
 
     // 3. Process the message
     // Twilio sends form-urlencoded data
