@@ -2,11 +2,21 @@
 -- Description: Renames admin role to org_admin, creates triage_enhancements table,
 --              and adds enhancement tracking columns to reports.
 
--- Step 1: Rename 'admin' to 'org_admin' in user_role enum
-ALTER TYPE user_role RENAME VALUE 'admin' TO 'org_admin';
+-- Step 1: Rename 'admin' to 'org_admin' in user_role enum (if not already renamed)
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'admin' AND enumtypid = 'user_role'::regtype) THEN
+    ALTER TYPE user_role RENAME VALUE 'admin' TO 'org_admin';
+  END IF;
+END $$;
 
--- Step 2: Create enhancement_type enum
-CREATE TYPE enhancement_type AS ENUM ('quality', 'context', 'follow_up', 'internal');
+-- Step 2: Create enhancement_type enum (if not exists)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enhancement_type') THEN
+    CREATE TYPE enhancement_type AS ENUM ('quality', 'context', 'follow_up', 'internal');
+  END IF;
+END $$;
 
 -- Step 3: Add enhancement tracking columns to reports table
 ALTER TABLE agridata_reports 
