@@ -24,6 +24,12 @@ steps:
     displayName: 'Install dependencies'
 
   - script: |
+      pnpm db:migrate
+    displayName: 'Run database migrations'
+    env:
+      DATABASE_URL: $(DATABASE_URL)
+
+  - script: |
       npm install -g vercel
     displayName: 'Install Vercel CLI'
 
