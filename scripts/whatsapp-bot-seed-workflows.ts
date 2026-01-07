@@ -30,24 +30,24 @@ async function seedWorkflows() {
     steps: [
       { 
         id: "pest_name", 
-        question: "Welcome, {{OfficerName}} 👋\nYou’re now recording MPBC pest monitoring data.\n\nThis flow will help you log trap observations for your current location.\nLet’s get started.\n\n🐛 What **pest** are you monitoring today?\n(Hint: Moths, Bollworms, etc.)", 
+        question: "👋 Hello {{OfficerName}}\n\nThis is the MPBC Trap Monitoring system.\nWe'll record your latest Fall Armyworm trap observation.\n\nLet's begin.\n\n🐛 Which pest are you observing?\n\nFor this season, this is usually:\n• Fall Armyworm\n\nYou may type the pest name or reply:\n1️⃣ Fall Armyworm", 
         type: "text" 
       },
       { 
         id: "count", 
-        question: "🔢 How many **pests** were caught in the trap?", 
+        question: "🔢 How many insects were caught in the trap?\n\nPlease enter a number only.\nExample: 3", 
         type: "number", 
         validation: { min: 0 } 
       },
       { 
         id: "photo", 
-        question: "Optional: Take a **photo** of the catch. 📸\n(Type 'SKIP' or 'NEXT' if you don't have one)", 
+        question: "📸 Optional:\nYou may upload a photo of what was caught in the trap.\n\nOr reply SKIP to continue.", 
         type: "photo", 
         optional: true 
       },
       { 
         id: "location", 
-        question: "Final step: Please share the trap **GPS Location**. 📍", 
+        question: "📍 Please share your GPS location for this trap.", 
         type: "location" 
       }
     ]

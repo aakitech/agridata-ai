@@ -72,11 +72,11 @@ export class WorkflowProcessor {
       // 5. Workflow Complete
       const finalReport = await this.completeWorkflow(data);
       if (!finalReport) throw new Error("Failed to save final report");
+      
+      // Get severity-aware confirmation message
+      const confirmationMessage = this.getSeverityConfirmation(finalReport, data);
       return {
-        message: `✅ **Report Saved!**\n\nThank you for your submission. (Report ID: ${finalReport.id.slice(
-          0,
-          8
-        )})`,
+        message: confirmationMessage,
         done: true,
       };
     }
@@ -152,6 +152,26 @@ export class WorkflowProcessor {
       default:
         if (!text && !step.optional)
           return { valid: false, error: "Input required." };
+        
+        // Pest normalization for MPBC workflow
+        if (step.id === "pest_name" && text) {
+          // Handle numeric shortcut "1" → "Fall Armyworm"
+          if (text.trim() === "1") {
+            return { valid: true, value: "Fall Armyworm" };
+          }
+          // Handle various forms of "fall armyworm"
+          if (text.toLowerCase().trim() === "fall armyworm") {
+            return { valid: true, value: "Fall Armyworm" };
+          }
+          // Otherwise, capitalize first letter of each word
+          const normalized = text
+            .trim()
+            .split(" ")
+            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(" ");
+          return { valid: true, value: normalized };
+        }
+        
         return { valid: true, value: text };
     }
   }
@@ -165,6 +185,28 @@ export class WorkflowProcessor {
         lastActive: new Date(),
       })
       .where(eq(botSessions.userId, this.userId));
+  }
+
+  private getSeverityConfirmation(report: any, data: SessionData): string {
+    const count = data["count"] ?? "?";
+    const pestName = data["pest_name"] ?? "pest";
+    const severity = report.severity;
+
+    const baseInfo = `${pestName} count: ${count}`;
+
+    switch (severity) {
+      case "NORMAL":
+        return `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`;
+      
+      case "WARNING":
+        return `⚠️ Report received.\n\n${baseInfo}\nStatus: Warning 🟠\n\nPlease monitor traps closely and watch for increasing activity.`;
+      
+      case "HIGH":
+        return `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🔴\n\nThis exceeds the outbreak threshold.\nPlease notify your supervisor and begin field scouting in surrounding areas.`;
+      
+      default:
+        return `✅ Report received.\n\n${baseInfo}\nStatus: Recorded\n\nThank you for your submission.`;
+    }
   }
 
   private async completeWorkflow(data: SessionData) {
