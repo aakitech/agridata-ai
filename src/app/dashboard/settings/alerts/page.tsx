@@ -27,7 +27,10 @@ export default function AlertsSettingsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Alert Settings</h1>
           <p className="text-muted-foreground mt-1">
-            Configure severity thresholds per pest for your organization.
+            Define when a pest count becomes Normal, Warning, or High Alert for your organization.
+          </p>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            These thresholds are used to flag reports on the dashboard and map.
           </p>
         </div>
 
