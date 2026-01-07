@@ -65,8 +65,13 @@ export function RecentActivity({ reports }: ActivityProps) {
                   <div className="flex items-center gap-2 mt-1.5">
                     {report.severity && (
                         <Badge 
-                          variant={report.severity === "HIGH" ? "destructive" : report.severity === "WARNING" ? "default" : "secondary"}
-                          className="text-[10px] px-1.5 h-5 font-medium"
+                          className={
+                            report.severity === "HIGH"
+                              ? "text-[10px] px-1.5 h-5 font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                              : report.severity === "WARNING"
+                              ? "text-[10px] px-1.5 h-5 font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+                              : "text-[10px] px-1.5 h-5 font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                          }
                         >
                           {report.severity}
                         </Badge>
@@ -126,7 +131,13 @@ export function RecentActivity({ reports }: ActivityProps) {
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">Severity Level</span>
                              <Badge 
-                                variant={report.severity === "HIGH" ? "destructive" : report.severity === "WARNING" ? "default" : "secondary"}
+                                className={
+                                  report.severity === "HIGH"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                                    : report.severity === "WARNING"
+                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+                                    : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                                }
                             >
                                 {report.severity ?? "UNKNOWN"}
                             </Badge>
