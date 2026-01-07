@@ -26,3 +26,5 @@ CREATE INDEX IF NOT EXISTS idx_org_alert_thresholds_org_id ON agridata_org_alert
 CREATE INDEX IF NOT EXISTS idx_org_alert_thresholds_pest_key ON agridata_org_alert_thresholds(pest_key);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_org_alert_thresholds_org_pest_unique ON agridata_org_alert_thresholds(org_id, pest_key);
 
+
+

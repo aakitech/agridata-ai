@@ -4,7 +4,6 @@ import { useState } from "react";
 import { api } from "~/trpc/react";
 import { StatsCards } from "./_components/stats-cards";
 import { TrendChart } from "./_components/trend-chart";
-import { PestDistribution } from "./_components/pest-distribution";
 import { RecentActivity } from "./_components/recent-activity";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Loader2, AlertCircle } from "lucide-react";
@@ -33,11 +32,6 @@ export default function DashboardPage() {
       range, 
       filterOrgId 
   });
-  // Fetch Distribution
-  const { data: distribution, isLoading: distributionLoading } = api.analytics.getPestDistribution.useQuery({ 
-    filterOrgId,
-    range 
-  });
   // Fetch Recent Activity
   const { data: activity, isLoading: activityLoading } = api.analytics.getRecentActivity.useQuery({ 
       limit: 5, 
@@ -53,7 +47,7 @@ export default function DashboardPage() {
   // Fetch Orgs (for filter)
   const { data: orgs } = api.organizations.getAll.useQuery();
 
-  const isLoading = statsLoading || trendsLoading || distributionLoading || activityLoading || mapLoading;
+  const isLoading = statsLoading || trendsLoading || activityLoading || mapLoading;
 
   if (isLoading && !stats) {
       return (
@@ -117,8 +111,7 @@ export default function DashboardPage() {
 
       {/* Charts Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {trends && <TrendChart data={trends} />}
-        {distribution && <PestDistribution data={distribution} />}
+        {trends && <div className="col-span-full"> <TrendChart data={trends} /> </div>}
       </div>
       
       {/* Bottom Row: Recent Activity & Map */}

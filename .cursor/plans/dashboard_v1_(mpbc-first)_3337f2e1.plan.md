@@ -269,7 +269,3 @@ flowchart LR
 - [`/Users/mohara/Documents/aakitech/Saas/agridata/src/app/dashboard/_components/sidebar-nav.tsx`](/Users/mohara/Documents/aakitech/Saas/agridata/src/app/dashboard/_components/sidebar-nav.tsx)
 
 **Change:**
-
-- Add a Settings/Alerts link for `org_admin` and `super_admin`.
-
-## Testing & rollout checklist (pilot readiness)
