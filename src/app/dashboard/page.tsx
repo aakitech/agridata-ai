@@ -5,6 +5,7 @@ import { api } from "~/trpc/react";
 import { StatsCards } from "./_components/stats-cards";
 import { TrendChart } from "./_components/trend-chart";
 import { RecentActivity } from "./_components/recent-activity";
+import { GenerateReportButton } from "./_components/generate-report-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
@@ -99,6 +100,24 @@ export default function DashboardPage() {
                       <SelectItem value="30d">Last 30 Days</SelectItem>
                   </SelectContent>
               </Select>
+
+              {/* Generate Report Button (MPBC only) */}
+              {me && (
+                <GenerateReportButton
+                  orgId={
+                    me.role === "super_admin" && filterOrgId
+                      ? filterOrgId
+                      : me.organization?.id
+                  }
+                  orgSlug={
+                    me.role === "super_admin" && filterOrgId
+                      ? orgs?.find((o) => o.id === filterOrgId)?.slug
+                      : me.organization?.slug
+                  }
+                  userRole={me.role}
+                  range={range}
+                />
+              )}
           </div>
       </div>
 
