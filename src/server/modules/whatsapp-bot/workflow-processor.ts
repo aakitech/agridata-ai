@@ -74,7 +74,11 @@ export class WorkflowProcessor {
       if (!finalReport) throw new Error("Failed to save final report");
       
       // Get severity-aware confirmation message
-      const confirmationMessage = this.getSeverityConfirmation(finalReport, data);
+      const confirmationMessage = this.getSeverityConfirmation(
+        finalReport,
+        data,
+        finalReport.severitySource
+      );
       return {
         message: confirmationMessage,
         done: true,
@@ -187,13 +191,33 @@ export class WorkflowProcessor {
       .where(eq(botSessions.userId, this.userId));
   }
 
-  private getSeverityConfirmation(report: any, data: SessionData): string {
+  private getSeverityConfirmation(
+    report: any,
+    data: SessionData,
+    severitySource: "ORG_CONFIG" | "DEFAULT_FALLBACK" | null
+  ): string {
     const count = data["count"] ?? "?";
     const pestName = data["pest_name"] ?? "pest";
     const severity = report.severity;
 
     const baseInfo = `${pestName} count: ${count}`;
 
+    // Use fallback messaging when severitySource is DEFAULT_FALLBACK
+    if (severitySource === "DEFAULT_FALLBACK") {
+      switch (severity) {
+        case "WARNING":
+          return `⚠️ POTENTIAL RISK\n\n${baseInfo}\n\nAlert thresholds are not yet configured.\nThis assessment is based on general guidance.`;
+        
+        case "HIGH":
+          return `🚨 POTENTIAL HIGH RISK\n\n${baseInfo}\n\nAlert thresholds have not yet been configured for your organisation.\nBased on standard guidance, this count suggests elevated risk.\n\nPlease monitor closely and inform your supervisor.`;
+        
+        default:
+          // Should not happen with fallback logic, but handle gracefully
+          return `✅ Report received.\n\n${baseInfo}\nStatus: Recorded\n\nThank you for your submission.`;
+      }
+    }
+
+    // Use existing messaging when org thresholds exist (ORG_CONFIG or null for backward compatibility)
     switch (severity) {
       case "NORMAL":
         return `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`;
@@ -243,22 +267,27 @@ export class WorkflowProcessor {
 
     // 3. Compute severity using AlertsService
     let severity: "NORMAL" | "WARNING" | "HIGH" | null = null;
+    let severitySource: "ORG_CONFIG" | "DEFAULT_FALLBACK" | null = null;
     if (pestKey && isValidCount) {
       try {
         const alertsService = new AlertsService(db, this.orgId, "org_admin");
-        severity = await alertsService.computeSeverity(
+        const result = await alertsService.computeSeverity(
           this.orgId,
           pestKey,
           observedCount
         );
+        severity = result.severity;
+        severitySource = result.source;
       } catch (error) {
         console.error("Error computing severity:", error);
-        // Default to NORMAL on error
+        // Default to NORMAL on error with ORG_CONFIG source
         severity = "NORMAL";
+        severitySource = "ORG_CONFIG";
       }
     } else {
-      // No pestKey or count: default to NORMAL
+      // No pestKey or count: default to NORMAL with ORG_CONFIG source
       severity = "NORMAL";
+      severitySource = "ORG_CONFIG";
     }
 
     // 4. Persist Report
@@ -277,6 +306,7 @@ export class WorkflowProcessor {
         // Severity system fields
         observedCount: isValidCount ? observedCount : null,
         severity: severity,
+        severitySource: severitySource,
       })
       .returning();
 

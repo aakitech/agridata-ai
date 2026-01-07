@@ -60,6 +60,11 @@ export const userRoleEnum = pgEnum("user_role", [
 
 export const severityEnum = pgEnum("severity", ["NORMAL", "WARNING", "HIGH"]);
 
+export const severitySourceEnum = pgEnum("severity_source", [
+  "ORG_CONFIG",
+  "DEFAULT_FALLBACK",
+]);
+
 export const organizations = createTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -136,6 +141,7 @@ export const reports = createTable("reports", {
   // Alert severity (computed at ingestion time)
   severity: severityEnum("severity"),
   observedCount: integer("observed_count"), // Raw count used for severity computation
+  severitySource: severitySourceEnum("severity_source"), // Source of severity computation (ORG_CONFIG or DEFAULT_FALLBACK)
 
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)

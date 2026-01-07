@@ -78,32 +78,42 @@ export class AlertsService {
 
   /**
    * Compute severity based on pest, count, and org thresholds
+   * Returns both severity and source (ORG_CONFIG or DEFAULT_FALLBACK)
    */
   async computeSeverity(
     orgId: string,
     pestKey: string,
     observedCount: number | null
-  ): Promise<Severity> {
-    // If no count provided, default to NORMAL
+  ): Promise<{ severity: Severity; source: "ORG_CONFIG" | "DEFAULT_FALLBACK" }> {
+    // If no count provided, default to NORMAL with ORG_CONFIG source
+    // (This is a data quality issue, not a threshold config issue)
     if (observedCount === null || observedCount === undefined) {
-      return "NORMAL";
+      return { severity: "NORMAL", source: "ORG_CONFIG" };
     }
 
     const threshold = await this.getThresholdForPest(orgId, pestKey);
 
-    // If no threshold config exists, default to NORMAL
+    // If no threshold config exists, use conservative fallback logic
     if (!threshold) {
-      return "NORMAL";
+      // Fallback logic: Never return NORMAL, use conservative defaults
+      if (observedCount < 10) {
+        return { severity: "WARNING", source: "DEFAULT_FALLBACK" };
+      } else {
+        return { severity: "HIGH", source: "DEFAULT_FALLBACK" };
+      }
     }
 
-    // Apply thresholds
+    // Apply org-defined thresholds
+    let severity: Severity;
     if (observedCount <= threshold.normalMax) {
-      return "NORMAL";
+      severity = "NORMAL";
     } else if (observedCount <= threshold.warningMax) {
-      return "WARNING";
+      severity = "WARNING";
     } else {
-      return "HIGH";
+      severity = "HIGH";
     }
+
+    return { severity, source: "ORG_CONFIG" };
   }
 
   /**

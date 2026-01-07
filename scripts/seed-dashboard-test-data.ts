@@ -59,7 +59,7 @@ async function main() {
   // 5. Create reports
   console.log("Inserting reports...");
   for (const loc of locations) {
-    const severity = await alertsService.computeSeverity(org.id, pestKey, loc.count);
+    const { severity, source } = await alertsService.computeSeverity(org.id, pestKey, loc.count);
     
     // Randomize time slightly within the last 7 days
     const daysAgo = Math.floor(Math.random() * 7);
@@ -72,13 +72,14 @@ async function main() {
       label: pestKey,
       observedCount: loc.count,
       severity: severity,
+      severitySource: source,
       location: `POINT(${loc.lon} ${loc.lat})`,
       status: "VERIFIED",
       category: "PEST",
       createdAt: createdAt,
     });
     
-    console.log(`Created report for ${loc.name}: count=${loc.count}, severity=${severity}`);
+    console.log(`Created report for ${loc.name}: count=${loc.count}, severity=${severity}, source=${source}`);
   }
 
   console.log("Seeding finished successfully.");
