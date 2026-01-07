@@ -20,12 +20,14 @@ import {
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { toast } from "sonner";
+import { UserActions } from "./_components/user-actions";
 
 export default function UsersPage() {
   // Invite User State
   const utils = api.useUtils();
   const { data: users, isLoading } = api.users.getAll.useQuery();
   const { data: organizations } = api.organizations.getAll.useQuery();
+  const { data: currentUser } = api.users.getMe.useQuery();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -228,7 +230,7 @@ export default function UsersPage() {
                         </div>
                     ) : user.phoneNumber ? (
                         <div className="flex flex-col">
-                             <span className="text-gray-900">{user.phoneNumber}</span>
+                             <span className="text-gray-900">{user.phoneNumber?.replace("whatsapp:", "")}</span>
                              <span className="text-xs text-orange-600 bg-orange-50 w-fit px-1 rounded">WhatsApp Bot</span>
                         </div>
                     ) : (
@@ -259,9 +261,16 @@ export default function UsersPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {user.email && (
-                        <ResendButton email={user.email} />
-                    )}
+                    <div className="flex justify-end items-center gap-2">
+                        {user.email && (
+                            <ResendButton email={user.email} />
+                        )}
+                        <UserActions 
+                            user={user} 
+                            organizations={organizations} 
+                            currentUserId={currentUser?.id} 
+                        />
+                    </div>
                   </td>
                 </tr>
               ))

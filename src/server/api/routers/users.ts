@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, authProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
-import { appUsers, organizations } from "~/server/db/schema";
-import { eq, and } from "drizzle-orm";
+import { appUsers, organizations, reports, botSessions, triageEnhancements } from "~/server/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 export const usersRouter = createTRPCRouter({
   getMe: protectedProcedure.query(async ({ ctx }) => {
@@ -140,4 +140,103 @@ export const usersRouter = createTRPCRouter({
 
     return user;
   }),
+
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        fullName: z.string().min(1).optional(),
+        phoneNumber: z.string().min(1).optional(),
+        orgId: z.string().uuid().optional(),
+        role: z.enum(["super_admin", "org_admin", "officer"]).optional(),
+        status: z.enum(["ACTIVE", "PENDING", "SUSPENDED"]).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Only Super Admin can update other users (for now, or Org Admin for their own org)
+      // Simplification: Restricted to Super Admin as requested
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only super administrators can update user details.",
+        });
+      }
+
+      const updates: Partial<typeof appUsers.$inferInsert> = {};
+      if (input.fullName) updates.fullName = input.fullName;
+      if (input.orgId) updates.orgId = input.orgId;
+      if (input.role) updates.role = input.role;
+      if (input.status) updates.status = input.status;
+
+      if (input.phoneNumber) {
+         let phone = input.phoneNumber.replace(/\s+/g, "").replace(/-/g, ""); 
+         if (!phone.startsWith("whatsapp:")) {
+            phone = `whatsapp:${phone}`;
+         }
+         
+         // Check for conflict
+         const existingUser = await ctx.db.query.appUsers.findFirst({
+           where: and(
+             eq(appUsers.phoneNumber, phone),
+             sql`${appUsers.id} != ${input.id}`
+           ),
+         });
+         
+         if (existingUser) {
+           throw new TRPCError({
+             code: "CONFLICT",
+             message: "Another user with this phone number already exists.",
+           });
+         }
+         updates.phoneNumber = phone;
+      }
+
+      const [updatedUser] = await ctx.db
+        .update(appUsers)
+        .set(updates)
+        .where(eq(appUsers.id, input.id))
+        .returning();
+
+      return updatedUser;
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.appUser.role !== "super_admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only super administrators can delete users.",
+        });
+      }
+
+      // Check for related data
+      const reportCount = await ctx.db
+        .select({ count: sql<number>`count(*)` })
+        .from(reports)
+        .where(eq(reports.userId, input.id))
+        .then((res) => res[0]?.count ?? 0);
+
+      const sessionCount = await ctx.db
+        .select({ count: sql<number>`count(*)` })
+        .from(botSessions)
+        .where(eq(botSessions.userId, input.id))
+        .then((res) => res[0]?.count ?? 0);
+        
+      const enhancementCount = await ctx.db
+        .select({ count: sql<number>`count(*)` })
+        .from(triageEnhancements)
+        .where(eq(triageEnhancements.addedBy, input.id))
+        .then((res) => res[0]?.count ?? 0);
+
+      if (reportCount > 0 || sessionCount > 0 || enhancementCount > 0) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `Cannot delete user: Found ${reportCount} reports, ${sessionCount} sessions, ${enhancementCount} triage actions. Please archive the user instead.`,
+        });
+      }
+
+      await ctx.db.delete(appUsers).where(eq(appUsers.id, input.id));
+      return { success: true };
+    }),
 });

@@ -24,21 +24,31 @@ export default function DashboardPage() {
   const { data: me } = api.users.getMe.useQuery();
 
   // Fetch Stats
-  const { data: stats, isLoading: statsLoading } = api.analytics.getStats.useQuery({ filterOrgId });
+  const { data: stats, isLoading: statsLoading } = api.analytics.getStats.useQuery({ 
+    filterOrgId,
+    range 
+  });
   // Fetch Trends
   const { data: trends, isLoading: trendsLoading } = api.analytics.getReportsOverTime.useQuery({ 
       range, 
       filterOrgId 
   });
   // Fetch Distribution
-  const { data: distribution, isLoading: distributionLoading } = api.analytics.getPestDistribution.useQuery({ filterOrgId });
+  const { data: distribution, isLoading: distributionLoading } = api.analytics.getPestDistribution.useQuery({ 
+    filterOrgId,
+    range 
+  });
   // Fetch Recent Activity
   const { data: activity, isLoading: activityLoading } = api.analytics.getRecentActivity.useQuery({ 
       limit: 5, 
-      filterOrgId 
+      filterOrgId,
+      range 
   });
   // Fetch Map Points
-  const { data: mapPoints, isLoading: mapLoading } = api.analytics.getMapPoints.useQuery({ filterOrgId });
+  const { data: mapPoints, isLoading: mapLoading } = api.analytics.getMapPoints.useQuery({ 
+    filterOrgId,
+    range 
+  });
   
   // Fetch Orgs (for filter)
   const { data: orgs } = api.organizations.getAll.useQuery();
@@ -58,9 +68,9 @@ export default function DashboardPage() {
     <div className="space-y-8 p-1 sm:p-2 animate-in fade-in duration-500 overflow-x-hidden">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground mt-1">
-                Geographic and statistical overview of crop reports.
+                Operational overview of reports and alerts.
             </p>
           </div>
 

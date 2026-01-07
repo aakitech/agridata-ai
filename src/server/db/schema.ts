@@ -58,6 +58,8 @@ export const userRoleEnum = pgEnum("user_role", [
   "officer",
 ]);
 
+export const severityEnum = pgEnum("severity", ["NORMAL", "WARNING", "HIGH"]);
+
 export const organizations = createTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -94,11 +96,7 @@ export const appUsers = createTable(
   ]
 );
 
-export const riskLevelEnum = pgEnum("risk_level", [
-  "LOW",
-  "MEDIUM",
-  "HIGH",
-]);
+export const riskLevelEnum = pgEnum("risk_level", ["LOW", "MEDIUM", "HIGH"]);
 
 export const reports = createTable("reports", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -110,31 +108,35 @@ export const reports = createTable("reports", {
     .notNull(),
   status: reportStatusEnum("status").default("DRAFT").notNull(),
   category: reportCategoryEnum("category"),
-  
+
   // Dynamic Collection Fields
   workflowId: text("workflow_id"),
   label: text("label"), // Replaces explicit category inference in some cases
   quantity: text("quantity"), // captured via bot
   dataPayload: jsonb("data_payload"),
-  
+
   mediaUrl: text("media_url"),
 
   // Using text for location for now as PostGIS setup in Drizzle can be complex without extensions
   // We will store 'POINT(long lat)' string or JSON
-  location: text("location"), 
+  location: text("location"),
   description: text("description"),
-  
+
   // Expert Triage Fields
   diagnosis: text("diagnosis"),
   riskLevel: riskLevelEnum("risk_level"),
   rejectionReason: text("rejection_reason"),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
   verifiedBy: uuid("verified_by"), // References app_users(id) presumably, or auth id
-  
+
   // Enhancement tracking
   enhancementCount: integer("enhancement_count").default(0).notNull(),
   lastEnhancementAt: timestamp("last_enhancement_at", { withTimezone: true }),
-  
+
+  // Alert severity (computed at ingestion time)
+  severity: severityEnum("severity"),
+  observedCount: integer("observed_count"), // Raw count used for severity computation
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -259,6 +261,46 @@ export const triageEnhancementsRelations = relations(
     addedByUser: one(appUsers, {
       fields: [triageEnhancements.addedBy],
       references: [appUsers.id],
+    }),
+  })
+);
+
+// Org Alert Thresholds (per-pest severity configuration)
+export const orgAlertThresholds = createTable(
+  "org_alert_thresholds",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    pestKey: text("pest_key").notNull(), // Normalized pest name (e.g., "Moth", "Bollworm")
+    normalMax: integer("normal_max").notNull(), // Max value for NORMAL (exclusive upper bound)
+    warningMax: integer("warning_max").notNull(), // Max value for WARNING (exclusive upper bound)
+    // HIGH is warningMax + 1 and above
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => [
+    index("org_alert_thresholds_org_id_idx").on(table.orgId),
+    index("org_alert_thresholds_pest_key_idx").on(table.pestKey),
+    // Unique constraint: one threshold config per org per pest
+    index("org_alert_thresholds_org_pest_unique_idx").on(
+      table.orgId,
+      table.pestKey
+    ),
+  ]
+);
+
+export const orgAlertThresholdsRelations = relations(
+  orgAlertThresholds,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [orgAlertThresholds.orgId],
+      references: [organizations.id],
     }),
   })
 );

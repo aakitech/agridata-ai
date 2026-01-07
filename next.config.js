@@ -52,7 +52,7 @@ const config = {
               "default-src 'self';",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline';",
               "style-src 'self' 'unsafe-inline';",
-              "img-src 'self' data: blob: https://*.supabase.co;",
+              "img-src 'self' data: blob: https://*.supabase.co https://*.tile.openstreetmap.org https://server.arcgisonline.com https://api.twilio.com https://unpkg.com;",
               "font-src 'self' data:;",
               "connect-src 'self' https://*.supabase.co https://*.twilio.com;",
               "frame-src 'none';",

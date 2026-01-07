@@ -8,6 +8,7 @@ interface ActivityProps {
     id: string;
     createdAt: Date;
     description: string | null;
+    severity: "NORMAL" | "WARNING" | "HIGH" | null;
     user: { fullName: string | null; phoneNumber: string | null } | null;
     organization: { name: string } | null;
   }>;
@@ -46,6 +47,14 @@ export function RecentActivity({ reports }: ActivityProps) {
                  <div className="text-xs text-muted-foreground line-clamp-1">
                     submitted a report
                  </div>
+                 {report.severity && (
+                    <Badge 
+                      variant={report.severity === "HIGH" ? "destructive" : report.severity === "WARNING" ? "default" : "secondary"}
+                      className="text-[10px] px-1 h-4 font-normal"
+                    >
+                      {report.severity}
+                    </Badge>
+                 )}
               </div>
 
                {/* Optional: Add location hint if available */}
