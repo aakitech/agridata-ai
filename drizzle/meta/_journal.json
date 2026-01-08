@@ -15,6 +15,13 @@
       "when": 1767480791839,
       "tag": "0001_first_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1736164800000,
+      "tag": "0002_add_roles_enhancements",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
-import { db } from "../src/server/db/index.ts";
-import { appUsers, botSessions, reports } from "../src/server/db/schema.ts";
+import { db } from "../src/server/db/index.js";
+import { appUsers, botSessions, reports } from "../src/server/db/schema.js";
 import { eq, inArray } from "drizzle-orm";
 
 async function cleanupTestData() {
