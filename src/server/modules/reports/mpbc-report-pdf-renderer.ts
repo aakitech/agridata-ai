@@ -62,12 +62,12 @@ export class MpbcReportPdfRenderer {
     const right = pageWidth - doc.page.margins.right;
     const contentWidth = right - left;
 
-    // Calculate the number of days in the period (inclusive of both start and end dates)
+    // Calculate the number of days in the period
     const daysDiff = Math.ceil(
       (reportData.period.endDate.getTime() - reportData.period.startDate.getTime()) / (1000 * 60 * 60 * 24)
-    ) + 1; // +1 to include both start and end dates
-    const periodType = daysDiff <= 7 ? "Weekly" : "Monthly";
-    const periodLabel = daysDiff <= 7 ? "Last 7 Days" : "Last 30 Days";
+    );
+    const periodType = daysDiff <= 14 ? "Weekly" : "Monthly";
+    const periodLabel = daysDiff <= 14 ? "Last 7 Days" : "Last 30 Days";
 
     doc.font("Helvetica-Bold").fontSize(22).text(`${periodType} Trap Monitoring Report`, left, 120, {
       width: contentWidth,

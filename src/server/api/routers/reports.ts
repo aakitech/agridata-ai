@@ -199,7 +199,7 @@ export const reportsRouter = createTRPCRouter({
       const daysDiff = Math.ceil(
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-      const periodType = daysDiff <= 7 ? "Weekly" : "Monthly";
+      const periodType = daysDiff <= 14 ? "Weekly" : "Monthly";
 
       // Return as base64 for tRPC serialization
       // Convert dates to ISO strings for proper serialization
