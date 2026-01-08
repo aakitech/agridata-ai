@@ -55,14 +55,27 @@ export const invitesRouter = createTRPCRouter({
 
          // Check if phone number is already registered
          const existingUser = await ctx.db.query.appUsers.findFirst({
-             where: eq(appUsers.phoneNumber, input.phoneNumber)
+             where: eq(appUsers.phoneNumber, input.phoneNumber),
+             with: {
+                 organization: true
+             }
          });
 
          if (existingUser) {
-             throw new TRPCError({
-                 code: "CONFLICT",
-                 message: "This phone number is already registered to a user."
-             });
+             const orgName = existingUser.organization?.name || "Unknown Organization";
+             const isSameOrg = existingUser.orgId === targetOrgId;
+             
+             if (isSameOrg) {
+                 throw new TRPCError({
+                     code: "CONFLICT",
+                     message: `This phone number is already registered in your organization as ${existingUser.fullName || "a field officer"}.`
+                 });
+             } else {
+                 throw new TRPCError({
+                     code: "CONFLICT",
+                     message: `This phone number is already registered to ${existingUser.fullName || "a user"} in "${orgName}". A phone number can only belong to one organization.`
+                 });
+             }
          }
 
          // Direct DB Insert (No Auth User created yet)
@@ -94,6 +107,31 @@ export const invitesRouter = createTRPCRouter({
               code: "BAD_REQUEST",
               message: "Email is required for Dashboard Users."
           });
+      }
+
+      // Check if email already exists in our database
+      const existingAppUser = await ctx.db.query.appUsers.findFirst({
+          where: eq(appUsers.email, input.email),
+          with: {
+              organization: true
+          }
+      });
+
+      if (existingAppUser) {
+          const orgName = existingAppUser.organization?.name || "Unknown Organization";
+          const isSameOrg = existingAppUser.orgId === targetOrgId;
+          
+          if (isSameOrg) {
+              throw new TRPCError({
+                  code: "CONFLICT",
+                  message: `This email is already registered in your organization as ${existingAppUser.fullName}.`
+              });
+          } else {
+              throw new TRPCError({
+                  code: "CONFLICT",
+                  message: `This email is already registered to ${existingAppUser.fullName} in "${orgName}". An email can only belong to one organization.`
+              });
+          }
       }
 
       // 2. Initialize Supabase Admin Client
