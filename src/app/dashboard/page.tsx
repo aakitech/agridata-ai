@@ -4,7 +4,6 @@ import { useState } from "react";
 import { api } from "~/trpc/react";
 import { StatsCards } from "./_components/stats-cards";
 import { TrendChart } from "./_components/trend-chart";
-import { PestDistribution } from "./_components/pest-distribution";
 import { RecentActivity } from "./_components/recent-activity";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Loader2, AlertCircle } from "lucide-react";
@@ -24,26 +23,31 @@ export default function DashboardPage() {
   const { data: me } = api.users.getMe.useQuery();
 
   // Fetch Stats
-  const { data: stats, isLoading: statsLoading } = api.analytics.getStats.useQuery({ filterOrgId });
+  const { data: stats, isLoading: statsLoading } = api.analytics.getStats.useQuery({ 
+    filterOrgId,
+    range 
+  });
   // Fetch Trends
   const { data: trends, isLoading: trendsLoading } = api.analytics.getReportsOverTime.useQuery({ 
       range, 
       filterOrgId 
   });
-  // Fetch Distribution
-  const { data: distribution, isLoading: distributionLoading } = api.analytics.getPestDistribution.useQuery({ filterOrgId });
   // Fetch Recent Activity
   const { data: activity, isLoading: activityLoading } = api.analytics.getRecentActivity.useQuery({ 
       limit: 5, 
-      filterOrgId 
+      filterOrgId,
+      range 
   });
   // Fetch Map Points
-  const { data: mapPoints, isLoading: mapLoading } = api.analytics.getMapPoints.useQuery({ filterOrgId });
+  const { data: mapPoints, isLoading: mapLoading } = api.analytics.getMapPoints.useQuery({ 
+    filterOrgId,
+    range 
+  });
   
   // Fetch Orgs (for filter)
   const { data: orgs } = api.organizations.getAll.useQuery();
 
-  const isLoading = statsLoading || trendsLoading || distributionLoading || activityLoading || mapLoading;
+  const isLoading = statsLoading || trendsLoading || activityLoading || mapLoading;
 
   if (isLoading && !stats) {
       return (
@@ -58,9 +62,9 @@ export default function DashboardPage() {
     <div className="space-y-8 p-1 sm:p-2 animate-in fade-in duration-500 overflow-x-hidden">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground mt-1">
-                Geographic and statistical overview of crop reports.
+                Operational overview of reports and alerts.
             </p>
           </div>
 
@@ -107,8 +111,7 @@ export default function DashboardPage() {
 
       {/* Charts Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {trends && <TrendChart data={trends} />}
-        {distribution && <PestDistribution data={distribution} />}
+        {trends && <div className="col-span-full"> <TrendChart data={trends} /> </div>}
       </div>
       
       {/* Bottom Row: Recent Activity & Map */}

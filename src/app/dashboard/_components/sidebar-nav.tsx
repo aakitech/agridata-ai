@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  ClipboardList, 
-  Users, 
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Users,
   Building2,
+  Bell,
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import {
@@ -25,9 +26,10 @@ interface NavLinkProps {
 function NavLink({ href, icon: Icon, label }: NavLinkProps) {
   const pathname = usePathname();
   // Check if active: exact match for /dashboard, or starts with href for others
-  const isActive = href === "/dashboard" 
-    ? pathname === "/dashboard" 
-    : pathname === href || pathname.startsWith(href + "/");
+  const isActive =
+    href === "/dashboard"
+      ? pathname === "/dashboard"
+      : pathname === href || pathname.startsWith(href + "/");
 
   return (
     <ShadTooltip>
@@ -36,8 +38,8 @@ function NavLink({ href, icon: Icon, label }: NavLinkProps) {
           href={href}
           className={cn(
             "flex h-9 w-9 items-center justify-center rounded-lg transition-all md:h-8 md:w-8",
-            isActive 
-              ? "bg-primary text-primary-foreground shadow-sm scale-110" 
+            isActive
+              ? "bg-primary text-primary-foreground shadow-sm scale-110"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
         >
@@ -55,17 +57,20 @@ function NavLink({ href, icon: Icon, label }: NavLinkProps) {
 export function SidebarNav({ role }: { role: string }) {
   return (
     <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-      <NavLink
-        href="/dashboard"
-        icon={LayoutDashboard}
-        label="Dashboard"
-      />
+      <NavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
       {(role === "super_admin" || role === "org_admin") && (
-        <NavLink
-          href="/dashboard/triage"
-          icon={ClipboardList}
-          label="Triage"
-        />
+        <>
+          <NavLink
+            href="/dashboard/triage"
+            icon={ClipboardList}
+            label="Triage"
+          />
+          <NavLink
+            href="/dashboard/settings/alerts"
+            icon={Bell}
+            label="Alert Settings"
+          />
+        </>
       )}
       {role === "super_admin" && (
         <>

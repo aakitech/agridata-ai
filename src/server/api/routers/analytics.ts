@@ -4,10 +4,15 @@ import { AnalyticsService } from "~/server/modules/analytics/analytics-service";
 
 export const analyticsRouter = createTRPCRouter({
   getStats: protectedProcedure
-    .input(z.object({ filterOrgId: z.string().uuid().optional() }).optional())
+    .input(
+      z.object({ 
+        filterOrgId: z.string().uuid().optional(),
+        range: z.enum(["7d", "30d"]).optional(),
+      }).optional()
+    )
     .query(async ({ ctx, input }) => {
       const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
-      return service.getStats(input?.filterOrgId);
+      return service.getStats(input?.filterOrgId, input?.range);
     }),
 
   getReportsOverTime: protectedProcedure
@@ -21,26 +26,37 @@ export const analyticsRouter = createTRPCRouter({
     }),
 
   getPestDistribution: protectedProcedure
-    .input(z.object({ filterOrgId: z.string().uuid().optional() }).optional())
+    .input(
+      z.object({ 
+        filterOrgId: z.string().uuid().optional(),
+        range: z.enum(["7d", "30d"]).optional(),
+      }).optional()
+    )
     .query(async ({ ctx, input }) => {
       const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
-      return service.getPestDistribution(input?.filterOrgId);
+      return service.getPestDistribution(input?.filterOrgId, input?.range);
     }),
 
   getRecentActivity: protectedProcedure
     .input(z.object({ 
       limit: z.number().min(1).max(20).default(5),
-      filterOrgId: z.string().uuid().optional() 
+      filterOrgId: z.string().uuid().optional(),
+      range: z.enum(["7d", "30d"]).optional(),
     }).optional())
     .query(async ({ ctx, input }) => {
       const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
-      return service.getRecentReports(input?.limit, input?.filterOrgId);
+      return service.getRecentReports(input?.limit, input?.filterOrgId, input?.range);
     }),
 
   getMapPoints: protectedProcedure
-    .input(z.object({ filterOrgId: z.string().uuid().optional() }).optional())
+    .input(
+      z.object({ 
+        filterOrgId: z.string().uuid().optional(),
+        range: z.enum(["7d", "30d"]).optional(),
+      }).optional()
+    )
     .query(async ({ ctx, input }) => {
       const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
-      return service.getMapPoints(input?.filterOrgId);
+      return service.getMapPoints(input?.filterOrgId, input?.range);
     }),
 });
