@@ -3,6 +3,11 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { TriageService } from "~/server/modules/triage/triage-service";
 import { canHardTriage } from "~/lib/permissions";
+import { ReportService } from "~/server/modules/reports/report-service";
+import { MpbcReportPdfRenderer } from "~/server/modules/reports/mpbc-report-pdf-renderer";
+import { getLastCompletedWeek, formatDateRange } from "~/server/modules/reports/report-utils";
+import { organizations } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
 
 export const reportsRouter = createTRPCRouter({
   // Get reports by status
@@ -119,5 +124,96 @@ export const reportsRouter = createTRPCRouter({
         console.error("Nominatim error:", error);
         return null;
       }
+    }),
+
+  // Generate MPBC Weekly Report (PDF)
+  // Accessible by: org_admin (MPBC only), super_admin (any org, but must be MPBC)
+  generateMpbcWeeklyReport: protectedProcedure
+    .input(
+      z
+        .object({
+          orgId: z.string().uuid().optional(), // Optional for super_admin
+          startDate: z.date().optional(),
+          endDate: z.date().optional(),
+        })
+        .optional()
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Permission check: org_admin (own org) or super_admin (any org)
+      if (ctx.appUser.role === "officer") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Officers do not have access to report generation",
+        });
+      }
+
+      // Determine orgId: super_admin can specify, org_admin uses their org
+      const targetOrgId =
+        ctx.appUser.role === "super_admin"
+          ? input?.orgId ?? ctx.appUser.orgId
+          : ctx.appUser.orgId;
+
+      if (!targetOrgId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Organization ID is required",
+        });
+      }
+
+      // Verify org is MPBC (by slug "mpbc")
+      const org = await ctx.db.query.organizations.findFirst({
+        where: eq(organizations.id, targetOrgId),
+      });
+
+      if (org?.slug !== "mpbc") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Report generation is only available for MPBC",
+        });
+      }
+
+      // Calculate date range (use provided dates or default to last 7 days)
+      const { startDate, endDate } =
+        input?.startDate && input?.endDate
+          ? { startDate: input.startDate, endDate: input.endDate }
+          : getLastCompletedWeek();
+
+      // Build report data
+      const reportService = new ReportService(ctx.db);
+      const reportData = await reportService.buildMpbcWeeklyReport(
+        targetOrgId,
+        startDate,
+        endDate
+      );
+
+      // Generate PDF
+      const renderer = new MpbcReportPdfRenderer();
+      const pdfBuffer = await renderer.render(reportData);
+
+      // Convert buffer to base64 for tRPC serialization
+      const base64Pdf = Buffer.isBuffer(pdfBuffer)
+        ? pdfBuffer.toString("base64")
+        : Buffer.from(pdfBuffer).toString("base64");
+
+      // Calculate period type for filename (Weekly for 7-day, Monthly for 30-day)
+      const daysDiff = Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const periodType = daysDiff <= 14 ? "Weekly" : "Monthly";
+
+      // Return as base64 for tRPC serialization
+      // Convert dates to ISO strings for proper serialization
+      return {
+        pdf: base64Pdf,
+        filename: `MPBC_${periodType}_Trap_Report_${formatDateRange(startDate, endDate)}.pdf`,
+        metadata: {
+          organization: reportData.organization?.name ?? "MPBC",
+          period: {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          },
+          generatedAt: new Date().toISOString(),
+        },
+      };
     }),
 });

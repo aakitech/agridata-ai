@@ -303,3 +303,74 @@ These are **future enhancements**, not MVP blockers.
 * Trend-based alerts (week-over-week)
 * Multi-pest support per org
 * AI-assisted image verification
+
+---
+
+## 11. 🧪 Local WhatsApp (Twilio Sandbox) Development
+
+This project uses **Twilio WhatsApp Sandbox** for local development.
+Only **one webhook URL can be active at a time**, so please coordinate when testing.
+
+### Prerequisites
+
+- Backend running locally
+- **ngrok** installed
+- Access to the **Twilio (2v) account**
+
+👉 **If you do not have access to the Twilio account, please ask for it before proceeding.**
+
+### Local Setup Steps
+
+#### 1. Run the backend locally
+
+Start the backend on its usual port (e.g. `3000`).
+
+#### 2. Expose your local backend with ngrok
+
+Run ngrok using the **same port as the backend**:
+
+```bash
+ngrok http <LOCAL_BACKEND_PORT>
+# example
+ngrok http 3000
+```
+
+Copy the generated **https** ngrok URL.
+
+#### 3. Update the Twilio WhatsApp Sandbox webhook
+
+Go to:
+**Twilio Console → Messaging → Try WhatsApp → Sandbox settings**
+
+Under **Sandbox Configuration**:
+
+- **When a message comes in**
+  ```
+  https://<NGROK_URL>/api/webhooks/whatsapp
+  ```
+- **Method:** `POST`
+
+Click **Save**.
+
+*(This is the same location where the WhatsApp webhook/port is configured.)*
+
+#### 4. Connect to the WhatsApp Sandbox (if needed)
+
+If your number is not already connected:
+
+- Send the **join `<sandbox-code>`** message to the Twilio WhatsApp number
+  **or**
+- Scan the QR code shown on the Sandbox page.
+
+#### 5. Test
+
+Send a WhatsApp message to the Sandbox number and verify:
+
+- The webhook hits your local backend
+- The expected behaviour occurs
+
+### ⚠️ Important Notes
+
+- Only **one developer can test Twilio webhooks at a time**
+- Updating the Sandbox webhook **overrides it for everyone**
+- Please coordinate before changing the webhook URL
