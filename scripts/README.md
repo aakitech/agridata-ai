@@ -26,3 +26,23 @@ npx tsx --env-file=.env scripts/<script-name>.ts
 ### `bootstrap-admin.ts`
 - **Purpose**: Creates an initial super admin user if one does not exist.
 - **Usage**: Used during initial project setup.
+### `diagnose-blocked-users.ts`
+**Command:** `npm run diagnose:user <phone_number>`
+- **Purpose**: Diagnoses why a previously invited user cannot access the WhatsApp bot
+- **Checks**:
+  - User exists in database (with phone format variations)
+  - `isActive` flag is true
+  - User status is ACTIVE
+  - Organization is linked
+  - Organization has active workflow configured
+- **Example**: `npm run diagnose:user +27794979611`
+- **When to use**: When a field officer reports they cannot access the bot
+
+### `fix-blocked-user.ts`
+**Command:** `npm run fix:user <phone_number>`
+- **Purpose**: Automatically fixes common issues blocking WhatsApp bot access
+- **Fixes**:
+  - Sets `isActive = true`
+  - Sets `status = 'ACTIVE'`
+- **Example**: `npm run fix:user +27794979611`
+- **When to use**: After diagnosing an issue, use this to quickly reactivate the user
