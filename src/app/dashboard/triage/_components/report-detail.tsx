@@ -37,6 +37,7 @@ type Report = {
   location: string | null;
   description: string | null;
   createdAt: Date;
+  severity?: "NORMAL" | "WARNING" | "HIGH" | null;
   organization?: {
     name: string;
   };
@@ -235,7 +236,7 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
                 <span>{lat.toFixed(6)}, {lon.toFixed(6)}</span>
               </div>
               <div className="h-[300px] rounded-lg overflow-hidden border">
-                <ReportMap latitude={lat} longitude={lon} reportId={report.id} />
+                <ReportMap latitude={lat} longitude={lon} reportId={report.id} severity={report.severity} />
               </div>
             </div>
           ) : (

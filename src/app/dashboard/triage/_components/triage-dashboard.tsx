@@ -12,13 +12,15 @@ type TriageStatus = "PENDING_TRIAGE" | "VERIFIED" | "REJECTED";
 
 export function TriageDashboard() {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
-  const [status, setStatus] = useState<TriageStatus>("PENDING_TRIAGE");
-  const [filterOrgId, setFilterOrgId] = useState<string | undefined>(undefined);
   
   // Get current user's role
   const { data: me } = api.users.getMe.useQuery();
   const userRole = me?.role ?? "officer";
   const isSuperAdmin = userRole === "super_admin";
+  
+  // Default to VERIFIED for org admins, PENDING_TRIAGE for super admins
+  const [status, setStatus] = useState<TriageStatus>(isSuperAdmin ? "PENDING_TRIAGE" : "VERIFIED");
+  const [filterOrgId, setFilterOrgId] = useState<string | undefined>(undefined);
   
   const { data: reports, isLoading } = api.reports.getAll.useQuery({ status, filterOrgId });
   const { data: orgs } = api.organizations.getAll.useQuery();
@@ -64,21 +66,29 @@ export function TriageDashboard() {
             </div>
           )}
           
-          <Tabs value={status} onValueChange={(v) => setStatus(v as TriageStatus)} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="PENDING_TRIAGE" className="text-xs">Pending</TabsTrigger>
-              <TabsTrigger value="VERIFIED" className="text-xs">Verified</TabsTrigger>
-              <TabsTrigger value="REJECTED" className="text-xs">Rejected</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {/* Status Tabs - Only show for super_admin */}
+          {isSuperAdmin && (
+            <Tabs value={status} onValueChange={(v) => setStatus(v as TriageStatus)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="PENDING_TRIAGE" className="text-xs">Pending</TabsTrigger>
+                <TabsTrigger value="VERIFIED" className="text-xs">Verified</TabsTrigger>
+                <TabsTrigger value="REJECTED" className="text-xs">Rejected</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
         </div>
         
         <div className="px-4 py-2 bg-muted/20 border-b flex justify-between items-center">
           <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-            {status === "PENDING_TRIAGE" && <Clock className="h-3 w-3" />}
-            {status === "VERIFIED" && <CheckCircle2 className="h-3 w-3" />}
-            {status === "REJECTED" && <XCircle className="h-3 w-3" />}
-            {reports?.length || 0} reports
+            {isSuperAdmin && (
+              <>
+                {status === "PENDING_TRIAGE" && <Clock className="h-3 w-3" />}
+                {status === "VERIFIED" && <CheckCircle2 className="h-3 w-3" />}
+                {status === "REJECTED" && <XCircle className="h-3 w-3" />}
+              </>
+            )}
+            {!isSuperAdmin && <CheckCircle2 className="h-3 w-3" />}
+            {reports?.length || 0} {isSuperAdmin ? 'reports' : 'verified reports'}
           </span>
         </div>
         
@@ -97,7 +107,7 @@ export function TriageDashboard() {
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4 text-center">
               <Inbox className="h-10 w-10 mb-2 opacity-50" />
-              <p>No {status.toLowerCase().replace("_", " ")} reports</p>
+              <p>No {isSuperAdmin ? status.toLowerCase().replace("_", " ") : 'verified'} reports</p>
             </div>
           )}
         </div>
