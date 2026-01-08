@@ -66,3 +66,8 @@ Before handing over for the demo, perform these tests:
 2.  **Signature Check**: If you get a `401 Unauthorized` on the webhook, verify that `NEXT_PUBLIC_APP_URL` is set correctly and includes `https://`.
 3.  **Dashboard Check**: Log into the dashboard and ensure the stats and map are loading.
 4.  **Workflow Check**: Complete a full reporting flow via WhatsApp and ensure the record appears in the Triage section of the dashboard.
+
+## 5. Local Development & Testing
+
+For instructions on how to set up a local development environment with Twilio Sandbox and ngrok for future maintenance, refer to:
+`src/server/modules/whatsapp-bot/README.md`
