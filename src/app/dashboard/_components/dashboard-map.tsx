@@ -7,16 +7,31 @@ import L from "leaflet";
 import { Badge } from "~/components/ui/badge";
 import { format } from "date-fns";
 
-// Fix for default marker icons in Leaflet + Next.js
-// Use local icons instead of unpkg.com to avoid CSP issues
-const DefaultIcon = L.icon({
-  iconUrl: "/leaflet/marker-icon.png",
-  shadowUrl: "/leaflet/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+// Create custom colored markers based on severity
+const createColoredIcon = (color: string) => {
+  const svgIcon = `
+    <svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" 
+            fill="${color}" stroke="#000" stroke-width="1"/>
+      <circle cx="12.5" cy="12.5" r="6" fill="white" opacity="0.9"/>
+    </svg>
+  `;
+  return L.divIcon({
+    html: svgIcon,
+    className: 'custom-marker',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  });
+};
 
-L.Marker.prototype.options.icon = DefaultIcon;
+// Severity-based icons
+const severityIcons = {
+  HIGH: createColoredIcon('#ec353d'),      // Red
+  WARNING: createColoredIcon('#f59e0b'),   // Amber/Orange (more visible than #fef3c6)
+  NORMAL: createColoredIcon('#449c47'),    // Green
+  DEFAULT: createColoredIcon('#6b7280'),   // Gray for unknown
+};
 
 interface MapPoint {
   id: string;
@@ -56,8 +71,13 @@ export function DashboardMap({ points }: { points: MapPoint[] }) {
             />
           </LayersControl.BaseLayer>
         </LayersControl>
-        {points.map((point) => (
-          <Marker key={point.id} position={[point.lat, point.lon]}>
+        {points.map((point) => {
+          const icon = point.severity 
+            ? severityIcons[point.severity]
+            : severityIcons.DEFAULT;
+          
+          return (
+          <Marker key={point.id} position={[point.lat, point.lon]} icon={icon}>
             <Popup>
               <div className="space-y-2 min-w-[150px]">
                 <p className="font-semibold text-sm">{point.pest || "Unknown Pest"}</p>
@@ -85,7 +105,8 @@ export function DashboardMap({ points }: { points: MapPoint[] }) {
               </div>
             </Popup>
           </Marker>
-        ))}
+          );
+        })}
       </MapContainer>
     </div>
   );
