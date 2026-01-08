@@ -9,6 +9,50 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
+import { api } from "~/trpc/react";
+
+// Helper component to parse coordinates and fetch address
+function ReportLocationDisplay({ location }: { location: string | null }) {
+  if (!location) return null;
+
+  // Parse POINT(lon lat) format
+  const coordinates = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
+  const lat = coordinates ? parseFloat(coordinates[2]!) : null;
+  const lon = coordinates ? parseFloat(coordinates[1]!) : null;
+
+  // Fetch address using reverse geocoding
+  const { data: addressData, isLoading } = api.reports.reverseGeocode.useQuery(
+    { lat: lat!, lon: lon! },
+    { enabled: !!lat && !!lon, staleTime: Infinity }
+  );
+
+  if (isLoading) {
+    return <span className="text-sm">Loading address...</span>;
+  }
+
+  if (!addressData) {
+    // Fallback to coordinates if geocoding fails
+    return (
+      <span className="text-sm font-mono text-xs">
+        {lat?.toFixed(6)}, {lon?.toFixed(6)}
+      </span>
+    );
+  }
+
+  // Format readable address
+  const addressParts = [
+    addressData.suburb,
+    addressData.city,
+    addressData.state,
+    addressData.country,
+  ].filter(Boolean);
+
+  return (
+    <span className="text-sm max-w-[200px] text-right">
+      {addressParts.join(", ") || "Unknown location"}
+    </span>
+  );
+}
 
 interface ActivityProps {
   reports: Array<{
@@ -146,7 +190,7 @@ export function RecentActivity({ reports }: ActivityProps) {
                         {report.location && (
                              <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">Location</span>
-                                <span className="text-sm font-mono text-xs truncate max-w-[200px]">{report.location}</span>
+                                <ReportLocationDisplay location={report.location} />
                             </div>
                         )}
 
