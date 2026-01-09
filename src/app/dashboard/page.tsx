@@ -61,45 +61,49 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 p-1 sm:p-2 animate-in fade-in duration-500 overflow-x-hidden">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b pb-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
                 Operational overview of reports and alerts.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-              {/* Org Filter (Only show for super_admin) */}
-              {me?.role === "super_admin" && orgs && orgs.length > 0 && (
-                <Select value={filterOrgId ?? "all"} onValueChange={(val) => setFilterOrgId(val === "all" ? undefined : val)}>
-                    <SelectTrigger className="w-[180px] sm:w-[200px] h-9">
-                        <SelectValue placeholder="All Organizations" />
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <div className="flex flex-1 items-center gap-1.5 bg-muted/30 p-1 rounded-lg border shadow-sm overflow-hidden min-w-[200px] md:min-w-0">
+                {/* Org Filter (Only show for super_admin) */}
+                {me?.role === "super_admin" && orgs && orgs.length > 0 && (
+                  <Select value={filterOrgId ?? "all"} onValueChange={(val) => setFilterOrgId(val === "all" ? undefined : val)}>
+                      <SelectTrigger className="flex-1 md:w-[160px] h-8 border-none bg-transparent shadow-none focus:ring-0 text-xs">
+                          <SelectValue placeholder="Org" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="all">All Organizations</SelectItem>
+                          {orgs.map((org) => (
+                              <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+                )}
+
+                {me?.role !== "super_admin" && me?.organization && (
+                    <Badge variant="secondary" className="h-7 px-2 text-[10px] font-bold whitespace-nowrap">
+                        {me.organization.name}
+                    </Badge>
+                )}
+
+                <div className="w-[1px] h-4 bg-border mx-0.5" />
+
+                <Select value={range} onValueChange={(val) => setRange(val as "7d" | "30d")}>
+                    <SelectTrigger className="flex-1 md:w-[110px] h-8 border-none bg-transparent shadow-none focus:ring-0 text-xs">
+                        <SelectValue placeholder="Range" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Organizations</SelectItem>
-                        {orgs.map((org) => (
-                            <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
-                        ))}
+                        <SelectItem value="7d">Last 7 Days</SelectItem>
+                        <SelectItem value="30d">Last 30 Days</SelectItem>
                     </SelectContent>
                 </Select>
-              )}
-
-              {me?.role !== "super_admin" && me?.organization && (
-                  <Badge variant="outline" className="h-9 px-3 text-sm font-normal">
-                      {me.organization.name}
-                  </Badge>
-              )}
-
-              <Select value={range} onValueChange={(val) => setRange(val as "7d" | "30d")}>
-                  <SelectTrigger className="w-[140px] h-9">
-                      <SelectValue placeholder="Range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="7d">Last 7 Days</SelectItem>
-                      <SelectItem value="30d">Last 30 Days</SelectItem>
-                  </SelectContent>
-              </Select>
+              </div>
 
               {/* Generate Report Button (MPBC only) */}
               {me && (
@@ -128,13 +132,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Charts Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {trends && <div className="col-span-full"> <TrendChart data={trends} /> </div>}
-      </div>
-      
-      {/* Bottom Row: Recent Activity & Map */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Top Row: Map & Recent Activity */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
          <div className="lg:col-span-2 h-[450px]">
             {mapPoints ? (
                 <DashboardMap points={mapPoints as any} />
@@ -143,9 +142,14 @@ export default function DashboardPage() {
             )}
          </div>
 
-         <div className="bg-card border rounded-xl p-4 h-[450px] overflow-y-auto">
+         <div className="bg-card border rounded-xl overflow-hidden h-[450px]">
             {activity && <RecentActivity reports={activity as any} />}
          </div>
+      </div>
+
+      {/* Analytics Row */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {trends && <div className="col-span-full bg-card border rounded-xl p-6 shadow-sm"> <TrendChart data={trends} /> </div>}
       </div>
     </div>
   );

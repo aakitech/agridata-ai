@@ -178,11 +178,11 @@ export function AlertThresholdsTable({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <span>Pest Alert Thresholds</span>
           <Dialog open={addDialogOpen} onOpenChange={handleAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Pest Threshold
               </Button>
@@ -204,7 +204,7 @@ export function AlertThresholdsTable({
                     onChange={(e) => setNewPestKey(e.target.value)}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="new-normal">Normal Max</Label>
                     <Input
@@ -239,17 +239,19 @@ export function AlertThresholdsTable({
                   </div>
                 )}
               </div>
-              <DialogFooter>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button
                   variant="outline"
                   onClick={() => handleAddDialogOpen(false)}
                   disabled={upsertMutation.isPending}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={() => handleSave(null)}
                   disabled={upsertMutation.isPending}
+                  className="w-full sm:w-auto"
                 >
                   {upsertMutation.isPending ? "Adding..." : "Add Threshold"}
                 </Button>
@@ -265,7 +267,8 @@ export function AlertThresholdsTable({
             <p className="text-sm mt-1">Click "Add Pest Threshold" to get started.</p>
           </div>
         ) : (
-          <Table>
+          <div className="overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Pest</TableHead>
@@ -365,6 +368,7 @@ export function AlertThresholdsTable({
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </CardContent>
     </Card>

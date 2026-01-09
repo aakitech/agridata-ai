@@ -6,6 +6,12 @@ import { Button } from "~/components/ui/button";
 import { FileDown, Loader2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { format, subDays, endOfDay, startOfDay } from "date-fns";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 interface GenerateReportButtonProps {
   orgId?: string;
@@ -28,7 +34,7 @@ export function GenerateReportButton({
   const endDate = endOfDay(now);
   const startDate = startOfDay(subDays(now, days));
   const dateRangeText = `${format(startDate, "MMM dd")} - ${format(endDate, "MMM dd, yyyy")}`;
-  const rangeLabel = range === "30d" ? "Last 30 days" : "Last 7 days";
+  const rangeLabel = range === "30d" ? "30 Days" : "7 Days";
 
   // Only show button for org_admin or super_admin, and only for MPBC
   const shouldShow =
@@ -41,7 +47,6 @@ export function GenerateReportButton({
     },
     onSuccess: (data) => {
       try {
-        // Convert base64 to blob and trigger download
         const binaryString = atob(data.pdf);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -85,31 +90,43 @@ export function GenerateReportButton({
   };
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className="flex items-center gap-2">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="hidden md:flex items-center gap-1.5 px-3 h-8 rounded-md bg-muted/50 border text-[10px] text-muted-foreground transition-colors hover:bg-muted cursor-help">
+              <Calendar className="h-3 w-3 text-primary/60" />
+              <span className="whitespace-nowrap">
+                {rangeLabel}: <span className="text-foreground font-semibold">{dateRangeText}</span>
+              </span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" align="end" className="text-[10px]">
+            <p>Data range for the generated report</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
       <Button
         onClick={handleGenerate}
         disabled={isGenerating}
         variant="default"
-        className="h-9 shadow-sm"
+        className="h-8 md:h-9 transition-all active:scale-[0.95] shadow-sm font-bold text-xs"
       >
         {isGenerating ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Generating...
+            <span className="hidden sm:inline">Generating...</span>
+            <span className="sm:hidden text-[10px]">...</span>
           </>
         ) : (
           <>
-            <FileDown className="mr-2 h-4 w-4" />
-            Generate Report
+            <FileDown className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">Generate Report</span>
+            <span className="sm:hidden">Report</span>
           </>
         )}
       </Button>
-      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/50 border border-border/50 text-[10px] text-muted-foreground transition-all hover:bg-secondary/80">
-        <Calendar className="h-3 w-3 text-primary/70" />
-        <span className="whitespace-nowrap">
-          {rangeLabel}: <span className="text-foreground font-medium">{dateRangeText}</span>
-        </span>
-      </div>
     </div>
   );
 }
