@@ -1,0 +1,62 @@
+trigger:
+  branches:
+    include:
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: Vercel-Deploy-Variables-Dev
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm install -g pnpm
+    displayName: 'Install pnpm'
+
+  - script: |
+      pnpm install
+    displayName: 'Install dependencies'
+
+  - script: |
+      pnpm db:migrate
+    displayName: 'Run database migrations'
+    env:
+      DATABASE_URL: $(DATABASE_URL)
+
+  - script: |
+      npm install -g vercel
+    displayName: 'Install Vercel CLI'
+
+  - script: |
+      vercel pull --yes --environment=preview --token=$(VERCEL_TOKEN)
+    displayName: 'Pull Vercel environment information'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
+
+  - script: |
+      vercel build --token=$(VERCEL_TOKEN)
+    displayName: 'Build project artifacts'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
+      DATABASE_URL: $(DATABASE_URL)
+      NEXT_PUBLIC_SUPABASE_URL: $(NEXT_PUBLIC_SUPABASE_URL)
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: $(NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      SUPABASE_SERVICE_ROLE_KEY: $(SUPABASE_SERVICE_ROLE_KEY)
+      TWILIO_ACCOUNT_SID: $(TWILIO_ACCOUNT_SID)
+      TWILIO_AUTH_TOKEN: $(TWILIO_AUTH_TOKEN)
+      TWILIO_PHONE_NUMBER: $(TWILIO_PHONE_NUMBER)
+
+  - script: |
+      vercel deploy --prebuilt --token=$(VERCEL_TOKEN)
+    displayName: 'Deploy to Vercel (Preview)'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)

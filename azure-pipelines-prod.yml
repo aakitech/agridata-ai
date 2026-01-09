@@ -1,13 +1,13 @@
 trigger:
   branches:
     include:
-      - develop
+      - main
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: Vercel-Deploy-Variables
+  - group: Vercel-Deploy-Variables-Prod
 
 steps:
   - task: NodeTool@0
@@ -53,10 +53,11 @@ steps:
       TWILIO_ACCOUNT_SID: $(TWILIO_ACCOUNT_SID)
       TWILIO_AUTH_TOKEN: $(TWILIO_AUTH_TOKEN)
       TWILIO_PHONE_NUMBER: $(TWILIO_PHONE_NUMBER)
+      NEXT_PUBLIC_APP_URL: $(NEXT_PUBLIC_APP_URL)
 
   - script: |
       vercel deploy --prebuilt --prod --token=$(VERCEL_TOKEN)
-    displayName: 'Deploy to Vercel'
+    displayName: 'Deploy to Vercel (Production)'
     env:
       VERCEL_ORG_ID: $(VERCEL_ORG_ID)
       VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
