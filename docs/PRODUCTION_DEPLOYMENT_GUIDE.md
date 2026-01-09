@@ -220,32 +220,48 @@ Your WhatsApp number `+263713618310` needs separate webhook configurations:
 
 ## 🎯 Phase 6: Deployment Workflow
 
-### Development Flow
+### Automated Deployment Flow
+
+The pipelines are configured for **automatic continuous deployment**:
+
+**Development → Production Flow:**
+
+```
+1. Push to develop branch
+   ↓
+2. Dev pipeline triggers automatically
+   ↓
+3. Build & deploy to Vercel preview
+   ↓
+4. If successful → Auto-merge develop to main
+   ↓
+5. Prod pipeline triggers automatically
+   ↓
+6. Build & deploy to Vercel production
+```
+
+**No manual PR needed!** The system automatically promotes successful preview deployments to production.
+
+### Development Workflow
 
 ```
 1. Create feature branch from develop
 2. Make changes & test locally
 3. Push to feature branch
 4. Create PR to develop
-5. Review & merge
-6. Azure pipeline triggers → Vercel preview deployment
-7. Test in preview environment
+5. Review & merge to develop
+6. Auto-deployment starts:
+   - Preview deployed
+   - If successful, auto-merged to main
+   - Production deployed
 ```
 
-### Production Flow
+### Manual Production Control (If Needed)
 
-```
-1. develop branch is stable & tested
-2. Create PR from develop to main
-3. Review checklist:
-   ✅ All tests pass
-   ✅ Preview environment works
-   ✅ Breaking changes documented
-   ✅ Database migrations tested
-4. Merge to main
-5. Azure pipeline triggers → Vercel production deployment
-6. Monitor deployment & logs
-```
+If you need to pause auto-deployment:
+1. Comment out the auto-merge step in `azure-pipelines-dev.yml`
+2. Manually merge develop to main when ready
+3. Production pipeline will still trigger automatically
 
 ---
 
