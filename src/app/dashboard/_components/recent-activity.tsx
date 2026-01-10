@@ -71,11 +71,14 @@ interface ActivityProps {
 
 export function RecentActivity({ reports }: ActivityProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm">Recent Activity</h3>
+    <div className="h-full flex flex-col">
+      <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-card/95 backdrop-blur-sm border-b shadow-sm">
+          <h3 className="font-bold text-sm text-foreground uppercase tracking-tight">Recent Activity</h3>
+          <Badge variant="secondary" className="h-5 px-2 text-[10px] font-bold">
+            {reports.length} Reports
+          </Badge>
       </div>
-      <div className="space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-muted-foreground/20">
         {reports.map((report) => (
           <Dialog key={report.id}>
             <DialogTrigger asChild>

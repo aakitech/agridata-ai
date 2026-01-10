@@ -143,22 +143,22 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
     : [];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">Report Details</h2>
-            <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Report Details</h2>
+            <div className="flex flex-wrap items-center gap-2">
                 {report.organization && (
                     <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
                         {report.organization.name}
                     </span>
                 )}
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground">
                     by {report.user?.fullName || report.user?.phoneNumber || "Unknown User"}
                 </span>
             </div>
         </div>
-        <div className="text-sm text-muted-foreground">ID: {report.id}</div>
+        <div className="text-xs sm:text-sm text-muted-foreground">ID: {report.id}</div>
       </div>
 
       {/* Evidence Section */}
@@ -170,7 +170,7 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
         <CardContent className="space-y-6">
           {/* Images */}
           {images.length > 0 && (
-            <div className={images.length === 1 ? "" : "grid grid-cols-2 gap-4"}>
+            <div className={images.length === 1 ? "" : "grid grid-cols-1 sm:grid-cols-2 gap-4"}>
               {images.map((imageUrl, index) => (
                 <div key={index} className="rounded-lg overflow-hidden border bg-muted">
                   <img
@@ -207,7 +207,7 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
               {isGeocoding ? (
                 <div className="h-20 bg-muted animate-pulse rounded-lg" />
               ) : addressData ? (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {addressData.country && (
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Country</Label>
@@ -221,7 +221,7 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
                     </div>
                   )}
                   {(addressData.city || addressData.suburb) && (
-                    <div className="space-y-1 col-span-2">
+                    <div className="space-y-1 col-span-1 sm:col-span-2">
                       <Label className="text-xs text-muted-foreground">Area</Label>
                       <div className="font-medium">
                         {[addressData.city, addressData.suburb].filter(Boolean).join(", ")}
@@ -313,7 +313,7 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
             <Separator />
 
             {/* Action Buttons */}
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="flex-1">
