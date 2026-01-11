@@ -25,11 +25,11 @@ export default function AlertsSettingsPage() {
     <div className="space-y-8 p-1 sm:p-2 animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Alert Settings</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Alert Settings</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Define when a pest count becomes Normal, Warning, or High Alert for your organization.
           </p>
-          <p className="text-muted-foreground text-sm mt-0.5">
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
             These thresholds are used to flag reports on the dashboard and map.
           </p>
         </div>

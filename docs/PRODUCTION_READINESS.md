@@ -42,7 +42,31 @@ We are moving to a new production database instance.
       npm run bootstrap-admin
       ```
 
-## 3. Environment Variable Checklist
+## 3. Supabase Storage Configuration
+
+The application requires a Supabase Storage bucket for storing report images and media files.
+
+### Steps:
+
+1. **Create Storage Bucket**:
+   - Log into your Supabase Dashboard
+   - Navigate to **Storage** → **Buckets**
+   - Click **New bucket**
+   - Name: `reports` (must match exactly)
+   - **Important**: Enable **Public bucket** (this allows images to be accessible via public URLs)
+   - Click **Create bucket**
+
+2. **Verify Bucket Settings**:
+   - Ensure the bucket is set to **Public**
+   - If you need to keep it private, you'll need to implement signed URLs or RLS policies (not recommended for initial setup)
+
+3. **File Upload Path Structure**:
+   - Files are stored in the format: `{reportId}/{timestamp}-{random}.{ext}`
+   - Example: `3865d268-ad58-4c3a-805a-d4a0843f1929/1234567890-abc123.jpg`
+
+**Note**: Without this bucket configured and set to public, report images will not display in the dashboard.
+
+## 4. Environment Variable Checklist
 
 Ensure the following variables are set in the production hosting provider (e.g., Vercel/Railway):
 
@@ -58,16 +82,21 @@ Ensure the following variables are set in the production hosting provider (e.g.,
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production Supabase Anon Key                         |
 | `SUPABASE_SERVICE_ROLE_KEY`     | Production Supabase Service Role Key                 |
 
-## 4. Final Verification
+## 5. Final Verification
 
 Before handing over for the demo, perform these tests:
 
 1.  **Webhook Test**: Send a WhatsApp message to `+263713618310`. Check the server logs for `🔔 Webhook received!`.
 2.  **Signature Check**: If you get a `401 Unauthorized` on the webhook, verify that `NEXT_PUBLIC_APP_URL` is set correctly and includes `https://`.
 3.  **Dashboard Check**: Log into the dashboard and ensure the stats and map are loading.
-4.  **Workflow Check**: Complete a full reporting flow via WhatsApp and ensure the record appears in the Triage section of the dashboard.
+4.  **Image Display Check**: 
+    - Navigate to the Triage page
+    - Select a report that has images
+    - Verify that images are displaying correctly in the "Evidence" section
+    - If images are not showing, verify the `reports` bucket exists and is set to public in Supabase Storage
+5.  **Workflow Check**: Complete a full reporting flow via WhatsApp and ensure the record appears in the Triage section of the dashboard.
 
-## 5. Local Development & Testing
+## 6. Local Development & Testing
 
 For instructions on how to set up a local development environment with Twilio Sandbox and ngrok for future maintenance, refer to:
 `src/server/modules/whatsapp-bot/README.md`
