@@ -23,6 +23,24 @@ steps:
       pnpm install
     displayName: 'Install dependencies'
 
+  # Clean production database before initial setup
+  # TODO: Remove this step after first successful deployment
+  - script: |
+      cat > reset-db.sql << 'EOF'
+      DROP SCHEMA public CASCADE;
+      CREATE SCHEMA public;
+      GRANT ALL ON SCHEMA public TO postgres;
+      GRANT ALL ON SCHEMA public TO public;
+      EOF
+      
+      echo "Resetting production database schema..."
+      PGPASSWORD=$(echo $DATABASE_URL | sed -n 's/.*:\([^@]*\)@.*/\1/p') \
+      psql $DATABASE_URL -f reset-db.sql
+    displayName: 'Reset database schema (initial deployment only)'
+    env:
+      DATABASE_URL: $(DATABASE_URL)
+    condition: eq(variables['INITIAL_DEPLOYMENT'], 'true')
+
   # Use db:push for initial production setup (forces schema)
   # After first successful deployment, change this to: pnpm db:migrate
   - script: |
