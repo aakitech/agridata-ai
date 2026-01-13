@@ -23,24 +23,9 @@ steps:
       pnpm install
     displayName: 'Install dependencies'
 
-  # Skip database migrations for initial deployment
-  # Run manually after first successful deployment:
-  #   pnpm db:push
-  #   pnpm run seed:workflows
-  #   pnpm run bootstrap-admin
-  # Then uncomment this step and change INITIAL_DEPLOYMENT to false
-  - script: |
-      echo "Skipping database migrations for initial deployment"
-      echo "Run migrations manually after first deployment"
-    displayName: 'Database migration (skipped for initial deployment)'
-    condition: eq(variables['INITIAL_DEPLOYMENT'], 'true')
-  
-  - script: |
-      pnpm db:migrate
-    displayName: 'Run database migrations'
-    env:
-      DATABASE_URL: $(DATABASE_URL)
-    condition: ne(variables['INITIAL_DEPLOYMENT'], 'true')
+  # Database migrations are handled manually for now
+  # After successful deployment, run locally with production credentials:
+  #   pnpm db:push && pnpm run seed:workflows && pnpm run bootstrap-admin
 
   - script: |
       npm install -g vercel
