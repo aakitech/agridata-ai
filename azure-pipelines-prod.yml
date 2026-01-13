@@ -23,9 +23,11 @@ steps:
       pnpm install
     displayName: 'Install dependencies'
 
-  # Database migrations are handled manually for now
-  # After successful deployment, run locally with production credentials:
-  #   pnpm db:push && pnpm run seed:workflows && pnpm run bootstrap-admin
+  - script: |
+      pnpm db:migrate
+    displayName: 'Run database migrations'
+    env:
+      DATABASE_URL: $(DATABASE_URL)
 
   - script: |
       npm install -g vercel
