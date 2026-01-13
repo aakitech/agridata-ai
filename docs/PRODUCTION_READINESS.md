@@ -15,8 +15,9 @@ Your WhatsApp number `+263713618310` is now approved and "Online" in the Twilio 
     - Click **Edit Sender** for `+263713618310`.
     - Set the **Webhook URL** for "A MESSAGE COMES IN" to: `https://your-production-domain.com/api/webhooks/whatsapp`.
     - Ensure the method is **HTTP POST**.
+    - **Note:** The webhook route automatically uses the actual request URL for signature validation, so the URL must match exactly what you configure in Twilio.
 3.  **Update App URL**:
-    - Ensure `NEXT_PUBLIC_APP_URL` matches your production domain exactly (e.g., `https://agridata.ai`). This is critical for Twilio signature validation.
+    - Ensure `NEXT_PUBLIC_APP_URL` is set to your production domain (e.g., `https://agridata.ai`). This is required for other parts of the application (e.g., invite links), but webhook signature validation no longer depends on it matching exactly.
 
 ## 2. Database Migration
 

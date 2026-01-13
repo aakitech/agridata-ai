@@ -214,7 +214,7 @@ Your WhatsApp number `+263713618310` needs separate webhook configurations:
    - Webhook URL: `https://your-production-domain.com/api/webhooks/whatsapp`
    - Method: POST
 
-**Important:** The `NEXT_PUBLIC_APP_URL` environment variable MUST match your webhook URL exactly for signature validation.
+**Note:** The webhook route now uses the actual request URL for signature validation, ensuring an exact match with what Twilio sees. The `NEXT_PUBLIC_APP_URL` environment variable is still required for other parts of the application (e.g., invite links), but the webhook signature validation no longer depends on it matching exactly.
 
 ---
 
