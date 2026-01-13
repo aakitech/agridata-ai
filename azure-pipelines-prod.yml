@@ -23,9 +23,11 @@ steps:
       pnpm install
     displayName: 'Install dependencies'
 
+  # Use db:push for initial production setup (forces schema)
+  # After first successful deployment, change this to: pnpm db:migrate
   - script: |
-      pnpm db:migrate
-    displayName: 'Run database migrations'
+      pnpm db:push
+    displayName: 'Setup database schema (initial deployment)'
     env:
       DATABASE_URL: $(DATABASE_URL)
 
