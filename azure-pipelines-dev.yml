@@ -1,0 +1,101 @@
+trigger:
+  branches:
+    include:
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+# Multi-stage deployment with approval gate
+jobs:
+- job: BuildAndDeployPreview
+  displayName: 'Build and Deploy to Preview'
+  variables:
+    - group: Vercel-Deploy-Variables-Dev
+  steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm install -g pnpm
+    displayName: 'Install pnpm'
+
+  - script: |
+      pnpm install
+    displayName: 'Install dependencies'
+
+  - script: |
+      pnpm db:migrate
+    displayName: 'Run database migrations'
+    env:
+      DATABASE_URL: $(DATABASE_URL)
+
+  - script: |
+      npm install -g vercel
+    displayName: 'Install Vercel CLI'
+
+  - script: |
+      vercel pull --yes --environment=preview --token=$(VERCEL_TOKEN)
+    displayName: 'Pull Vercel environment information'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
+
+  - script: |
+      vercel build --token=$(VERCEL_TOKEN)
+    displayName: 'Build project artifacts'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
+      DATABASE_URL: $(DATABASE_URL)
+      NEXT_PUBLIC_SUPABASE_URL: $(NEXT_PUBLIC_SUPABASE_URL)
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: $(NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      SUPABASE_SERVICE_ROLE_KEY: $(SUPABASE_SERVICE_ROLE_KEY)
+      TWILIO_ACCOUNT_SID: $(TWILIO_ACCOUNT_SID)
+      TWILIO_AUTH_TOKEN: $(TWILIO_AUTH_TOKEN)
+      TWILIO_PHONE_NUMBER: $(TWILIO_PHONE_NUMBER)
+      NEXT_PUBLIC_APP_URL: $(NEXT_PUBLIC_APP_URL)
+
+  - script: |
+      vercel deploy --prebuilt --token=$(VERCEL_TOKEN)
+    displayName: 'Deploy to Vercel (Preview)'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
+
+# Manual approval gate before promoting to production
+- deployment: ApprovalGate
+  displayName: 'Approve Production Deployment'
+  dependsOn: BuildAndDeployPreview
+  condition: succeeded()
+  environment: 'Production'
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - script: echo "Preview deployment successful. Proceeding to production promotion..."
+          displayName: 'Approval received'
+
+# Promote to production after approval
+- job: PromoteToProduction
+  displayName: 'Merge to Main and Deploy Production'
+  dependsOn: ApprovalGate
+  condition: succeeded()
+  variables:
+    - group: Vercel-Deploy-Variables-Dev
+  steps:
+  - checkout: self
+    persistCredentials: true
+    displayName: 'Checkout with credentials'
+    
+  - script: |
+      git config --global user.email "munashe@aakitech.com"
+      git config --global user.name "Azure Pipeline"
+      git fetch origin main
+      git checkout main
+      git merge origin/develop --no-edit -m "chore: Auto-merge develop to main after approved preview deployment"
+      git push origin main
+    displayName: 'Merge develop to main'
+    condition: succeeded()
