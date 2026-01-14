@@ -111,7 +111,7 @@ stages:
         git checkout main
         
         # Merge develop into main
-        git merge origin/develop --no-edit -m "chore: Auto-merge develop to main after approved preview deployment [skip ci]"
+        git merge origin/develop --no-edit -m "chore: Auto-merge develop to main after approved preview deployment"
         
         # Push to main (this will trigger the production pipeline)
         git push https://$(System.AccessToken)@dev.azure.com/AakiTechOrg/AgriData%20AI/_git/agridata-ai main
