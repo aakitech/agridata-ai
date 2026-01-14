@@ -5,11 +5,27 @@ import crypto from 'crypto';
 
 /**
  * Validates Twilio webhook signature to ensure request is from Twilio
+ * Based on: https://www.twilio.com/docs/usage/security#validating-requests
  */
-function validateTwilioSignature(token: string, signature: string, url: string, body: string): boolean {
+function validateTwilioSignature(token: string, signature: string, url: string, params: URLSearchParams): boolean {
+  // Twilio's signature algorithm:
+  // 1. Start with the full URL
+  // 2. Sort parameters alphabetically by key
+  // 3. Append each key+value (no separators)
+  // 4. Create HMAC-SHA1 hash with auth token
+  // 5. Base64 encode
+  
+  let data = url;
+  
+  // Sort parameters alphabetically and append to URL
+  const sortedKeys = Array.from(params.keys()).sort();
+  for (const key of sortedKeys) {
+    data += key + params.get(key);
+  }
+  
   const expectedSignature = crypto
     .createHmac('sha1', token)
-    .update(url + body)
+    .update(data)
     .digest('base64');
   
   return crypto.timingSafeEqual(
@@ -18,13 +34,24 @@ function validateTwilioSignature(token: string, signature: string, url: string, 
   );
 }
 
+
 export async function POST(req: NextRequest) {
   console.log("🔔 Webhook received!");
   
   try {
     // 1. Get the raw body and headers
+    console.log("📊 Request details:");
+    console.log("  - Method:", req.method);
+    console.log("  - Content-Type:", req.headers.get("content-type"));
+    console.log("  - Body used:", (req as any).bodyUsed);
+    
     const text = await req.text();
-    console.log("📦 Raw body:", text);
+    console.log("📦 Raw body (length:", text.length, "):", text.substring(0, 200));
+    
+    if (!text || text.length === 0) {
+      console.error("⚠️ Empty body received! This will cause signature validation to fail.");
+      console.error("   Headers:", Object.fromEntries(req.headers.entries()));
+    }
     
     const params = new URLSearchParams(text);
     const body: Record<string, string> = {};
@@ -59,7 +86,10 @@ export async function POST(req: NextRequest) {
     
     // In development (e.g. ngrok), the URL might not match what Twilio sees.
     // We skip validation in dev to make testing easier.
-    if (env.NODE_ENV === "development") {
+    // TEMP: Force validation even in dev for testing
+    const forceValidation = process.env.FORCE_TWILIO_VALIDATION === "true";
+    
+    if (env.NODE_ENV === "development" && !forceValidation) {
       console.log("⚠️ Skipping Twilio signature validation in development");
     } else {
       if (!signature) {
@@ -73,12 +103,13 @@ export async function POST(req: NextRequest) {
         return new NextResponse("Internal Server Error", { status: 500 });
       }
       
-      if (!validateTwilioSignature(env.TWILIO_AUTH_TOKEN, signature, url, text)) {
+      if (!validateTwilioSignature(env.TWILIO_AUTH_TOKEN, signature, url, params)) {
         console.error("❌ Invalid Twilio signature");
         console.error("   Validation details:");
         console.error("   - URL used:", url);
         console.error("   - Signature received:", `${signature.substring(0, 8)}...`);
         console.error("   - Body length:", text.length);
+        console.error("   - Body content:", text.substring(0, 200));
         console.error("   - Ensure Twilio webhook URL matches exactly:", url);
         return new NextResponse("Unauthorized", { status: 401 });
       }
