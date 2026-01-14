@@ -43,11 +43,11 @@ async function seedWorkflows() {
         id: "photo", 
         question: "📸 Optional:\nYou may upload a photo of what was caught in the trap.\n\nOr reply SKIP to continue.", 
         type: "photo", 
-        optional: true 
+        optional: true
       },
       { 
         id: "location", 
-        question: "📍 Please share your GPS location for this trap.", 
+        question: "📍 Please share your GPS location for this trap.\n\n💡 How to share:\n1. Tap the 📎 (attachment) button\n2. Select 'Location'\n3. Send your current location", 
         type: "location" 
       }
     ]

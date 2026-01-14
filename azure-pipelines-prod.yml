@@ -23,13 +23,11 @@ steps:
       pnpm install
     displayName: 'Install dependencies'
 
-  # Migrations skipped - database already set up manually
-  # Will re-enable after first successful deployment
-  # - script: |
-  #     pnpm db:migrate
-  #   displayName: 'Run database migrations'
-  #   env:
-  #     DATABASE_URL: $(DATABASE_URL)
+  - script: |
+      pnpm db:migrate
+    displayName: 'Run database migrations'
+    env:
+      DATABASE_URL: $(DATABASE_URL)
 
   - script: |
       npm install -g vercel
