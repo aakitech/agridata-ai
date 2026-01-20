@@ -177,13 +177,13 @@ export class WorkflowProcessor {
         
         // Pest normalization for MPBC workflow (fallback for non-list mode)
         if (step.id === "pest_name" && text) {
-          // Handle numeric shortcut "1" → "Fall Armyworm"
+          // Handle numeric shortcut "1" → "African Armyworm"
           if (text.trim() === "1") {
-            return { valid: true, value: "Fall Armyworm" };
+            return { valid: true, value: "African Armyworm" };
           }
-          // Handle various forms of "fall armyworm"
-          if (text.toLowerCase().trim() === "fall armyworm") {
-            return { valid: true, value: "Fall Armyworm" };
+          // Handle various forms of "african armyworm"
+          if (text.toLowerCase().trim() === "african armyworm") {
+            return { valid: true, value: "African Armyworm" };
           }
           // Otherwise, capitalize first letter of each word
           const normalized = text
