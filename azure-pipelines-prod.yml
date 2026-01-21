@@ -37,6 +37,12 @@ steps:
       DATABASE_URL: $(DATABASE_URL)
 
   - script: |
+      npx tsx scripts/mark-migrations-complete.ts
+    displayName: 'Mark existing migrations as complete'
+    env:
+      DATABASE_URL: $(DATABASE_URL)
+
+  - script: |
       pnpm db:migrate
     displayName: 'Run database migrations'
     env:
