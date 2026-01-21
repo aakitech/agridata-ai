@@ -88,7 +88,36 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
 
   try {
     const result = await processor.processMessage(session, msg);
-    await sendText(phoneNumber, result.message);
+    
+    // Check if we need to send an interactive message
+    const currentStep = result.currentStep;
+    
+    if (currentStep?.listOptions && currentStep.listOptions.length > 0) {
+      // Send list message
+      await sendListMessage(
+        phoneNumber,
+        result.message,
+        "Select Option",
+        [{
+          title: "Options",
+          rows: currentStep.listOptions.map(opt => ({
+            id: opt.id,
+            title: opt.title,
+            description: opt.description
+          }))
+        }]
+      );
+    } else if (currentStep?.quickReplies && currentStep.quickReplies.length > 0) {
+      // Send quick reply buttons
+      await sendQuickReply(
+        phoneNumber,
+        result.message,
+        currentStep.quickReplies
+      );
+    } else {
+      // Send regular text message
+      await sendText(phoneNumber, result.message);
+    }
   } catch (error) {
     console.error("Error in workflow processor:", error);
     await sendText(phoneNumber, "An error occurred during data collection. Please try typing 'RESET' to start over.");
@@ -110,3 +139,54 @@ async function sendText(to: string, body: string) {
     console.error("❌ Twilio Error:", e);
   }
 }
+
+// Send list message (dropdown-style selection)
+// NOTE: Only works with approved WhatsApp Business accounts, NOT sandbox
+// Fallback to text with numbered options
+async function sendListMessage(
+  to: string, 
+  body: string, 
+  buttonText: string,
+  sections: Array<{ title: string; rows: Array<{ id: string; title: string; description?: string }> }>
+) {
+  console.log(`📤 List message to ${to} (using text fallback for sandbox)`);
+  
+  // Build text-based list with numbers
+  let textMessage = body + "\n\n";
+  let optionNumber = 1;
+  
+  for (const section of sections) {
+    for (const row of section.rows) {
+      textMessage += `${optionNumber}️⃣ ${row.title}`;
+      if (row.description) {
+        textMessage += ` - ${row.description}`;
+      }
+      textMessage += "\n";
+      optionNumber++;
+    }
+  }
+  
+  textMessage += `\nReply with the number or option name.`;
+  
+  await sendText(to, textMessage);
+}
+
+// Send message with quick reply buttons
+// NOTE: Only works with approved WhatsApp Business accounts, NOT sandbox
+// Fallback to text with options
+async function sendQuickReply(
+  to: string,
+  body: string,
+  replies: Array<{ id: string; title: string }>
+) {
+  console.log(`📤 Quick reply message to ${to} (using text fallback for sandbox)`);
+  
+  // Build text-based options
+  let textMessage = body + "\n\n";
+  textMessage += replies.map((r, i) => `${i + 1}. ${r.title}`).join("\n");
+  textMessage += `\n\nReply with the number or option name.`;
+  
+  await sendText(to, textMessage);
+}
+
+export { sendText, sendListMessage, sendQuickReply };

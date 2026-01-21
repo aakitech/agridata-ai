@@ -34,7 +34,7 @@ export class WorkflowProcessor {
   async processMessage(
     session: any,
     msg: any
-  ): Promise<{ message: string; done: boolean }> {
+  ): Promise<{ message: string; done: boolean; currentStep?: WorkflowStep }> {
     const data = (session.dataCollected as SessionData) || {};
     const currentStepId = session.currentStep;
 
@@ -42,7 +42,11 @@ export class WorkflowProcessor {
     if (!currentStepId) {
       const firstStep = this.config.steps[0]!;
       await this.updateSession(firstStep.id, data);
-      return { message: this.formatMessage(firstStep.question), done: false };
+      return { 
+        message: this.formatMessage(firstStep.question), 
+        done: false,
+        currentStep: firstStep
+      };
     }
 
     // 2. Process Current Step Input
@@ -54,6 +58,7 @@ export class WorkflowProcessor {
       return {
         message: `❌ ${validation.error}\n\n${currentStep.question}`,
         done: false,
+        currentStep,
       };
     }
 
@@ -67,7 +72,11 @@ export class WorkflowProcessor {
 
     if (nextStep) {
       await this.updateSession(nextStep.id, data);
-      return { message: nextStep.question, done: false };
+      return { 
+        message: nextStep.question, 
+        done: false,
+        currentStep: nextStep
+      };
     } else {
       // 5. Workflow Complete
       const finalReport = await this.completeWorkflow(data);
@@ -151,21 +160,30 @@ export class WorkflowProcessor {
             return { valid: true, value: msg.MediaUrl0 }; // Fallback
           }
         }
+        
+        // Allow optional skip
+        if (step.optional && text && text.toUpperCase() === "SKIP") {
+          return { valid: true, value: null };
+        }
+        
+        if (step.optional) {
+          return { valid: false, error: "Please send a photo or reply SKIP." };
+        }
         return { valid: false, error: "Please send a photo." };
 
       default:
         if (!text && !step.optional)
           return { valid: false, error: "Input required." };
         
-        // Pest normalization for MPBC workflow
+        // Pest normalization for MPBC workflow (fallback for non-list mode)
         if (step.id === "pest_name" && text) {
-          // Handle numeric shortcut "1" → "Fall Armyworm"
+          // Handle numeric shortcut "1" → "African Armyworm"
           if (text.trim() === "1") {
-            return { valid: true, value: "Fall Armyworm" };
+            return { valid: true, value: "African Armyworm" };
           }
-          // Handle various forms of "fall armyworm"
-          if (text.toLowerCase().trim() === "fall armyworm") {
-            return { valid: true, value: "Fall Armyworm" };
+          // Handle various forms of "african armyworm"
+          if (text.toLowerCase().trim() === "african armyworm") {
+            return { valid: true, value: "African Armyworm" };
           }
           // Otherwise, capitalize first letter of each word
           const normalized = text

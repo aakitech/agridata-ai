@@ -1,10 +1,21 @@
-export type WorkflowStepType = 'text' | 'number' | 'location' | 'photo' | 'photo_multi';
+export type WorkflowStepType = 'text' | 'number' | 'location' | 'photo' | 'photo_multi' | 'list';
 
 export interface WorkflowValidation {
   min?: number;
   max?: number;
   max_field_ref?: string; // e.g., "stalks_sampled"
   required?: boolean;
+}
+
+export interface ListOption {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+export interface QuickReply {
+  id: string;
+  title: string;
 }
 
 export interface WorkflowStep {
@@ -14,6 +25,8 @@ export interface WorkflowStep {
   optional?: boolean;
   defaultValue?: any;
   validation?: WorkflowValidation;
+  listOptions?: ListOption[]; // For list message type
+  quickReplies?: QuickReply[]; // For quick reply buttons
   // Metadata for bot state transitions if needed
 }
 
