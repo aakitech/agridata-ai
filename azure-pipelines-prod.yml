@@ -24,11 +24,17 @@ steps:
     displayName: 'Install dependencies'
 
   - script: |
-      npx tsx --env-file=.env scripts/diagnose-migration-state.ts
+      npx tsx scripts/diagnose-migration-state.ts
     displayName: 'Diagnose migration state'
     env:
       DATABASE_URL: $(DATABASE_URL)
     continueOnError: true
+
+  - script: |
+      npx tsx scripts/fix-bot-state-direct.ts
+    displayName: 'Fix bot_state type before migrations'
+    env:
+      DATABASE_URL: $(DATABASE_URL)
 
   - script: |
       pnpm db:migrate
