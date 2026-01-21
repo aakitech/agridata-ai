@@ -76,6 +76,6 @@ CREATE INDEX "org_id_idx" ON "agridata_app_users" USING btree ("org_id");--> sta
 ALTER TABLE "agridata_app_users" DROP COLUMN "language_pref";--> statement-breakpoint
 ALTER TABLE "agridata_app_users" ADD CONSTRAINT "agridata_app_users_phone_number_unique" UNIQUE("phone_number");--> statement-breakpoint
 ALTER TABLE "public"."agridata_bot_sessions" ALTER COLUMN "current_state" SET DATA TYPE text;--> statement-breakpoint
-DROP TYPE "public"."bot_state";--> statement-breakpoint
+DROP TYPE IF EXISTS "public"."bot_state";--> statement-breakpoint
 CREATE TYPE "public"."bot_state" AS ENUM('IDLE', 'AWAITING_LABEL', 'AWAITING_PHOTO_COUNT', 'AWAITING_LOCATION');--> statement-breakpoint
 ALTER TABLE "public"."agridata_bot_sessions" ALTER COLUMN "current_state" SET DATA TYPE "public"."bot_state" USING "current_state"::"public"."bot_state";
