@@ -30,7 +30,7 @@ async function seedWorkflows() {
     steps: [
       { 
         id: "pest_name", 
-        question: "👋 Hello {{OfficerName}}\n\nThis is the MPBC Trap Monitoring system.\nWe'll record your latest Fall Armyworm trap observation.\n\nLet's begin.\n\n🐛 Which pest are you observing?\n\nFor this season, this is usually:\n• Fall Armyworm\n\nYou may type the pest name or reply:\n1️⃣ Fall Armyworm", 
+        question: "👋 Hello {{OfficerName}}\n\nThis is the MPBC Trap Monitoring system.\nWe'll record your latest African Armyworm trap observation.\n\nLet's begin.\n\n🐛 Which pest are you observing?\n\nFor this season, this is usually:\n• African Armyworm\n\nYou may type the pest name or reply:\n1️⃣ African Armyworm", 
         type: "text" 
       },
       { 
@@ -43,11 +43,11 @@ async function seedWorkflows() {
         id: "photo", 
         question: "📸 Optional:\nYou may upload a photo of what was caught in the trap.\n\nOr reply SKIP to continue.", 
         type: "photo", 
-        optional: true 
+        optional: true
       },
       { 
         id: "location", 
-        question: "📍 Please share your GPS location for this trap.", 
+        question: "📍 Please share your GPS location for this trap.\n\n💡 How to share:\n1. Tap the 📎 (attachment) button\n2. Select 'Location'\n3. Send your current location", 
         type: "location" 
       }
     ]
