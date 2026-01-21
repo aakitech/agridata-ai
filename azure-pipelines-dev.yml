@@ -118,4 +118,17 @@ stages:
       displayName: 'Merge develop to main and push'
       env:
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    
+    - script: |
+        echo "Triggering production pipeline..."
+        curl -X POST \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $(System.AccessToken)" \
+          -d '{"resources":{"repositories":{"self":{"refName":"refs/heads/main"}}}}' \
+          "https://dev.azure.com/AakiTechOrg/AgriData%20AI/_apis/pipelines/$(PROD_PIPELINE_ID)/runs?api-version=7.1"
+      displayName: 'Trigger production pipeline'
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+        PROD_PIPELINE_ID: $(PROD_PIPELINE_ID)
+      condition: succeeded()
     condition: succeeded()
