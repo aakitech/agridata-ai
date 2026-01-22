@@ -55,7 +55,7 @@ stages:
 
     - script: |
         # Map the fixed QA URL to this specific build
-        vercel alias set $(DEPLOY_URL) agridata-ai-qa.aakitech.com --token=$(VERCEL_TOKEN) --scope=$(VERCEL_ORG_ID)
+        vercel alias set $(DEPLOY_URL) agridata-ai-qa.aakitech.com --token=$(VERCEL_TOKEN) 
       displayName: 'Update QA URL Alias'
       env:
         VERCEL_ORG_ID: $(VERCEL_ORG_ID)
