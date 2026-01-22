@@ -62,7 +62,7 @@ stages:
         NEXT_PUBLIC_APP_URL: $(NEXT_PUBLIC_APP_URL)
 
     - script: |
-        DEPLOY_URL=$(vercel deploy --prebuilt --token=$(VERCEL_TOKEN) | tail -n 1)
+        DEPLOY_URL=$(vercel deploy --prebuilt --meta githubCommitRef=develop --token=$(VERCEL_TOKEN) | tail -n 1)
         echo "Deployed to: $DEPLOY_URL"
         echo "##vso[task.setvariable variable=DEPLOY_URL]$DEPLOY_URL"
       displayName: 'Deploy to Vercel (Preview)'
