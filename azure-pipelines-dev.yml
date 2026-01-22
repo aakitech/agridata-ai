@@ -1,4 +1,4 @@
-# Name format: YYYYMMDD.Revision-preview
+# Descriptive name for your pipeline runs
 name: $(Date:yyyyMMdd).$(Rev:r)-preview
 
 trigger:
@@ -15,7 +15,7 @@ stages:
   jobs:
   - job: Build_and_Deploy
     variables:
-      - group: Vercel-Deploy-Variables-Dev # Variables for QA DB and Vercel Tokens
+      - group: Vercel-Deploy-Variables-Dev # Source of Truth for DB and Vercel Tokens
     steps:
     - task: NodeTool@0
       inputs:
@@ -27,35 +27,41 @@ stages:
         pnpm install
       displayName: 'Install Dependencies'
 
+    # 1. Run migrations against your QA Supabase database
     - script: pnpm db:migrate
       displayName: 'Run QA DB Migrations'
       env:
-        DATABASE_URL: $(DATABASE_URL) # Points to your QA Supabase project
+        DATABASE_URL: $(DATABASE_URL)
 
     - script: |
         npm install -g vercel
-        # Pull latest Preview secrets from Vercel
+        # vercel pull: Downloads your QA secrets from the Vercel dashboard locally
         vercel pull --yes --environment=preview --token=$(VERCEL_TOKEN)
-        # Build using those secrets
+        # vercel build: Uses those pulled secrets to create your app artifacts
         vercel build --token=$(VERCEL_TOKEN)
-      displayName: 'Vercel Pull & Build (QA)'
+      displayName: 'Vercel Pull & Build'
       env:
         VERCEL_ORG_ID: $(VERCEL_ORG_ID)
         VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
 
     - script: |
-        # Deploy and capture unique URL
+        # 2. Deploy the prebuilt app and capture only the final unique URL
         DEPLOY_URL=$(vercel deploy --prebuilt --meta githubCommitRef=develop --token=$(VERCEL_TOKEN) | tail -n 1)
+        # Save the URL into an Azure variable for the next step
         echo "##vso[task.setvariable variable=DEPLOY_URL]$DEPLOY_URL"
-        echo "Build URL: $DEPLOY_URL"
+        echo "Successfully deployed unique build to: $DEPLOY_URL"
       displayName: 'Vercel Deploy (Preview)'
       env:
         VERCEL_ORG_ID: $(VERCEL_ORG_ID)
         VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
 
     - script: |
-        # Map the fixed QA URL to this specific build
-        vercel alias set $(DEPLOY_URL) agridata-ai-qa.aakitech.com --token=$(VERCEL_TOKEN) 
+        # 3. Ensure the project context recognizes the domain 
+        vercel domains add agridata-ai-qa.aakitech.com --token=$(VERCEL_TOKEN)
+        
+        # 4. Map your fixed QA domain to the latest build URL
+        vercel alias set $(DEPLOY_URL) agridata-ai-qa.aakitech.com --token=$(VERCEL_TOKEN)
+        echo "QA site updated at https://agridata-ai-qa.aakitech.com"
       displayName: 'Update QA URL Alias'
       env:
         VERCEL_ORG_ID: $(VERCEL_ORG_ID)
