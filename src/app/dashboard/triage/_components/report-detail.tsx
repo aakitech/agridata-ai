@@ -283,7 +283,7 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
                   id="diagnosis"
                   value={diagnosis}
                   onChange={(e) => setDiagnosis(e.target.value)}
-                  placeholder="e.g., Fall Armyworm"
+                  placeholder="e.g., African Armyworm"
                   required
                 />
               </div>

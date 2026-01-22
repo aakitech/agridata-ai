@@ -75,7 +75,7 @@ async function main() {
     { name: "Chitungwiza", lat: -18.0167, lon: 31.0833 },
   ];
 
-  const pestKey = "Moth"; // MPBC uses "Moth" for Fall Armyworm
+  const pestKey = "Moth"; // MPBC uses "Moth" for African Armyworm
 
   // 5. Generate reports from December 9th to today
   const today = new Date();
