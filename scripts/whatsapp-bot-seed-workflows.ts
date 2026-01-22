@@ -14,7 +14,7 @@ async function seedWorkflows() {
       { id: "farm_size_ha", question: "What is the **Farm Size** (in hectares)?", type: "number", validation: { min: 0 } },
       { id: "stalks_sampled", question: "How many **stalks were sampled**? (Typical: 100)", type: "number", defaultValue: 100, validation: { min: 1 } },
       { id: "stalks_infested", question: "How many **stalks were infested**?", type: "number", validation: { min: 0, max_field_ref: "stalks_sampled" } },
-      { id: "pests_observed", question: "Which **pests** were observed? (e.g., Fall Armyworm)", type: "text" },
+      { id: "pests_observed", question: "Which **pests** were observed? (e.g., African Armyworm)", type: "text" },
       { id: "diseases_observed", question: "Any **diseases** observed? (Type 'SKIP' if none)", type: "text", optional: true },
       { id: "photo", question: "Please upload a **photo** of the observation.", type: "photo", optional: true },
       { id: "location", question: "Final step: Please share your **GPS Location**. 📍", type: "location" }

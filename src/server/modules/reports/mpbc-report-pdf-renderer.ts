@@ -74,7 +74,7 @@ export class MpbcReportPdfRenderer {
       align: "center",
     });
     doc.moveDown(0.6);
-    doc.font("Helvetica").fontSize(14).text("MPBC – Fall Armyworm Surveillance", {
+    doc.font("Helvetica").fontSize(14).text("MPBC – African Armyworm Surveillance", {
       width: contentWidth,
       align: "center",
     });

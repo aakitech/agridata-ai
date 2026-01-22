@@ -57,7 +57,7 @@ async function seed() {
   console.log(`Ensured ${createdUsers.length} users.`);
 
   // 3. Create dummy reports
-  const pests = ["Fall Armyworm", "Maize Lethal Necrosis", "Locusts", "Leaf Rust", "Grey Leaf Spot"];
+  const pests = ["African Armyworm", "Maize Lethal Necrosis", "Locusts", "Leaf Rust", "Grey Leaf Spot"];
   const locations = [
     { name: "Harare", lon: 31.05, lat: -17.83 },
     { name: "Bulawayo", lon: 28.58, lat: -20.15 },
