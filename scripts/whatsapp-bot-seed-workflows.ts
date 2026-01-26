@@ -30,12 +30,13 @@ async function seedWorkflows() {
     steps: [
       { 
         id: "pest_name", 
-        question: "👋 Hello {{OfficerName}}\n\nThis is the MPBC Trap Monitoring system.\nWe'll record your latest African Armyworm trap observation.\n\nLet's begin.\n\n🐛 Which pest are you observing?\n\nFor this season, this is usually:\n• African Armyworm\n\nYou may type the pest name or reply:\n1️⃣ African Armyworm", 
-        type: "text" 
+        question: "👋 Hello {{OfficerName}}\n\nThis is the MPBC Trap Monitoring system.\nWe'll record your latest African Armyworm trap observation.\n\nLet's begin.\n\n🐛 Which pest are you observing?", 
+        type: "text",
+        listOptions: [{ id: "African Armyworm", title: "African Armyworm" }]
       },
       { 
         id: "count", 
-        question: "🔢 How many insects were caught in the trap?\n\nPlease enter a number only.\nExample: 3", 
+        question: "🔢 How many pests were caught in the trap?\n\nPlease enter a number only.\nExample: 3", 
         type: "number", 
         validation: { min: 0 } 
       },
@@ -76,13 +77,13 @@ async function seedWorkflows() {
       console.log("✅ Created ZSAES with workflow.");
     }
 
-    // Update or Insert MPBC
+    // Update or Insert MPBC (by slug)
     const existingMpbc = await db.query.organizations.findFirst({ where: eq(organizations.slug, mpbcSlug) });
     if (existingMpbc) {
       await db.update(organizations)
         .set({ activeWorkflow: mpbcConfig.id, workflowConfig: mpbcConfig })
         .where(eq(organizations.slug, mpbcSlug));
-      console.log("✅ Updated MPBC workflow.");
+      console.log("✅ Updated MPBC workflow (by slug mpbc).");
     } else {
       await db.insert(organizations).values({
         name: "MPBC",
@@ -91,6 +92,22 @@ async function seedWorkflows() {
         workflowConfig: mpbcConfig
       });
       console.log("✅ Created MPBC with workflow.");
+    }
+
+    // Apply MPBC config to any other org that is already using the MPBC workflow
+    // (so your bot sees the new prompts even if your org slug is not "mpbc")
+    const mpbcWorkflowId = mpbcConfig.id;
+    const orgsUsingMpbc = await db
+      .select({ id: organizations.id, name: organizations.name, slug: organizations.slug })
+      .from(organizations)
+      .where(eq(organizations.activeWorkflow, mpbcWorkflowId));
+    for (const org of orgsUsingMpbc) {
+      if (org.slug !== mpbcSlug) {
+        await db.update(organizations)
+          .set({ workflowConfig: mpbcConfig })
+          .where(eq(organizations.id, org.id));
+        console.log(`✅ Updated workflow for org "${org.name}" (slug: ${org.slug}) to latest MPBC config.`);
+      }
     }
 
     console.log("🚀 Seeding complete!");

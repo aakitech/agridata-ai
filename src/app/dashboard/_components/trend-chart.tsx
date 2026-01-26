@@ -30,7 +30,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             <div className="w-2 h-2 rounded-full bg-primary" />
             <span className="text-sm font-medium">Reports</span>
           </div>
-          <span className="text-sm font-bold text-primary">{payload[0].value}</span>
+          <span className="text-sm font-bold text-primary font-mono">{payload[0].value}</span>
         </div>
       </div>
     );
@@ -52,7 +52,7 @@ export function TrendChart({ data }: { data: TrendData[] }) {
                 <p className="text-sm text-muted-foreground mt-0.5">Frequency of pest reports detected by scouts</p>
             </div>
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md border">
-                <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
+                <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" />
                 Active Analysis
             </div>
         </div>
@@ -62,8 +62,8 @@ export function TrendChart({ data }: { data: TrendData[] }) {
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15}/>
-                <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2}/>
+                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid 
@@ -77,24 +77,24 @@ export function TrendChart({ data }: { data: TrendData[] }) {
                 tickLine={false} 
                 axisLine={false} 
                 tickMargin={12} 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 500 }}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 500, fontFamily: 'var(--font-mono)' }}
                 tickFormatter={(value) => format(new Date(value), "MMM dd")} 
             />
             <YAxis 
                 tickLine={false} 
                 axisLine={false} 
                 allowDecimals={false}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 500 }}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 500, fontFamily: 'var(--font-mono)' }}
                 ticks={yAxisTicks}
             />
             <Tooltip 
                 content={<CustomTooltip />}
-                cursor={{ stroke: '#2563eb', strokeWidth: 1, strokeDasharray: '4 4' }}
+                cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '4 4' }}
             />
             <Area 
                 type="monotone" 
                 dataKey="count" 
-                stroke="#2563eb" 
+                stroke="hsl(var(--primary))" 
                 strokeWidth={3} 
                 fillOpacity={1} 
                 fill="url(#colorCount)"
@@ -103,7 +103,7 @@ export function TrendChart({ data }: { data: TrendData[] }) {
                     r: 6, 
                     stroke: "#fff", 
                     strokeWidth: 2, 
-                    fill: "#2563eb",
+                    fill: "hsl(var(--primary))",
                     className: "shadow-lg"
                 }} 
             />

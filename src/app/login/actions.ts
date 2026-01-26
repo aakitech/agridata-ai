@@ -32,6 +32,8 @@ export async function login(formData: FormData) {
 
   console.log(`[Login Success] User: ${data.user?.email}`);
   revalidatePath("/", "layout");
+  // After login, we can still redirect to dashboard for better UX, 
+  // but the landing page is now accessible if they navigate back.
   redirect("/dashboard");
 }
 
