@@ -56,7 +56,7 @@ export class WorkflowProcessor {
     const validation = await this.validateInput(currentStep, msg, data);
     if (!validation.valid) {
       return {
-        message: `❌ ${validation.error}\n\n${currentStep.question}`,
+        message: `❌ ${validation.error}`,
         done: false,
         currentStep,
       };
@@ -174,41 +174,47 @@ export class WorkflowProcessor {
       default:
         if (!text && !step.optional)
           return { valid: false, error: "Input required." };
-        
-        // Pest normalization for MPBC workflow (fallback for non-list mode)
-        if (step.id === "pest_name" && text) {
-          const trimmedText = text.trim();
-          
-          // Check if input is a numeric string
-          const numericValue = parseFloat(trimmedText);
-          const isNumeric = !isNaN(numericValue) && isFinite(numericValue) && trimmedText === String(numericValue);
-          
+
+        const trimmed = (text ?? "").trim();
+
+        // When step has listOptions: numbers-only selection (1..N)
+        if (step.listOptions && step.listOptions.length > 0) {
+          const n = parseFloat(trimmed);
+          const isNumeric = trimmed !== "" && !isNaN(n) && isFinite(n);
           if (isNumeric) {
-            // Validate numeric input against valid option numbers
-            if (trimmedText === "1") {
+            const idx = Math.floor(n);
+            if (idx >= 1 && idx <= step.listOptions.length) {
+              return { valid: true, value: step.listOptions[idx - 1]!.id };
+            }
+            const rangeMsg =
+              step.listOptions.length > 1
+                ? `Please type the number of your choice (1 to ${step.listOptions.length}).`
+                : "Please type the number to select your pest (e.g. 1).";
+            return { valid: false, error: rangeMsg };
+          }
+          return {
+            valid: false,
+            error: "Please type the number to select your pest (e.g. 1, 2, 3).",
+          };
+        }
+
+        // Fallback for pest selection without listOptions: numbers-only, no typed names
+        if ((step.id === "pest_name" || step.id === "pests_observed") && trimmed) {
+          const n = parseFloat(trimmed);
+          const isNumeric = trimmed !== "" && !isNaN(n) && isFinite(n);
+          if (isNumeric) {
+            const idx = Math.floor(n);
+            if (idx >= 1 && idx <= 1) {
               return { valid: true, value: "African Armyworm" };
             }
-            // Reject invalid numeric options
-            return { 
-              valid: false, 
-              error: "Invalid option. Please reply with 1️⃣ or type 'African Armyworm'." 
-            };
           }
-          
-          // Handle various forms of "african armyworm" (text input)
-          if (trimmedText.toLowerCase() === "african armyworm") {
-            return { valid: true, value: "African Armyworm" };
-          }
-          
-          // Otherwise, capitalize first letter of each word (for flexibility with other pest names)
-          const normalized = trimmedText
-            .split(" ")
-            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(" ");
-          return { valid: true, value: normalized };
+          return {
+            valid: false,
+            error: "Please type the number to select your pest (e.g. 1).",
+          };
         }
-        
-        return { valid: true, value: text };
+
+        return { valid: true, value: trimmed };
     }
   }
 

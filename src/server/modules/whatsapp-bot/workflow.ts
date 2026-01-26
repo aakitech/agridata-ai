@@ -166,7 +166,7 @@ async function sendListMessage(
     }
   }
   
-  textMessage += `\nReply with the number or option name.`;
+  textMessage += `\nReply with the number to select.`;
   
   await sendText(to, textMessage);
 }
@@ -184,7 +184,7 @@ async function sendQuickReply(
   // Build text-based options
   let textMessage = body + "\n\n";
   textMessage += replies.map((r, i) => `${i + 1}. ${r.title}`).join("\n");
-  textMessage += `\n\nReply with the number or option name.`;
+  textMessage += `\n\nReply with the number to select.`;
   
   await sendText(to, textMessage);
 }
