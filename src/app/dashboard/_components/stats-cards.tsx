@@ -19,7 +19,7 @@ export function StatsCards({ stats }: StatsProps) {
           <FileText className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.totalReports}</div>
+          <div className="text-2xl font-bold font-mono">{stats.totalReports}</div>
           <p className="text-xs text-muted-foreground">
             All time submissions
           </p>
@@ -32,7 +32,7 @@ export function StatsCards({ stats }: StatsProps) {
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.reportsThisPeriod}</div>
+          <div className="text-2xl font-bold font-mono">{stats.reportsThisPeriod}</div>
           <p className="text-xs text-muted-foreground">
             In selected time range
           </p>
@@ -45,7 +45,7 @@ export function StatsCards({ stats }: StatsProps) {
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.activeScouts}</div>
+          <div className="text-2xl font-bold font-mono">{stats.activeScouts}</div>
           <p className="text-xs text-muted-foreground">
             Unique reporters
           </p>
@@ -58,7 +58,7 @@ export function StatsCards({ stats }: StatsProps) {
           <AlertTriangle className="h-4 w-4 text-destructive" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.highAlertCount}</div>
+          <div className="text-2xl font-bold font-mono">{stats.highAlertCount}</div>
           <p className="text-xs text-muted-foreground">
              Requires immediate attention
           </p>

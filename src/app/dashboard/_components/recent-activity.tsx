@@ -105,7 +105,7 @@ export function RecentActivity({ reports }: ActivityProps) {
                         </Badge>
                      )}
                      <div className="text-sm text-foreground">
-                        Reported <span className="font-semibold">{report.observedCount ?? "?"} {report.label || "Pest"}</span>
+                        Reported <span className="font-semibold font-mono">{report.observedCount ?? "?"}</span> <span>{report.label || "Pest"}</span>
                      </div>
                   </div>
 
@@ -127,7 +127,7 @@ export function RecentActivity({ reports }: ActivityProps) {
                      {/* Optional: Add location hint if available */}
                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                         <MapPin className="h-3 w-3" />
-                        ID: {report.id.slice(0, 8)}
+                        <span className="font-mono">ID: {report.id.slice(0, 8)}</span>
                      </div>
                   </div>
                 </div>
@@ -167,7 +167,7 @@ export function RecentActivity({ reports }: ActivityProps) {
                         </div>
                         <div className="p-3 bg-muted/40 rounded-lg space-y-1">
                             <div className="text-xs text-muted-foreground uppercase tracking-wide">Observed Count</div>
-                            <div className="text-lg font-bold">
+                            <div className="text-lg font-bold font-mono">
                                 {report.observedCount ?? "N/A"}
                             </div>
                         </div>

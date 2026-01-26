@@ -177,17 +177,31 @@ export class WorkflowProcessor {
         
         // Pest normalization for MPBC workflow (fallback for non-list mode)
         if (step.id === "pest_name" && text) {
-          // Handle numeric shortcut "1" → "African Armyworm"
-          if (text.trim() === "1") {
+          const trimmedText = text.trim();
+          
+          // Check if input is a numeric string
+          const numericValue = parseFloat(trimmedText);
+          const isNumeric = !isNaN(numericValue) && isFinite(numericValue) && trimmedText === String(numericValue);
+          
+          if (isNumeric) {
+            // Validate numeric input against valid option numbers
+            if (trimmedText === "1") {
+              return { valid: true, value: "African Armyworm" };
+            }
+            // Reject invalid numeric options
+            return { 
+              valid: false, 
+              error: "Invalid option. Please reply with 1️⃣ or type 'African Armyworm'." 
+            };
+          }
+          
+          // Handle various forms of "african armyworm" (text input)
+          if (trimmedText.toLowerCase() === "african armyworm") {
             return { valid: true, value: "African Armyworm" };
           }
-          // Handle various forms of "african armyworm"
-          if (text.toLowerCase().trim() === "african armyworm") {
-            return { valid: true, value: "African Armyworm" };
-          }
-          // Otherwise, capitalize first letter of each word
-          const normalized = text
-            .trim()
+          
+          // Otherwise, capitalize first letter of each word (for flexibility with other pest names)
+          const normalized = trimmedText
             .split(" ")
             .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(" ");
