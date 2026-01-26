@@ -1,24 +1,17 @@
+# azure-pipelines-prod.yml
+name: $(Date:yyyyMMdd).$(Rev:r)-prod
+
 trigger:
   branches:
     include:
       - main
   batch: true
 
-# Enable pipeline to be triggered by other pipelines
-resources:
-  pipelines:
-  - pipeline: dev-pipeline
-    source: 'agridata-ai-dev'
-    trigger:
-      branches:
-        include:
-        - refs/heads/main
-
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: Vercel-Deploy-Variables-Prod
+  - group: Vercel-Deploy-Variables-Prod # Production DB and Vercel Tokens
 
 steps:
   - task: NodeTool@0
@@ -28,66 +21,40 @@ steps:
 
   - script: |
       npm install -g pnpm
-    displayName: 'Install pnpm'
-
-  - script: |
       pnpm install
-    displayName: 'Install dependencies'
+    displayName: 'Install Dependencies'
 
-  - script: |
-      npx tsx scripts/diagnose-migration-state.ts
+  # Running your specific database fix/migration scripts
+  - script: npx tsx scripts/diagnose-migration-state.ts
     displayName: 'Diagnose migration state'
     env:
       DATABASE_URL: $(DATABASE_URL)
     continueOnError: true
 
-  - script: |
-      npx tsx scripts/fix-bot-state-direct.ts
-    displayName: 'Fix bot_state type before migrations'
+  - script: npx tsx scripts/fix-bot-state-direct.ts
+    displayName: 'Fix bot_state type'
     env:
       DATABASE_URL: $(DATABASE_URL)
 
-  - script: |
-      npx tsx scripts/mark-migrations-complete.ts
-    displayName: 'Mark existing migrations as complete'
+  - script: npx tsx scripts/mark-migrations-complete.ts
+    displayName: 'Mark migrations complete'
     env:
       DATABASE_URL: $(DATABASE_URL)
 
-  - script: |
-      pnpm db:migrate
-    displayName: 'Run database migrations'
+  - script: pnpm db:migrate
+    displayName: 'Run Production Migrations'
     env:
       DATABASE_URL: $(DATABASE_URL)
 
   - script: |
       npm install -g vercel
-    displayName: 'Install Vercel CLI'
-
-  - script: |
+      # We pull 'production' env here to get the live DB and API keys
       vercel pull --yes --environment=production --token=$(VERCEL_TOKEN)
-    displayName: 'Pull Vercel environment information'
-    env:
-      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
-      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
-
-  - script: |
+      # Build for production (injects the pulled production secrets)
       vercel build --prod --token=$(VERCEL_TOKEN)
-    displayName: 'Build project artifacts'
-    env:
-      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
-      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
-      DATABASE_URL: $(DATABASE_URL)
-      NEXT_PUBLIC_SUPABASE_URL: $(NEXT_PUBLIC_SUPABASE_URL)
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: $(NEXT_PUBLIC_SUPABASE_ANON_KEY)
-      SUPABASE_SERVICE_ROLE_KEY: $(SUPABASE_SERVICE_ROLE_KEY)
-      TWILIO_ACCOUNT_SID: $(TWILIO_ACCOUNT_SID)
-      TWILIO_AUTH_TOKEN: $(TWILIO_AUTH_TOKEN)
-      TWILIO_PHONE_NUMBER: $(TWILIO_PHONE_NUMBER)
-      NEXT_PUBLIC_APP_URL: $(NEXT_PUBLIC_APP_URL)
-
-  - script: |
+      # Deploy the prebuilt artifacts to the live site
       vercel deploy --prebuilt --prod --token=$(VERCEL_TOKEN)
-    displayName: 'Deploy to Vercel (Production)'
+    displayName: 'Build and Deploy to Production'
     env:
       VERCEL_ORG_ID: $(VERCEL_ORG_ID)
       VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
