@@ -133,8 +133,15 @@ function EditUserDialog({
                     {isBotUser && (
                          <div className="space-y-2">
                             <Label>Phone Number</Label>
-                            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-                            <p className="text-xs text-muted-foreground">Changing this will move the account to the new number.</p>
+                            <Input 
+                                value={phone} 
+                                onChange={(e) => {
+                                    // Automatically remove spaces and prefix if pasted
+                                    const val = e.target.value.trim().replace(/\s+/g, "").replace(/^whatsapp:/i, "");
+                                    setPhone(val);
+                                }} 
+                            />
+                            <p className="text-xs text-muted-foreground">Changing this will move the account to the new number. (e.g. +263...)</p>
                         </div>
                     )}
 
@@ -182,7 +189,24 @@ function EditUserDialog({
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                     <Button 
-                        onClick={() => update.mutate({ id: user.id, fullName: name, phoneNumber: phone, orgId, role, status })}
+                        onClick={() => {
+                            // Final cleanup before submission
+                            const cleanPhone = phone.trim().replace(/\s+/g, "").replace(/^whatsapp:/i, "");
+                            
+                            if (isBotUser && !cleanPhone.startsWith("+")) {
+                                toast.error("Phone number must start with +");
+                                return;
+                            }
+                            
+                            update.mutate({ 
+                                id: user.id, 
+                                fullName: name, 
+                                phoneNumber: isBotUser ? cleanPhone : undefined, 
+                                orgId, 
+                                role, 
+                                status 
+                            });
+                        }}
                         disabled={update.isPending}
                     >
                         {update.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

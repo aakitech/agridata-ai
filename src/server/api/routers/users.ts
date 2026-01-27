@@ -48,14 +48,8 @@ export const usersRouter = createTRPCRouter({
         targetOrgId = input.orgId;
       }
       
-      // Format phone number
-      let phone = input.phoneNumber.replace(/\s+/g, "").replace(/-/g, ""); // Remove spaces/dashes
-      
-      // Ensure specific prefix for bot compatibility if missing
-      if (!phone.startsWith("whatsapp:")) {
-         // Optimistic assumption: User enters +263... (valid E.164)
-         phone = `whatsapp:${phone}`;
-      }
+      // Format phone number: trim and remove all whitespace
+      const phone = input.phoneNumber.trim().replace(/\s+/g, "");
 
       // Check if user already exists
       const existingUser = await ctx.db.query.appUsers.findFirst({
@@ -169,10 +163,8 @@ export const usersRouter = createTRPCRouter({
       if (input.status) updates.status = input.status;
 
       if (input.phoneNumber) {
-         let phone = input.phoneNumber.replace(/\s+/g, "").replace(/-/g, ""); 
-         if (!phone.startsWith("whatsapp:")) {
-            phone = `whatsapp:${phone}`;
-         }
+         // Normalize phone number: trim and remove all whitespace
+         const phone = input.phoneNumber.trim().replace(/\s+/g, "");
          
          // Check for conflict
          const existingUser = await ctx.db.query.appUsers.findFirst({
