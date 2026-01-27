@@ -23,7 +23,11 @@ export function TriageDashboard() {
   const [status, setStatus] = useState<TriageStatus>(isSuperAdmin ? "PENDING_TRIAGE" : "VERIFIED");
   const [filterOrgId, setFilterOrgId] = useState<string | undefined>(undefined);
   
-  const { data: reports, isLoading } = api.reports.getAll.useQuery({ status, filterOrgId });
+  // Fetch Reports - Refresh every 30 seconds (new reports appear quickly without excessive polling)
+  const { data: reports, isLoading } = api.reports.getAll.useQuery(
+    { status, filterOrgId },
+    { refetchInterval: 30000, refetchOnWindowFocus: true }
+  );
   const { data: orgs } = api.organizations.getAll.useQuery();
   
   const selectedReport = reports?.find((r) => r.id === selectedReportId);

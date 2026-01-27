@@ -23,27 +23,29 @@ export default function DashboardPage() {
   // Fetch Current User
   const { data: me } = api.users.getMe.useQuery();
 
-  // Fetch Stats
-  const { data: stats, isLoading: statsLoading } = api.analytics.getStats.useQuery({ 
-    filterOrgId,
-    range 
-  });
-  // Fetch Trends
-  const { data: trends, isLoading: trendsLoading } = api.analytics.getReportsOverTime.useQuery({ 
-      range, 
-      filterOrgId 
-  });
-  // Fetch Recent Activity
-  const { data: activity, isLoading: activityLoading } = api.analytics.getRecentActivity.useQuery({ 
-      limit: 5, 
-      filterOrgId,
-      range 
-  });
-  // Fetch Map Points
-  const { data: mapPoints, isLoading: mapLoading } = api.analytics.getMapPoints.useQuery({ 
-    filterOrgId,
-    range 
-  });
+  // Fetch Stats - Refresh every 60 seconds (aggregates change less frequently)
+  const { data: stats, isLoading: statsLoading } = api.analytics.getStats.useQuery(
+    { filterOrgId, range },
+    { refetchInterval: 60000, refetchOnWindowFocus: true }
+  );
+  
+  // Fetch Trends - Refresh every 120 seconds (historical data, less critical)
+  const { data: trends, isLoading: trendsLoading } = api.analytics.getReportsOverTime.useQuery(
+    { range, filterOrgId },
+    { refetchInterval: 120000, refetchOnWindowFocus: true }
+  );
+  
+  // Fetch Recent Activity - Refresh every 30 seconds (most critical for new reports)
+  const { data: activity, isLoading: activityLoading } = api.analytics.getRecentActivity.useQuery(
+    { limit: 5, filterOrgId, range },
+    { refetchInterval: 30000, refetchOnWindowFocus: true }
+  );
+  
+  // Fetch Map Points - Refresh every 120 seconds (less critical, reduces load)
+  const { data: mapPoints, isLoading: mapLoading } = api.analytics.getMapPoints.useQuery(
+    { filterOrgId, range },
+    { refetchInterval: 120000, refetchOnWindowFocus: true }
+  );
   
   // Fetch Orgs (for filter)
   const { data: orgs } = api.organizations.getAll.useQuery();
