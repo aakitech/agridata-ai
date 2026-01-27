@@ -1,6 +1,6 @@
 import { db } from "~/server/db";
 import { botSessions, appUsers, reports, organizations } from "~/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { env } from "~/env";
 import twilio from "twilio";
 import { WorkflowProcessor } from "./workflow-processor";
@@ -20,18 +20,44 @@ type IncomingMessage = {
 
 export async function handleIncomingMessage(msg: IncomingMessage) {
   const senderId = msg.From; // e.g. "whatsapp:+1234..."
-  const phoneNumber = senderId.replace("whatsapp:", ""); // "+1234..."
+  const phoneNumber = senderId.replace("whatsapp:", "").trim(); // "+1234..." (trimmed)
 
-  // 1. Identify User and Org
-  const user = await db.query.appUsers.findFirst({
+  // 1. Identify User and Org (try exact match first, then trimmed match for existing data)
+  let user = await db.query.appUsers.findFirst({
     where: eq(appUsers.phoneNumber, phoneNumber),
     with: {
       organization: true,
     },
   });
 
-  if (!user || !user.isActive) {
-    console.log(`⛔ Access denied for ${phoneNumber}`);
+  // If not found, try finding by trimmed comparison (handles existing data with whitespace)
+  if (!user) {
+    const result = await db.execute(sql`
+      SELECT id FROM agridata_app_users 
+      WHERE TRIM(phone_number) = ${phoneNumber}
+      LIMIT 1
+    `);
+    
+    if (result.length > 0 && result[0]?.id) {
+      user = await db.query.appUsers.findFirst({
+        where: eq(appUsers.id, result[0].id as string),
+        with: { organization: true },
+      });
+      if (user) {
+        console.log(`🔍 Found user by trimmed comparison. DB had: "${user.phoneNumber}"`);
+      }
+    }
+  }
+
+  if (!user) {
+    console.log(`⛔ Access denied for ${phoneNumber} - User not found in database`);
+    await sendText(phoneNumber, "Welcome to AgriData AI. This is a closed beta system.\n\nPlease contact admin@agridata.ai to request access.");
+    return;
+  }
+
+  if (!user.isActive) {
+    console.log(`⛔ Access denied for ${phoneNumber} - User found but isActive=false`);
+    console.log(`   User ID: ${user.id}, Name: ${user.fullName || "N/A"}, Phone in DB: ${user.phoneNumber}`);
     await sendText(phoneNumber, "Welcome to AgriData AI. This is a closed beta system.\n\nPlease contact admin@agridata.ai to request access.");
     return;
   }

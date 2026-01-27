@@ -53,9 +53,12 @@ export const invitesRouter = createTRPCRouter({
              });
          }
 
+         // Normalize phone number: trim and remove all whitespace
+         const normalizedPhone = input.phoneNumber.trim().replace(/\s+/g, "");
+
          // Check if phone number is already registered
          const existingUser = await ctx.db.query.appUsers.findFirst({
-             where: eq(appUsers.phoneNumber, input.phoneNumber),
+             where: eq(appUsers.phoneNumber, normalizedPhone),
              with: {
                  organization: true
              }
@@ -84,7 +87,7 @@ export const invitesRouter = createTRPCRouter({
                orgId: targetOrgId,
                role: input.role,
                fullName: input.fullName,
-               phoneNumber: input.phoneNumber,
+               phoneNumber: normalizedPhone, // Use normalized phone number
                email: input.email || null, // Optional for officers
                status: "ACTIVE", // Officers are active immediately for WhatsApp
                isActive: true,
