@@ -36,17 +36,9 @@ function validateTwilioSignature(token: string, signature: string, url: string, 
 
 
 export async function POST(req: NextRequest) {
-  console.log("🔔 Webhook received!");
-  
   try {
-    // 1. Get the raw body and headers
-    console.log("📊 Request details:");
-    console.log("  - Method:", req.method);
-    console.log("  - Content-Type:", req.headers.get("content-type"));
-    console.log("  - Body used:", (req as any).bodyUsed);
-    
+    // 1. Get the raw body
     const text = await req.text();
-    console.log("📦 Raw body (length:", text.length, "):", text.substring(0, 200));
     
     if (!text || text.length === 0) {
       console.error("⚠️ Empty body received! This will cause signature validation to fail.");
@@ -59,7 +51,6 @@ export async function POST(req: NextRequest) {
       body[key] = value;
     }
     
-    console.log("📋 Parsed body:", JSON.stringify(body, null, 2));
 
     // 2. Validate Twilio Signature (CRITICAL for production security)
     const signature = req.headers.get("x-twilio-signature");
@@ -72,17 +63,6 @@ export async function POST(req: NextRequest) {
     const search = req.nextUrl.search; // Includes query parameters if any
     const url = `${protocol}://${host}${pathname}${search}`;
     
-    // Debug logging for signature validation
-    console.log("🔍 Signature validation debug:");
-    console.log("  - Protocol:", protocol);
-    console.log("  - Host:", host);
-    console.log("  - Pathname:", pathname);
-    console.log("  - Search params:", search || "(none)");
-    console.log("  - Constructed URL:", url);
-    console.log("  - NEXT_PUBLIC_APP_URL (for reference):", env.NEXT_PUBLIC_APP_URL);
-    console.log("  - Signature header present:", !!signature);
-    console.log("  - Signature header (masked):", signature ? `${signature.substring(0, 8)}...` : "missing");
-    console.log("  - Auth token present:", !!env.TWILIO_AUTH_TOKEN);
     
     // In development (e.g. ngrok), the URL might not match what Twilio sees.
     // We skip validation in dev to make testing easier.
@@ -134,9 +114,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid request: Missing From" }, { status: 400 });
     }
 
-    console.log("🚀 Calling handleIncomingMessage...");
     await handleIncomingMessage(incomingMsg);
-    console.log("✅ handleIncomingMessage completed");
 
     // 4. Respond with TwiML (or just 200 OK if we send messages via API)
     // Returning 200 OK tells Twilio we got it.
