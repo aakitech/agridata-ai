@@ -65,7 +65,7 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
   if (!session) {
     const [newSession] = await db
       .insert(botSessions)
-      .values({ userId: user.id, status: "ACTIVE" })
+      .values({ userId: user.id, status: "ACTIVE", currentState: "IDLE" })
       .returning();
     session = newSession;
   }
