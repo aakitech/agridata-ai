@@ -45,10 +45,6 @@ steps:
     displayName: 'Run Production Migrations'
     env:
       DATABASE_URL: $(DATABASE_URL)
-  - script: npx tsx scripts/whatsapp-bot-seed-workflows.ts
-    displayName: 'Seed Workflow Configurations'
-    env:
-      DATABASE_URL: $(DATABASE_URL)
 
   - script: |
       npm install -g vercel
