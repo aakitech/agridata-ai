@@ -292,7 +292,8 @@ export class WorkflowProcessor {
 
     // 2. Extract fields for severity computation
     const pestKey = data["pest_name"] || data["label"] || null;
-    const observedCountRaw = data["count"] || data["quantity"] || null;
+    // Use nullish coalescing (??) instead of || to preserve zero values
+    const observedCountRaw = data["count"] ?? data["quantity"] ?? null;
     // Normalize observedCount to integer if it's a number
     const observedCount =
       typeof observedCountRaw === "number"
