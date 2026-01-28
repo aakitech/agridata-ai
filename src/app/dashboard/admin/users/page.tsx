@@ -68,9 +68,17 @@ export default function UsersPage() {
         return;
     }
     
+    // Clean input: remove whitespace and the 'whatsapp:' prefix if pasted
+    const cleanPhone = invitePhone.trim().replace(/\s+/g, "").replace(/^whatsapp:/i, "");
+
+    if (inviteRole === "officer" && !cleanPhone.startsWith("+")) {
+      toast.error("Phone number must start with + for international format (e.g. +263)");
+      return;
+    }
+    
     inviteUser.mutate({
       email: inviteRole === "org_admin" ? inviteEmail : undefined,
-      phoneNumber: inviteRole === "officer" ? invitePhone : undefined,
+      phoneNumber: inviteRole === "officer" ? cleanPhone : undefined,
       fullName: inviteName,
       orgId: inviteOrgId,
       role: inviteRole,
@@ -141,14 +149,18 @@ export default function UsersPage() {
               ) : (
                  <div className="space-y-2">
                    <Label htmlFor="invitePhone">Phone Number</Label>
-                   <Input
-                     id="invitePhone"
-                     type="tel"
-                     value={invitePhone}
-                     onChange={(e) => setInvitePhone(e.target.value)}
-                     placeholder="+263..."
-                     required
-                   />
+                    <Input
+                      id="invitePhone"
+                      type="tel"
+                      value={invitePhone}
+                      onChange={(e) => {
+                        // Automatically remove spaces for the user
+                        const val = e.target.value.replace(/\s+/g, "");
+                        setInvitePhone(val);
+                      }}
+                      placeholder="+263..."
+                      required
+                    />
                    <p className="text-xs text-muted-foreground">International format (e.g. +263...)</p>
                  </div>
               )}
