@@ -15,15 +15,20 @@ function severityRank(sev: Severity): number {
   return 2;
 }
 
-function formatLocation(location: string | null): string {
+function formatLocation(location: string | null, geocoded?: string | null): string {
   if (!location) return "N/A";
+  let coords = "";
   const pointMatch = location.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
   if (pointMatch) {
     const lat = parseFloat(pointMatch[2]!);
     const lon = parseFloat(pointMatch[1]!);
-    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    coords = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
   }
-  return location.length > 40 ? `${location.slice(0, 40)}...` : location;
+
+  if (geocoded) {
+    return coords ? `${geocoded} (${coords})` : geocoded;
+  }
+  return coords || (location.length > 40 ? `${location.slice(0, 40)}...` : location);
 }
 
 function severityColor(sev: Severity): { fill: string; text: string } {
@@ -143,12 +148,12 @@ export class MpbcReportPdfRenderer {
     } else {
       // Table header
       const cols = [
-        { key: "date", label: "Date", w: 70 },
-        { key: "location", label: "Location", w: 110 },
-        { key: "pest", label: "Pest", w: 90 },
-        { key: "count", label: "Count", w: 55 },
-        { key: "severity", label: "Severity", w: 70 },
-        { key: "officer", label: "Officer", w: contentWidth - (70 + 110 + 90 + 55 + 70) },
+        { key: "date", label: "Date", w: 55 },
+        { key: "location", label: "Location", w: 165 },
+        { key: "pest", label: "Pest", w: 85 },
+        { key: "count", label: "Count", w: 45 },
+        { key: "severity", label: "Severity", w: 65 },
+        { key: "officer", label: "Officer", w: contentWidth - (55 + 165 + 85 + 45 + 65) },
       ] as const;
 
       const headerH = 20;
@@ -164,8 +169,8 @@ export class MpbcReportPdfRenderer {
       }
       y += headerH;
 
-      const rowH = 22;
-      doc.font("Helvetica").fillColor("#111").fontSize(9);
+      const rowH = 36;
+      doc.font("Helvetica").fillColor("#111").fontSize(8);
       for (const r of highAlerts) {
         if (y + rowH > pageHeight - 60) {
           doc.addPage();
@@ -180,7 +185,7 @@ export class MpbcReportPdfRenderer {
         cx = left;
         const values = {
           date: format(r.createdAt, "MMM dd"),
-          location: formatLocation(r.location),
+          location: formatLocation(r.location, r.geocodedLocation),
           pest: r.label || "N/A",
           count: r.observedCount ?? "N/A",
           severity: r.severity ?? "NORMAL",
@@ -188,25 +193,26 @@ export class MpbcReportPdfRenderer {
         };
 
         // cells
-        doc.text(String(values.date), cx + 6, y + 6, { width: cols[0].w - 12 }); cx += cols[0].w;
-        doc.text(String(values.location), cx + 6, y + 6, { width: cols[1].w - 12 }); cx += cols[1].w;
-        doc.text(String(values.pest), cx + 6, y + 6, { width: cols[2].w - 12 }); cx += cols[2].w;
-        doc.text(String(values.count), cx + 6, y + 6, { width: cols[3].w - 12 }); cx += cols[3].w;
+        const vPad = 8;
+        doc.text(String(values.date), cx + 6, y + vPad, { width: cols[0].w - 12 }); cx += cols[0].w;
+        doc.text(String(values.location), cx + 6, y + vPad, { width: cols[1].w - 12, lineGap: 1 }); cx += cols[1].w;
+        doc.text(String(values.pest), cx + 6, y + vPad, { width: cols[2].w - 12 }); cx += cols[2].w;
+        doc.text(String(values.count), cx + 6, y + vPad, { width: cols[3].w - 12 }); cx += cols[3].w;
 
         // severity badge-like cell
         const sev = r.severity ?? "NORMAL";
         const sevColors = severityColor(sev);
         doc.save();
-        doc.roundedRect(cx + 6, y + 5, cols[4].w - 12, 12, 3).fill(sevColors.fill);
+        doc.roundedRect(cx + 6, y + vPad - 1, cols[4].w - 12, 12, 3).fill(sevColors.fill);
         doc.restore();
-        doc.fillColor(sevColors.text).font("Helvetica-Bold").fontSize(8).text(sev, cx + 6, y + 6, {
+        doc.fillColor(sevColors.text).font("Helvetica-Bold").fontSize(7.5).text(sev, cx + 6, y + vPad, {
           width: cols[4].w - 12,
           align: "center",
         });
-        doc.fillColor("#111").font("Helvetica").fontSize(9);
+        doc.fillColor("#111").font("Helvetica").fontSize(8);
         cx += cols[4].w;
 
-        doc.text(String(values.officer), cx + 6, y + 6, { width: cols[5].w - 12 });
+        doc.text(String(values.officer), cx + 6, y + vPad, { width: cols[5].w - 12, lineGap: 1 });
 
         y += rowH;
       }
@@ -234,11 +240,12 @@ export class MpbcReportPdfRenderer {
       );
     } else {
       const cols = [
-        { label: "Date", w: 70 },
-        { label: "Location", w: 140 },
-        { label: "Pest", w: 120 },
-        { label: "Count", w: 55 },
-        { label: "Severity", w: contentWidth - (70 + 140 + 120 + 55) },
+        { label: "Date", w: 55 },
+        { label: "Location", w: 165 },
+        { label: "Pest", w: 85 },
+        { label: "Count", w: 45 },
+        { label: "Severity", w: 65 },
+        { label: "Officer", w: contentWidth - (55 + 165 + 85 + 45 + 65) },
       ] as const;
 
       const headerH = 20;
@@ -254,8 +261,8 @@ export class MpbcReportPdfRenderer {
       }
       y += headerH;
 
-      const rowH = 22;
-      doc.font("Helvetica").fillColor("#111").fontSize(9);
+      const rowH = 36;
+      doc.font("Helvetica").fillColor("#111").fontSize(8);
       for (const r of allReports) {
         if (y + rowH > pageHeight - 60) {
           doc.addPage();
@@ -267,21 +274,28 @@ export class MpbcReportPdfRenderer {
         doc.restore();
 
         cx = left;
-        doc.text(format(r.createdAt, "MMM dd"), cx + 6, y + 6, { width: cols[0].w - 12 }); cx += cols[0].w;
-        doc.text(formatLocation(r.location), cx + 6, y + 6, { width: cols[1].w - 12 }); cx += cols[1].w;
-        doc.text(r.label || "N/A", cx + 6, y + 6, { width: cols[2].w - 12 }); cx += cols[2].w;
-        doc.text(String(r.observedCount ?? "N/A"), cx + 6, y + 6, { width: cols[3].w - 12 }); cx += cols[3].w;
+        const vPad = 8;
+        doc.text(format(r.createdAt, "MMM dd"), cx + 6, y + vPad, { width: cols[0].w - 12 }); cx += cols[0].w;
+        doc.text(formatLocation(r.location, r.geocodedLocation), cx + 6, y + vPad, { width: cols[1].w - 12, lineGap: 1 }); cx += cols[1].w;
+        doc.text(r.label || "N/A", cx + 6, y + vPad, { width: cols[2].w - 12 }); cx += cols[2].w;
+        doc.text(String(r.observedCount ?? "N/A"), cx + 6, y + vPad, { width: cols[3].w - 12 }); cx += cols[3].w;
 
         const sev = r.severity ?? "NORMAL";
         const sevColors = severityColor(sev);
         doc.save();
-        doc.roundedRect(cx + 6, y + 5, cols[4].w - 12, 12, 3).fill(sevColors.fill);
+        doc.roundedRect(cx + 6, y + vPad - 1, cols[4].w - 12, 12, 3).fill(sevColors.fill);
         doc.restore();
-        doc.fillColor(sevColors.text).font("Helvetica-Bold").fontSize(8).text(sev, cx + 6, y + 6, {
+        doc.fillColor(sevColors.text).font("Helvetica-Bold").fontSize(7.5).text(sev, cx + 6, y + vPad, {
           width: cols[4].w - 12,
           align: "center",
         });
-        doc.fillColor("#111").font("Helvetica").fontSize(9);
+        doc.fillColor("#111").font("Helvetica").fontSize(8);
+        cx += cols[4].w;
+
+        doc.text(r.user?.fullName || r.user?.phoneNumber || "Unknown", cx + 6, y + vPad, {
+          width: cols[5].w - 12,
+          lineGap: 1,
+        });
 
         y += rowH;
       }

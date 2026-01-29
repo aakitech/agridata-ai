@@ -1,8 +1,11 @@
 import { db } from "~/server/db";
 import { reports } from "~/server/db/schema";
-import { eq, and, gte, lte, sql, count, desc } from "drizzle-orm";
-import type { MpbcReportData } from "./report-types";
+import { eq, and, gte, lte, sql, count } from "drizzle-orm";
+import type { MpbcReportData, ReportWithRelations } from "./report-types";
 import { parseLocation } from "./report-utils";
+
+// Local cache for geocoding to avoid redundant API calls and respect rate limits
+const geocodeCache = new Map<string, string | null>();
 
 export class ReportService {
   constructor(private database: typeof db) {}
@@ -129,6 +132,10 @@ export class ReportService {
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
 
+    // Batch geocode unique locations
+    const reportsWithGeocoding = await this.enrichWithGeocoding(sortedAllReports);
+    const highAlertsWithGeocoding = await this.enrichWithGeocoding(sortedHighAlertReports);
+
     return {
       organization: {
         id: org.id,
@@ -144,10 +151,67 @@ export class ReportService {
         uniqueLocations: uniqueLocationsSet.size,
         highAlertCount: highAlertReports.length,
       },
-      highAlertReports: sortedHighAlertReports,
-      allReports: sortedAllReports,
+      highAlertReports: highAlertsWithGeocoding,
+      allReports: reportsWithGeocoding,
       mapPoints,
     };
+  }
+
+  private async enrichWithGeocoding(reports: ReportWithRelations[]): Promise<ReportWithRelations[]> {
+    const enriched = [...reports];
+    const uniqueLocations = new Set<string>();
+    
+    reports.forEach(r => {
+      if (r.location) uniqueLocations.add(r.location);
+    });
+
+    const locationMap = new Map<string, string | null>();
+    
+    for (const loc of uniqueLocations) {
+      if (geocodeCache.has(loc)) {
+        locationMap.set(loc, geocodeCache.get(loc)!);
+        continue;
+      }
+
+      const coords = parseLocation(loc);
+      if (!coords) continue;
+
+      try {
+        // Respect Nominatim rate limits (1 req/sec)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}`,
+          {
+            headers: {
+              "User-Agent": "AgriDataAI/1.0 (contact@agridata.ai)",
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json() as any;
+          if (data && data.address) {
+            const addr = data.address;
+            const descriptive = addr.suburb || addr.neighborhood || addr.village || addr.town || addr.city || addr.state || "";
+            const area = addr.city || addr.state || addr.country || "";
+            const result = descriptive !== area && area ? `${descriptive}, ${area}` : descriptive || area || null;
+            
+            geocodeCache.set(loc, result);
+            locationMap.set(loc, result);
+          } else {
+            geocodeCache.set(loc, null);
+          }
+        }
+      } catch (error) {
+        console.error("Geocoding failed for:", loc, error);
+      }
+    }
+
+    return enriched.map(r => ({
+      ...r,
+      geocodedLocation: r.location ? locationMap.get(r.location) : null
+    }));
   }
 }
 
