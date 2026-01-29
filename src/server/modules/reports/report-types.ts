@@ -3,6 +3,7 @@ import type { reports, appUsers, organizations } from "~/server/db/schema";
 export type ReportWithRelations = typeof reports.$inferSelect & {
   user: typeof appUsers.$inferSelect | null;
   organization: typeof organizations.$inferSelect | null;
+  geocodedLocation?: string | null;
 };
 
 export interface MpbcReportData {
