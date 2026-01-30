@@ -119,14 +119,18 @@ function HistorySection({ history }: { history: MapPoint["recentHistory"] }) {
     );
   }
 
-  const displayHistory = expanded ? history : history.slice(0, 2);
-  const hasMore = history.length > 2;
+  const displayHistory = expanded ? history : history.slice(0, 3);
+  const hasMore = history.length > 3;
 
   return (
-    <div className="border-t border-muted-foreground/15 pt-2 mt-1">
+    <div className="border-t border-muted-foreground/15 pt-1 mt-0.5">
       <button
         type="button"
-        onClick={() => setExpanded(!expanded)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setExpanded(!expanded);
+        }}
         className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors w-full text-left"
       >
         <History className="w-3.5 h-3.5 shrink-0" />
@@ -139,12 +143,12 @@ function HistorySection({ history }: { history: MapPoint["recentHistory"] }) {
           ))}
       </button>
 
-      <div
-        className={cn(
-          "space-y-2 mt-2",
-          !expanded && hasMore && "max-h-[72px] overflow-hidden"
-        )}
-      >
+       <div
+         className={cn(
+           "space-y-1 mt-1",
+           !expanded && hasMore && "max-h-[90px] overflow-hidden"
+         )}
+       >
         {displayHistory.map((report) => {
           const initials =
             report.officerName
@@ -154,11 +158,11 @@ function HistorySection({ history }: { history: MapPoint["recentHistory"] }) {
               .toUpperCase()
               .slice(0, 2) || "—";
           return (
-            <div
-              key={report.id}
-              className="flex items-center justify-between gap-2 text-[10px]"
-            >
-              <div className="flex items-center gap-2 min-w-0">
+             <div
+               key={report.id}
+               className="flex items-center justify-between gap-1 text-[10px] py-0"
+             >
+              <div className="flex items-center gap-1 min-w-0">
                 <span
                   className={cn(
                     "w-2 h-2 rounded-full shrink-0",
@@ -178,7 +182,7 @@ function HistorySection({ history }: { history: MapPoint["recentHistory"] }) {
                   {initials}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 <span className="font-medium tabular-nums">
                   {report.count ?? "N/A"}
                 </span>
@@ -255,7 +259,7 @@ export function DashboardMap({ points }: DashboardMapProps) {
                 icon={icon}
               >
                 <Popup className="premium-popup">
-                  <div className="p-2.5 space-y-2.5 min-w-[220px] max-w-[280px]">
+                  <div className="p-2 space-y-1 min-w-[200px] max-w-[260px]">
                     {/* 1. Pest name + severity (current state) */}
                     <div className="flex justify-between items-start gap-2">
                       <p className="font-bold text-sm text-foreground leading-tight">
@@ -277,8 +281,8 @@ export function DashboardMap({ points }: DashboardMapProps) {
                       )}
                     </div>
 
-                    {/* 2. Count + Last reported (current state) */}
-                    <div className="grid grid-cols-2 gap-3 text-xs py-2 border-y border-muted-foreground/15">
+                     {/* 2. Count + Last reported (current state) */}
+                     <div className="grid grid-cols-2 gap-2 text-xs py-1 border-y border-muted-foreground/15">
                       <div>
                         <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-wide">
                           Count
@@ -297,8 +301,8 @@ export function DashboardMap({ points }: DashboardMapProps) {
                       </div>
                     </div>
 
-                    {/* 3. Trend: clear arrow + label */}
-                    <div className="flex items-center gap-2 py-0.5">
+                     {/* 3. Trend: clear arrow + label */}
+                     <div className="flex items-center gap-2 py-0.5">
                       {trend.direction === "up" && (
                         <TrendingUp
                           className="w-4 h-4 text-red-500 shrink-0"
@@ -322,24 +326,24 @@ export function DashboardMap({ points }: DashboardMapProps) {
                       </span>
                     </div>
 
-                    {/* 4. Field officer */}
-                    <div className="flex items-center gap-2 pt-0.5">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
-                        {point.officerName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()
-                          .slice(0, 2) || "—"}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] text-muted-foreground leading-none">
-                          Field Officer
-                        </p>
-                        <p className="text-xs font-medium leading-none truncate">
+                     {/* 4. Field officer */}
+                     <div className="pt-0">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                          {point.officerName
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2) || "—"}
+                        </div>
+                        <p className="text-xs font-medium truncate">
                           {point.officerName}
                         </p>
                       </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Field Officer
+                      </p>
                     </div>
 
                     {/* 5. Previous reports (same location bucket) */}
