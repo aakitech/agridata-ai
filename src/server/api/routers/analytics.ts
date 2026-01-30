@@ -59,4 +59,47 @@ export const analyticsRouter = createTRPCRouter({
       const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
       return service.getMapPoints(input?.filterOrgId, input?.range);
     }),
+
+  // Reports page endpoints
+  getAllReports: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.date().optional(),
+        severity: z.enum(["HIGH", "WARNING", "NORMAL"]).optional(),
+        officerId: z.string().uuid().optional(),
+        orgId: z.string().uuid().optional(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(25),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
+      return service.getAllReports({
+        startDate: input?.startDate,
+        severity: input?.severity,
+        officerId: input?.officerId,
+        orgId: input?.orgId,
+        page: input?.page,
+        limit: input?.limit,
+      });
+    }),
+
+  getReportsByLocation: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.date().optional(),
+        severity: z.enum(["HIGH", "WARNING", "NORMAL"]).optional(),
+        officerId: z.string().uuid().optional(),
+        orgId: z.string().uuid().optional(),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
+      return service.getReportsByLocation({
+        startDate: input?.startDate,
+        severity: input?.severity,
+        officerId: input?.officerId,
+        orgId: input?.orgId,
+      });
+    }),
 });

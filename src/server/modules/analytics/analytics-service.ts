@@ -166,4 +166,234 @@ export class AnalyticsService {
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
   }
+
+  // New methods for Reports page
+  async getAllReports(
+    options: {
+      startDate?: Date;
+      severity?: "HIGH" | "WARNING" | "NORMAL";
+      officerId?: string;
+      orgId?: string;
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<{
+    reports: ReportWithDetails[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const { startDate, severity, officerId, orgId, page = 1, limit = 25 } = options;
+
+    const conditions = [];
+    const baseFilter = this.getOrgFilter();
+    if (baseFilter) conditions.push(baseFilter);
+
+    if (this.userRole === "super_admin" && orgId) {
+      conditions.push(eq(reports.orgId, orgId));
+    }
+
+    if (startDate) {
+      conditions.push(gte(reports.createdAt, startDate));
+    }
+
+    if (severity) {
+      conditions.push(eq(reports.severity, severity));
+    }
+
+    if (officerId) {
+      conditions.push(eq(reports.userId, officerId));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const [countResult] = await this.database
+      .select({ count: count() })
+      .from(reports)
+      .where(whereClause);
+    const total = countResult?.count ?? 0;
+
+    // Get paginated reports
+    const reportResults = await this.database.query.reports.findMany({
+      where: whereClause,
+      with: {
+        organization: true,
+        user: true,
+      },
+      orderBy: (reports, { desc }) => [desc(reports.createdAt)],
+      limit: limit,
+      offset: (page - 1) * limit,
+    });
+
+    return {
+      reports: reportResults,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getReportsByLocation(
+    options: {
+      startDate?: Date;
+      severity?: "HIGH" | "WARNING" | "NORMAL";
+      officerId?: string;
+      orgId?: string;
+    } = {}
+  ): Promise<LocationWithReports[]> {
+    const { startDate, severity, officerId, orgId } = options;
+
+    const conditions = [];
+    const baseFilter = this.getOrgFilter();
+    if (baseFilter) conditions.push(baseFilter);
+
+    if (this.userRole === "super_admin" && orgId) {
+      conditions.push(eq(reports.orgId, orgId));
+    }
+
+    if (startDate) {
+      conditions.push(gte(reports.createdAt, startDate));
+    }
+
+    if (severity) {
+      conditions.push(eq(reports.severity, severity));
+    }
+
+    if (officerId) {
+      conditions.push(eq(reports.userId, officerId));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Fetch all reports with location
+    const reportResults = await this.database.query.reports.findMany({
+      where: whereClause
+        ? and(whereClause, sql`${reports.location} is not null`)
+        : sql`${reports.location} is not null`,
+      with: {
+        organization: true,
+        user: true,
+      },
+      orderBy: (reports, { desc }) => [desc(reports.createdAt)],
+      limit: 500,
+    });
+
+    // Group by location
+    const locationGroups = new Map<string, typeof reportResults>();
+
+    for (const report of reportResults) {
+      if (!report.location) continue;
+      const coordinates = report.location.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
+      if (!coordinates) continue;
+
+      const lat = parseFloat(coordinates[2]!);
+      const lon = parseFloat(coordinates[1]!);
+      const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+
+      if (!locationGroups.has(key)) {
+        locationGroups.set(key, []);
+      }
+      locationGroups.get(key)!.push(report);
+    }
+
+    // Transform to LocationWithReports
+    const locations: LocationWithReports[] = [];
+
+    for (const [key, groupReports] of locationGroups) {
+      // Sort by date desc
+      groupReports.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      const latest = groupReports[0]!;
+      const coordinates = latest.location!.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
+      if (!coordinates) continue;
+
+      // Calculate trend
+      let trend: "up" | "down" | "stable" = "stable";
+      if (groupReports.length > 1) {
+        const prev = groupReports[1];
+        const currCount = latest.observedCount ?? 0;
+        const prevCount = prev?.observedCount ?? 0;
+        if (currCount > prevCount) trend = "up";
+        else if (currCount < prevCount) trend = "down";
+      }
+
+      locations.push({
+        locationKey: key,
+        displayName: null, // Will be populated via reverse geocoding on client
+        coordinates: {
+          lat: parseFloat(coordinates[2]!),
+          lon: parseFloat(coordinates[1]!),
+        },
+        reportCount: groupReports.length,
+        latestReport: {
+          id: latest.id,
+          date: latest.createdAt,
+          severity: latest.severity,
+          count: latest.observedCount,
+          pest: latest.label || "Unknown",
+          officer: latest.user?.fullName || latest.user?.phoneNumber || "Unknown",
+        },
+        trend,
+        reports: groupReports.map((r) => ({
+          id: r.id,
+          date: r.createdAt,
+          severity: r.severity,
+          count: r.observedCount,
+          pest: r.label || "Unknown",
+          officer: r.user?.fullName || r.user?.phoneNumber || "Unknown",
+          description: r.description,
+        })),
+      });
+    }
+
+    // Sort by most recent activity
+    locations.sort((a, b) => b.latestReport.date.getTime() - a.latestReport.date.getTime());
+
+    return locations;
+  }
+}
+
+// Types for the new methods
+export interface ReportWithDetails {
+  id: string;
+  createdAt: Date;
+  description: string | null;
+  severity: "NORMAL" | "WARNING" | "HIGH" | null;
+  label: string | null;
+  observedCount: number | null;
+  mediaUrl: string | null;
+  location: string | null;
+  user: { fullName: string | null; phoneNumber: string | null } | null;
+  organization: { name: string } | null;
+}
+
+export interface LocationWithReports {
+  locationKey: string;
+  displayName: string | null;
+  coordinates: { lat: number; lon: number };
+  reportCount: number;
+  latestReport: {
+    id: string;
+    date: Date;
+    severity: "NORMAL" | "WARNING" | "HIGH" | null;
+    count: number | null;
+    pest: string;
+    officer: string;
+  };
+  trend: "up" | "down" | "stable";
+  reports: Array<{
+    id: string;
+    date: Date;
+    severity: "NORMAL" | "WARNING" | "HIGH" | null;
+    count: number | null;
+    pest: string;
+    officer: string;
+    description: string | null;
+  }>;
 }

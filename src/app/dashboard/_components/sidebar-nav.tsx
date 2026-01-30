@@ -8,6 +8,7 @@ import {
   Users,
   Building2,
   Bell,
+  FileText,
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import {
@@ -58,6 +59,7 @@ export function SidebarNav({ role }: { role: string }) {
   return (
     <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
       <NavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
+      <NavLink href="/dashboard/reports" icon={FileText} label="Reports" />
       {(role === "super_admin" || role === "org_admin") && (
         <>
           <NavLink
