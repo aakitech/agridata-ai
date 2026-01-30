@@ -1,15 +1,34 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup, LayersControl } from "react-leaflet";
+import { useEffect, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  LayersControl,
+} from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import L from "leaflet";
 import { Badge } from "~/components/ui/badge";
-import { format } from "date-fns";
-import { createCustomMarkerIcon, injectMarkerStyles, type SeverityType } from "~/lib/map-utils";
+import { format, differenceInDays } from "date-fns";
+import {
+  createCustomMarkerIcon,
+  injectMarkerStyles,
+  type SeverityType,
+  type RecencyType,
+} from "~/lib/map-utils";
+import {
+  ChevronDown,
+  ChevronUp,
+  History,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+} from "lucide-react";
+import { cn } from "~/lib/utils";
 
 interface MapPoint {
   id: string;
@@ -20,9 +39,173 @@ interface MapPoint {
   count: number | null;
   date: Date;
   officerName: string;
+  /** Stable bucket key for one-marker-per-location */
+  locationKey: string;
+  location: string;
+  recency: RecencyType;
+  recentHistory: Array<{
+    id: string;
+    pest: string | null;
+    severity: SeverityType;
+    count: number | null;
+    date: Date;
+    officerName: string;
+  }>;
 }
 
-export function DashboardMap({ points }: { points: MapPoint[] }) {
+interface DashboardMapProps {
+  points: MapPoint[];
+}
+
+/**
+ * Get human-readable recency label
+ */
+const getRecencyLabel = (recency: RecencyType, date: Date): string => {
+  const daysAgo = differenceInDays(new Date(), date);
+  if (daysAgo === 0) return "Today";
+  if (daysAgo === 1) return "Yesterday";
+  if (daysAgo <= 7) return `${daysAgo} days ago`;
+  return format(date, "MMM d, yyyy");
+};
+
+/**
+ * Get trend indicator: prefer count delta (latest vs previous), fallback to severity rank.
+ */
+const getTrend = (
+  current: MapPoint
+): { direction: "up" | "down" | "stable"; label: string } => {
+  if (current.recentHistory.length === 0) {
+    return { direction: "stable", label: "No prior data" };
+  }
+
+  const previous = current.recentHistory[0]!;
+  const currCount = current.count ?? null;
+  const prevCount = previous.count ?? null;
+
+  // Prefer count-based trend when both counts are numeric
+  if (typeof currCount === "number" && typeof prevCount === "number") {
+    if (currCount > prevCount) return { direction: "up", label: "Increasing" };
+    if (currCount < prevCount)
+      return { direction: "down", label: "Decreasing" };
+    return { direction: "stable", label: "Stable" };
+  }
+
+  // Fallback to severity rank when counts missing/unreliable
+  const severityRank: Record<string, number> = {
+    HIGH: 3,
+    WARNING: 2,
+    NORMAL: 1,
+  };
+  const currentRank = severityRank[current.severity ?? "NORMAL"] ?? 1;
+  const previousRank = severityRank[previous.severity ?? "NORMAL"] ?? 1;
+  if (currentRank > previousRank)
+    return { direction: "up", label: "Increasing" };
+  if (currentRank < previousRank)
+    return { direction: "down", label: "Decreasing" };
+  return { direction: "stable", label: "Stable" };
+};
+
+/**
+ * History section: previous 3–5 reports from the same location (collapsed by default).
+ */
+function HistorySection({ history }: { history: MapPoint["recentHistory"] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (history.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground italic py-2 border-t border-muted-foreground/15 mt-1">
+        No previous reports at this location
+      </div>
+    );
+  }
+
+  const displayHistory = expanded ? history : history.slice(0, 2);
+  const hasMore = history.length > 2;
+
+  return (
+    <div className="border-t border-muted-foreground/15 pt-2 mt-1">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors w-full text-left"
+      >
+        <History className="w-3.5 h-3.5 shrink-0" />
+        <span>Previous reports ({history.length})</span>
+        {hasMore &&
+          (expanded ? (
+            <ChevronUp className="w-3.5 h-3.5 ml-auto shrink-0" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 ml-auto shrink-0" />
+          ))}
+      </button>
+
+      <div
+        className={cn(
+          "space-y-2 mt-2",
+          !expanded && hasMore && "max-h-[72px] overflow-hidden"
+        )}
+      >
+        {displayHistory.map((report) => {
+          const initials =
+            report.officerName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2) || "—";
+          return (
+            <div
+              key={report.id}
+              className="flex items-center justify-between gap-2 text-[10px]"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className={cn(
+                    "w-2 h-2 rounded-full shrink-0",
+                    report.severity === "HIGH" && "bg-red-500",
+                    report.severity === "WARNING" && "bg-amber-500",
+                    (!report.severity || report.severity === "NORMAL") &&
+                      "bg-green-500"
+                  )}
+                />
+                <span className="text-muted-foreground shrink-0">
+                  {format(new Date(report.date), "MMM d")}
+                </span>
+                <span
+                  className="text-muted-foreground/80 truncate"
+                  title={report.officerName}
+                >
+                  {initials}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="font-medium tabular-nums">
+                  {report.count ?? "N/A"}
+                </span>
+                {report.severity && (
+                  <Badge
+                    variant={
+                      report.severity === "HIGH"
+                        ? "destructive"
+                        : report.severity === "WARNING"
+                        ? "default"
+                        : "secondary"
+                    }
+                    className="text-[8px] px-1.5 h-3.5 font-medium"
+                  >
+                    {report.severity[0]}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function DashboardMap({ points }: DashboardMapProps) {
   // Zimbabwe center roughly [-19.0154, 29.1549]
   const center: [number, number] = [-19.0154, 29.1549];
   const zoom = 6;
@@ -33,9 +216,9 @@ export function DashboardMap({ points }: { points: MapPoint[] }) {
 
   return (
     <div className="h-full w-full rounded-xl overflow-hidden border shadow-inner bg-muted/5">
-      <MapContainer 
-        center={center} 
-        zoom={zoom} 
+      <MapContainer
+        center={center}
+        zoom={zoom}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={false}
       >
@@ -60,50 +243,107 @@ export function DashboardMap({ points }: { points: MapPoint[] }) {
           showCoverageOnHover={false}
         >
           {points.map((point) => {
-            const icon = createCustomMarkerIcon(point.severity);
-            
+            const icon = createCustomMarkerIcon(point.severity, {
+              recency: point.recency,
+            });
+            const trend = getTrend(point);
+
             return (
-              <Marker 
-                key={point.id} 
-                position={[point.lat, point.lon]} 
+              <Marker
+                key={point.locationKey ?? point.id}
+                position={[point.lat, point.lon]}
                 icon={icon}
               >
                 <Popup className="premium-popup">
-                  <div className="p-1 space-y-3 min-w-[180px]">
+                  <div className="p-2.5 space-y-2.5 min-w-[220px] max-w-[280px]">
+                    {/* 1. Pest name + severity (current state) */}
                     <div className="flex justify-between items-start gap-2">
-                       <p className="font-bold text-sm text-foreground leading-tight">
+                      <p className="font-bold text-sm text-foreground leading-tight">
                         {point.pest || "Unspecified Pest"}
                       </p>
                       {point.severity && (
-                          <Badge 
-                            variant={point.severity === "HIGH" ? "destructive" : point.severity === "WARNING" ? "default" : "secondary"} 
-                            className="text-[9px] px-1.5 h-4 uppercase tracking-wider font-bold"
-                          >
-                            {point.severity}
-                          </Badge>
+                        <Badge
+                          variant={
+                            point.severity === "HIGH"
+                              ? "destructive"
+                              : point.severity === "WARNING"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className="text-[9px] px-1.5 h-4 uppercase tracking-wider font-bold shrink-0"
+                        >
+                          {point.severity}
+                        </Badge>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs py-1 border-y border-muted-foreground/10">
+                    {/* 2. Count + Last reported (current state) */}
+                    <div className="grid grid-cols-2 gap-3 text-xs py-2 border-y border-muted-foreground/15">
                       <div>
-                        <p className="text-muted-foreground font-medium uppercase text-[10px]">Count</p>
-                        <p className="font-semibold">{point.count ?? "N/A"}</p>
+                        <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-wide">
+                          Count
+                        </p>
+                        <p className="font-semibold text-foreground">
+                          {point.count ?? "N/A"}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground font-medium uppercase text-[10px]">Date</p>
-                        <p className="font-semibold">{format(new Date(point.date), "MMM d, yy")}</p>
+                        <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-wide">
+                          Last reported
+                        </p>
+                        <p className="font-semibold text-foreground">
+                          {getRecencyLabel(point.recency, new Date(point.date))}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-1">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                        {point.officerName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    {/* 3. Trend: clear arrow + label */}
+                    <div className="flex items-center gap-2 py-0.5">
+                      {trend.direction === "up" && (
+                        <TrendingUp
+                          className="w-4 h-4 text-red-500 shrink-0"
+                          aria-hidden
+                        />
+                      )}
+                      {trend.direction === "down" && (
+                        <TrendingDown
+                          className="w-4 h-4 text-green-500 shrink-0"
+                          aria-hidden
+                        />
+                      )}
+                      {trend.direction === "stable" && (
+                        <Minus
+                          className="w-4 h-4 text-muted-foreground shrink-0"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {trend.label}
+                      </span>
+                    </div>
+
+                    {/* 4. Field officer */}
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                        {point.officerName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2) || "—"}
                       </div>
-                      <div className="flex flex-col">
-                        <p className="text-[10px] text-muted-foreground leading-none mb-1">Field Officer</p>
-                        <p className="text-xs font-medium leading-none">{point.officerName}</p>
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground leading-none">
+                          Field Officer
+                        </p>
+                        <p className="text-xs font-medium leading-none truncate">
+                          {point.officerName}
+                        </p>
                       </div>
                     </div>
+
+                    {/* 5. Previous reports (same location bucket) */}
+                    <HistorySection history={point.recentHistory} />
                   </div>
                 </Popup>
               </Marker>
