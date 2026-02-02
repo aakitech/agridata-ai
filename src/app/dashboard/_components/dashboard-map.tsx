@@ -186,16 +186,15 @@ function HistorySection({ history }: { history: MapPoint["recentHistory"] }) {
                 <span className="font-medium tabular-nums">
                   {report.count ?? "N/A"}
                 </span>
-                {report.severity && (
+                 {report.severity && (
                   <Badge
-                    variant={
-                      report.severity === "HIGH"
-                        ? "destructive"
-                        : report.severity === "WARNING"
-                        ? "default"
-                        : "secondary"
-                    }
-                    className="text-[8px] px-1.5 h-3.5 font-medium"
+                    variant="outline"
+                    className={cn(
+                      "text-[8px] px-1.5 h-3.5 font-bold uppercase tracking-tighter border",
+                      report.severity === "HIGH" && "bg-red-500/10 text-red-600 border-red-500/20",
+                      report.severity === "WARNING" && "bg-amber-500/10 text-amber-600 border-amber-500/20",
+                      (!report.severity || report.severity === "NORMAL") && "bg-green-500/10 text-green-600 border-green-500/20"
+                    )}
                   >
                     {report.severity[0]}
                   </Badge>
@@ -261,20 +260,19 @@ export function DashboardMap({ points }: DashboardMapProps) {
                 <Popup className="premium-popup">
                   <div className="p-2 space-y-1 min-w-[200px] max-w-[260px]">
                     {/* 1. Pest name + severity (current state) */}
-                    <div className="flex justify-between items-start gap-2">
-                      <p className="font-bold text-sm text-foreground leading-tight">
-                        {point.pest || "Unspecified Pest"}
-                      </p>
+                     <div className="flex justify-between items-start gap-2">
+                        <p className="font-bold text-sm text-foreground leading-tight">
+                          {point.pest || "Unspecified Pest"}
+                        </p>
                       {point.severity && (
                         <Badge
-                          variant={
-                            point.severity === "HIGH"
-                              ? "destructive"
-                              : point.severity === "WARNING"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="text-[9px] px-1.5 h-4 uppercase tracking-wider font-bold shrink-0"
+                          variant="outline"
+                          className={cn(
+                            "text-[9px] px-1.5 h-4 uppercase tracking-wider font-bold shrink-0 border",
+                            point.severity === "HIGH" && "bg-red-500/10 text-red-600 border-red-500/20",
+                            point.severity === "WARNING" && "bg-amber-500/10 text-amber-600 border-amber-500/20",
+                            point.severity === "NORMAL" && "bg-green-500/10 text-green-600 border-green-500/20"
+                          )}
                         >
                           {point.severity}
                         </Badge>
