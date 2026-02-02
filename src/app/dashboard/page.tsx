@@ -7,7 +7,9 @@ import { TrendChart } from "./_components/trend-chart";
 import { RecentActivity } from "./_components/recent-activity";
 import { GenerateReportButton } from "./_components/generate-report-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Switch } from "~/components/ui/switch";
+import { Label } from "~/components/ui/label";
+import { Loader2, AlertCircle, Bell } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import dynamic from "next/dynamic";
 
@@ -19,6 +21,7 @@ const DashboardMap = dynamic(() => import("./_components/dashboard-map").then(mo
 export default function DashboardPage() {
   const [filterOrgId, setFilterOrgId] = useState<string | undefined>(undefined);
   const [range, setRange] = useState<"7d" | "30d">("7d");
+  const [activeAlertsOnly, setActiveAlertsOnly] = useState(false);
 
   // Fetch Current User
   const { data: me } = api.users.getMe.useQuery();
@@ -42,8 +45,9 @@ export default function DashboardPage() {
   );
   
   // Fetch Map Points - Refresh every 120 seconds (less critical, reduces load)
+  // Per MVP spec: supports activeAlertsOnly toggle and 7-day default window
   const { data: mapPoints, isLoading: mapLoading } = api.analytics.getMapPoints.useQuery(
-    { filterOrgId, range },
+    { filterOrgId, range, activeAlertsOnly },
     { refetchInterval: 120000, refetchOnWindowFocus: true }
   );
   
@@ -136,12 +140,34 @@ export default function DashboardPage() {
 
       {/* Top Row: Map & Recent Activity */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-         <div className="lg:col-span-2 h-[450px]">
-            {mapPoints ? (
-                <DashboardMap points={mapPoints as any} />
-            ) : (
-                <div className="h-full w-full bg-muted rounded-xl flex items-center justify-center animate-pulse">Map Loading...</div>
-            )}
+         <div className="lg:col-span-2 flex flex-col gap-2">
+            {/* Map Controls - MVP spec 7.2: Active Alerts Toggle */}
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {mapPoints ? `${mapPoints.length} location${mapPoints.length !== 1 ? 's' : ''} shown` : 'Loading...'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="active-alerts"
+                  checked={activeAlertsOnly}
+                  onCheckedChange={setActiveAlertsOnly}
+                />
+                <Label htmlFor="active-alerts" className="text-sm cursor-pointer">
+                  Active alerts only
+                </Label>
+              </div>
+            </div>
+            
+            <div className="h-[450px]">
+              {mapPoints ? (
+                  <DashboardMap points={mapPoints as any} />
+              ) : (
+                  <div className="h-full w-full bg-muted rounded-xl flex items-center justify-center animate-pulse">Map Loading...</div>
+              )}
+            </div>
          </div>
 
          <div className="bg-card border rounded-xl overflow-hidden h-[450px]">

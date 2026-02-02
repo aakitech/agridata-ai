@@ -93,10 +93,12 @@ export class AlertsService {
 
     const threshold = await this.getThresholdForPest(orgId, pestKey);
 
-    // If no threshold config exists, use conservative fallback logic
+    // If no threshold config exists, use sensible fallback logic
     if (!threshold) {
-      // Fallback logic: Never return NORMAL, use conservative defaults
-      if (observedCount < 10) {
+      // Fallback logic: 0 = NORMAL, 1-20 = WARNING, 21+ = HIGH
+      if (observedCount === 0) {
+        return { severity: "NORMAL", source: "DEFAULT_FALLBACK" };
+      } else if (observedCount <= 20) {
         return { severity: "WARNING", source: "DEFAULT_FALLBACK" };
       } else {
         return { severity: "HIGH", source: "DEFAULT_FALLBACK" };
