@@ -13,6 +13,7 @@ import type { LocationWithReports } from "~/server/modules/analytics/analytics-s
 
 type ViewMode = "grouped" | "list";
 type TimeRange = "7d" | "30d" | "90d" | "all";
+type ListSort = "DATE_DESC" | "DATE_ASC";
 
 export default function ReportsPage() {
   // View mode with localStorage persistence
@@ -24,6 +25,12 @@ export default function ReportsPage() {
   const [severityFilter, setSeverityFilter] = useState<"ALL" | "HIGH" | "WARNING" | "NORMAL">("ALL");
   const [officerFilter, setOfficerFilter] = useState<string | null>(null);
   const [orgFilter, setOrgFilter] = useState<string | null>(null);
+  const [pestFilter, setPestFilter] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  // List controls
+  const [page, setPage] = useState(1);
+  const [listSort, setListSort] = useState<ListSort>("DATE_DESC");
 
   // Load persisted view mode
   useEffect(() => {
@@ -37,6 +44,11 @@ export default function ReportsPage() {
   useEffect(() => {
     localStorage.setItem("agridata-reports-view", viewMode);
   }, [viewMode]);
+
+  // Reset list pagination when key inputs change
+  useEffect(() => {
+    setPage(1);
+  }, [timeRange, severityFilter, officerFilter, orgFilter, pestFilter, listSort, viewMode, search]);
 
   // Calculate date range - memoized to prevent unnecessary re-fetches
   const startDate = useMemo(() => {
@@ -61,6 +73,7 @@ export default function ReportsPage() {
       severity: severityFilter === "ALL" ? undefined : severityFilter,
       officerId: officerFilter ?? undefined,
       orgId: orgFilter ?? undefined,
+      pest: pestFilter ?? undefined,
     },
     {
       enabled: viewMode === "grouped",
@@ -83,8 +96,10 @@ export default function ReportsPage() {
       severity: severityFilter === "ALL" ? undefined : severityFilter,
       officerId: officerFilter ?? undefined,
       orgId: orgFilter ?? undefined,
-      page: 1,
+      pest: pestFilter ?? undefined,
+      page,
       limit: 25,
+      sort: listSort,
     },
     {
       enabled: viewMode === "list",
@@ -96,7 +111,43 @@ export default function ReportsPage() {
 
   // Get current user for permissions
   const { data: me } = api.users.getMe.useQuery();
+  const { data: users } = api.users.getAll.useQuery();
   const { data: orgs } = api.organizations.getAll.useQuery();
+
+  const officers = useMemo(
+    () =>
+      users
+        ?.filter((u) => u.role === "officer")
+        .map((u) => ({ id: u.id, fullName: u.fullName, phoneNumber: u.phoneNumber })),
+    [users]
+  );
+
+  const pestOptions = useMemo(() => {
+    const set = new Set<string>();
+    let sawUnknown = false;
+
+    for (const loc of groupedData ?? []) {
+      for (const r of loc.reports) {
+        if (!r.pest || r.pest === "Unknown") {
+          sawUnknown = true;
+        } else {
+          set.add(r.pest);
+        }
+      }
+    }
+
+    for (const r of listData?.reports ?? []) {
+      if (!r.label) {
+        sawUnknown = true;
+      } else {
+        set.add(r.label);
+      }
+    }
+
+    const pests = Array.from(set).sort((a, b) => a.localeCompare(b));
+    if (sawUnknown) pests.unshift("__unknown__");
+    return pests;
+  }, [groupedData, listData?.reports]);
 
   // Combined loading and error states
   const isLoading = viewMode === "grouped" ? groupedLoading : listLoading;
@@ -108,6 +159,30 @@ export default function ReportsPage() {
   const totalReports = viewMode === "grouped" 
     ? groupedData?.reduce((acc: number, loc: LocationWithReports) => acc + loc.reportCount, 0) ?? 0
     : listData?.pagination.total ?? 0;
+
+  const normalizedSearch = search.trim().toLowerCase();
+
+  const filteredGroupedData = useMemo(() => {
+    if (!groupedData) return groupedData;
+    if (!normalizedSearch) return groupedData;
+    return groupedData.filter((loc) => {
+      const latest = loc.latestReport;
+      return (
+        latest.pest.toLowerCase().includes(normalizedSearch) ||
+        latest.officer.toLowerCase().includes(normalizedSearch)
+      );
+    });
+  }, [groupedData, normalizedSearch]);
+
+  const filteredListReports = useMemo(() => {
+    if (!listData?.reports) return listData?.reports;
+    if (!normalizedSearch) return listData.reports;
+    return listData.reports.filter((r) => {
+      const officer = (r.user?.fullName || r.user?.phoneNumber || "").toLowerCase();
+      const pest = (r.label || "").toLowerCase();
+      return officer.includes(normalizedSearch) || pest.includes(normalizedSearch);
+    });
+  }, [listData?.reports, normalizedSearch]);
 
   // Error display component
   const ErrorDisplay = ({ error, onRetry }: { error: Error | null; onRetry: () => void }) => {
@@ -181,6 +256,7 @@ export default function ReportsPage() {
 
       {/* Filters */}
       <FilterBar
+        viewMode={viewMode}
         severity={severityFilter}
         onSeverityChange={setSeverityFilter}
         officerId={officerFilter}
@@ -188,8 +264,15 @@ export default function ReportsPage() {
         orgId={orgFilter}
         onOrgChange={setOrgFilter}
         organizations={orgs}
+        officers={officers}
         userRole={me?.role}
-        userOrgId={me?.organization?.id}
+        search={search}
+        onSearchChange={setSearch}
+        pest={pestFilter}
+        onPestChange={setPestFilter}
+        pestOptions={pestOptions}
+        listSort={listSort}
+        onListSortChange={setListSort}
       />
 
       {/* Error Display */}
@@ -207,9 +290,9 @@ export default function ReportsPage() {
       {!isError && !isLoading && (
         <div className="flex-1 min-h-0">
           {viewMode === "grouped" ? (
-            groupedData && groupedData.length > 0 ? (
+            filteredGroupedData && filteredGroupedData.length > 0 ? (
               <GroupedView
-                locations={groupedData}
+                locations={filteredGroupedData}
                 selectedLocationKey={selectedLocationKey}
                 onSelectLocation={setSelectedLocationKey}
               />
@@ -217,10 +300,11 @@ export default function ReportsPage() {
               <EmptyDisplay />
             )
           ) : (
-            listData && listData.reports.length > 0 ? (
+            listData && filteredListReports && filteredListReports.length > 0 ? (
               <ListView
-                reports={listData.reports}
+                reports={filteredListReports}
                 pagination={listData.pagination}
+                onPageChange={setPage}
               />
             ) : (
               <EmptyDisplay />

@@ -68,8 +68,10 @@ export const analyticsRouter = createTRPCRouter({
         severity: z.enum(["HIGH", "WARNING", "NORMAL"]).optional(),
         officerId: z.string().uuid().optional(),
         orgId: z.string().uuid().optional(),
+        pest: z.string().optional(),
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(25),
+        sort: z.enum(["DATE_DESC", "DATE_ASC"]).default("DATE_DESC"),
       }).optional()
     )
     .query(async ({ ctx, input }) => {
@@ -79,8 +81,10 @@ export const analyticsRouter = createTRPCRouter({
         severity: input?.severity,
         officerId: input?.officerId,
         orgId: input?.orgId,
+        pest: input?.pest,
         page: input?.page,
         limit: input?.limit,
+        sort: input?.sort,
       });
     }),
 
@@ -91,6 +95,7 @@ export const analyticsRouter = createTRPCRouter({
         severity: z.enum(["HIGH", "WARNING", "NORMAL"]).optional(),
         officerId: z.string().uuid().optional(),
         orgId: z.string().uuid().optional(),
+        pest: z.string().optional(),
       }).optional()
     )
     .query(async ({ ctx, input }) => {
@@ -100,6 +105,7 @@ export const analyticsRouter = createTRPCRouter({
         severity: input?.severity,
         officerId: input?.officerId,
         orgId: input?.orgId,
+        pest: input?.pest,
       });
     }),
 });

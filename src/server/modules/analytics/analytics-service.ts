@@ -3,6 +3,25 @@ import { reports, appUsers } from "~/server/db/schema";
 import { eq, and, sql, desc, gte, lte, count } from "drizzle-orm";
 import { subDays } from "date-fns";
 
+function haversineDistanceMeters(
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number }
+) {
+  const R = 6371000; // meters
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLon = Math.sin(dLon / 2);
+  const h =
+    sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
+  const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  return R * c;
+}
+
 export class AnalyticsService {
   constructor(
     private database: typeof db,
@@ -174,8 +193,10 @@ export class AnalyticsService {
       severity?: "HIGH" | "WARNING" | "NORMAL";
       officerId?: string;
       orgId?: string;
+      pest?: string;
       page?: number;
       limit?: number;
+      sort?: "DATE_DESC" | "DATE_ASC";
     } = {}
   ): Promise<{
     reports: ReportWithDetails[];
@@ -186,7 +207,7 @@ export class AnalyticsService {
       totalPages: number;
     };
   }> {
-    const { startDate, severity, officerId, orgId, page = 1, limit = 25 } = options;
+    const { startDate, severity, officerId, orgId, pest, page = 1, limit = 25, sort = "DATE_DESC" } = options;
 
     const conditions = [];
     const baseFilter = this.getOrgFilter();
@@ -208,6 +229,14 @@ export class AnalyticsService {
       conditions.push(eq(reports.userId, officerId));
     }
 
+    if (pest) {
+      if (pest === "__unknown__") {
+        conditions.push(sql`${reports.label} is null`);
+      } else {
+        conditions.push(eq(reports.label, pest));
+      }
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
@@ -224,7 +253,9 @@ export class AnalyticsService {
         organization: true,
         user: true,
       },
-      orderBy: (reports, { desc }) => [desc(reports.createdAt)],
+      orderBy: (reports, { desc, asc }) => [
+        sort === "DATE_ASC" ? asc(reports.createdAt) : desc(reports.createdAt),
+      ],
       limit: limit,
       offset: (page - 1) * limit,
     });
@@ -246,9 +277,10 @@ export class AnalyticsService {
       severity?: "HIGH" | "WARNING" | "NORMAL";
       officerId?: string;
       orgId?: string;
+      pest?: string;
     } = {}
   ): Promise<LocationWithReports[]> {
-    const { startDate, severity, officerId, orgId } = options;
+    const { startDate, severity, officerId, orgId, pest } = options;
 
     const conditions = [];
     const baseFilter = this.getOrgFilter();
@@ -270,6 +302,14 @@ export class AnalyticsService {
       conditions.push(eq(reports.userId, officerId));
     }
 
+    if (pest) {
+      if (pest === "__unknown__") {
+        conditions.push(sql`${reports.label} is null`);
+      } else {
+        conditions.push(eq(reports.label, pest));
+      }
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Fetch all reports with location
@@ -285,33 +325,78 @@ export class AnalyticsService {
       limit: 500,
     });
 
-    // Group by location
-    const locationGroups = new Map<string, typeof reportResults>();
+    // Group by location using a ~25m radius clustering (handles GPS jitter & near-duplicates)
+    const MAX_CLUSTER_DISTANCE_METERS = 25;
 
-    for (const report of reportResults) {
-      if (!report.location) continue;
-      const coordinates = report.location.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
-      if (!coordinates) continue;
+    const parsed = reportResults
+      .map((report) => {
+        if (!report.location) return null;
+        const coordinates = report.location.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
+        if (!coordinates) return null;
+        const lat = parseFloat(coordinates[2]!);
+        const lon = parseFloat(coordinates[1]!);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+        return { report, lat, lon };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
 
-      const lat = parseFloat(coordinates[2]!);
-      const lon = parseFloat(coordinates[1]!);
-      const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    // Process oldest → newest so cluster keys stay stable as new reports arrive
+    parsed.sort((a, b) => a.report.createdAt.getTime() - b.report.createdAt.getTime());
 
-      if (!locationGroups.has(key)) {
-        locationGroups.set(key, []);
+    type Cluster = {
+      key: string;
+      seed: { lat: number; lon: number };
+      centroid: { lat: number; lon: number };
+      count: number;
+      reports: typeof reportResults;
+    };
+
+    const clusters: Cluster[] = [];
+
+    for (const item of parsed) {
+      let bestIndex = -1;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      for (let i = 0; i < clusters.length; i++) {
+        const cluster = clusters[i]!;
+        const d = haversineDistanceMeters(cluster.centroid, { lat: item.lat, lon: item.lon });
+        if (d < bestDistance) {
+          bestDistance = d;
+          bestIndex = i;
+        }
       }
-      locationGroups.get(key)!.push(report);
+
+      if (bestIndex !== -1 && bestDistance <= MAX_CLUSTER_DISTANCE_METERS) {
+        const cluster = clusters[bestIndex]!;
+        cluster.reports.push(item.report);
+        cluster.count += 1;
+        // Online centroid update
+        cluster.centroid = {
+          lat: cluster.centroid.lat + (item.lat - cluster.centroid.lat) / cluster.count,
+          lon: cluster.centroid.lon + (item.lon - cluster.centroid.lon) / cluster.count,
+        };
+        continue;
+      }
+
+      const key = `${item.lat.toFixed(6)},${item.lon.toFixed(6)}`;
+      clusters.push({
+        key,
+        seed: { lat: item.lat, lon: item.lon },
+        centroid: { lat: item.lat, lon: item.lon },
+        count: 1,
+        reports: [item.report],
+      });
     }
 
     // Transform to LocationWithReports
     const locations: LocationWithReports[] = [];
 
-    for (const [key, groupReports] of locationGroups) {
+    for (const cluster of clusters) {
+      const groupReports = cluster.reports;
+
       // Sort by date desc
       groupReports.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       const latest = groupReports[0]!;
-      const coordinates = latest.location!.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
-      if (!coordinates) continue;
 
       // Calculate trend
       let trend: "up" | "down" | "stable" = "stable";
@@ -324,11 +409,11 @@ export class AnalyticsService {
       }
 
       locations.push({
-        locationKey: key,
+        locationKey: cluster.key,
         displayName: null, // Will be populated via reverse geocoding on client
         coordinates: {
-          lat: parseFloat(coordinates[2]!),
-          lon: parseFloat(coordinates[1]!),
+          lat: cluster.centroid.lat,
+          lon: cluster.centroid.lon,
         },
         reportCount: groupReports.length,
         latestReport: {

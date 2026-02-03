@@ -2,7 +2,6 @@
 
 import { MapPin, TrendingUp, TrendingDown, Minus, Clock, Calendar, User, Bug } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import {
   Dialog,
@@ -20,31 +19,6 @@ interface LocationDetailProps {
   location: LocationWithReports;
 }
 
-function ReportLocationDisplay({ location }: { location: string | null }) {
-  if (!location) return null;
-
-  const coordinates = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-  const lat = coordinates ? parseFloat(coordinates[2]!) : null;
-  const lon = coordinates ? parseFloat(coordinates[1]!) : null;
-
-  const { data: addressData, isLoading } = api.reports.reverseGeocode.useQuery(
-    { lat: lat!, lon: lon! },
-    { enabled: !!lat && !!lon, staleTime: Infinity }
-  );
-
-  if (isLoading) return <span className="text-sm">Loading...</span>;
-  if (!addressData) {
-    return (
-      <span className="text-sm font-mono">
-        {lat?.toFixed(6)}, {lon?.toFixed(6)}
-      </span>
-    );
-  }
-
-  const parts = [addressData.suburb, addressData.city, addressData.state].filter(Boolean);
-  return <span className="text-sm">{parts.join(", ") || "Unknown location"}</span>;
-}
-
 function getTrendIcon(trend: "up" | "down" | "stable") {
   switch (trend) {
     case "up":
@@ -58,6 +32,16 @@ function getTrendIcon(trend: "up" | "down" | "stable") {
 
 export function LocationDetail({ location }: LocationDetailProps) {
   const latest = location.latestReport;
+  const { data: addressData, isLoading: addressLoading } = api.reports.reverseGeocode.useQuery(
+    { lat: location.coordinates.lat, lon: location.coordinates.lon },
+    { enabled: true, staleTime: Infinity }
+  );
+
+  const locationName =
+    addressData
+      ? [addressData.suburb, addressData.city, addressData.state].filter(Boolean).join(", ") ||
+        "Unknown location"
+      : "Unknown location";
 
   return (
     <div className="h-full flex flex-col border rounded-lg bg-card">
@@ -67,10 +51,12 @@ export function LocationDetail({ location }: LocationDetailProps) {
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
-              {location.displayName || "Unknown Location"}
+              {addressLoading ? "Loading location..." : locationName}
             </h2>
             <div className="mt-1 text-sm text-muted-foreground">
-              <ReportLocationDisplay location={location.coordinates ? `POINT(${location.coordinates.lon} ${location.coordinates.lat})` : null} />
+              <span className="font-mono">
+                {location.coordinates.lat.toFixed(6)}, {location.coordinates.lon.toFixed(6)}
+              </span>
             </div>
           </div>
           <Badge variant="secondary" className="text-xs">

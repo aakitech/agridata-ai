@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "~/components/ui/badge";
+import { Input } from "~/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -8,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Filter, AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
+import { Filter, AlertTriangle, CheckCircle, AlertCircle, Search } from "lucide-react";
 
 interface FilterBarProps {
+  viewMode: "grouped" | "list";
   severity: "ALL" | "HIGH" | "WARNING" | "NORMAL";
   onSeverityChange: (severity: "ALL" | "HIGH" | "WARNING" | "NORMAL") => void;
   officerId: string | null;
@@ -18,11 +20,19 @@ interface FilterBarProps {
   orgId: string | null;
   onOrgChange: (orgId: string | null) => void;
   organizations: Array<{ id: string; name: string }> | undefined;
+  officers: Array<{ id: string; fullName: string | null; phoneNumber: string | null }> | undefined;
   userRole: string | undefined;
-  userOrgId: string | undefined;
+  search: string;
+  onSearchChange: (value: string) => void;
+  pest: string | null;
+  onPestChange: (value: string | null) => void;
+  pestOptions: string[] | undefined;
+  listSort: "DATE_DESC" | "DATE_ASC";
+  onListSortChange: (sort: "DATE_DESC" | "DATE_ASC") => void;
 }
 
 export function FilterBar({
+  viewMode,
   severity,
   onSeverityChange,
   officerId,
@@ -30,14 +40,32 @@ export function FilterBar({
   orgId,
   onOrgChange,
   organizations,
+  officers,
   userRole,
-  userOrgId,
+  search,
+  onSearchChange,
+  pest,
+  onPestChange,
+  pestOptions,
+  listSort,
+  onListSortChange,
 }: FilterBarProps) {
   return (
     <div className="flex items-center gap-3 flex-wrap">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Filter className="h-4 w-4" />
         <span>Filter by:</span>
+      </div>
+
+      {/* Quick Search */}
+      <div className="relative">
+        <Search className="h-4 w-4 text-muted-foreground absolute left-2 top-2" />
+        <Input
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search officer or pest…"
+          className="h-8 pl-8 w-[220px] text-xs"
+        />
       </div>
 
       {/* Severity Filter */}
@@ -75,6 +103,46 @@ export function FilterBar({
         </Badge>
       </div>
 
+      {/* Officer Filter */}
+      {officers && officers.length > 0 && (
+        <Select
+          value={officerId ?? "all"}
+          onValueChange={(v) => onOfficerChange(v === "all" ? null : v)}
+        >
+          <SelectTrigger className="w-[180px] h-8 text-xs">
+            <SelectValue placeholder="All Officers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Officers</SelectItem>
+            {officers.map((u) => (
+              <SelectItem key={u.id} value={u.id}>
+                {u.fullName || u.phoneNumber || "Unknown"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* Pest filter */}
+      {pestOptions && pestOptions.length > 0 && (
+        <Select
+          value={pest ?? "all"}
+          onValueChange={(v) => onPestChange(v === "all" ? null : v)}
+        >
+          <SelectTrigger className="w-[180px] h-8 text-xs">
+            <SelectValue placeholder="All Pests" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Pests</SelectItem>
+            {pestOptions.map((p) => (
+              <SelectItem key={p} value={p}>
+                {p === "__unknown__" ? "Unknown" : p}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
       {/* Organization Filter (super_admin only) */}
       {userRole === "super_admin" && organizations && organizations.length > 0 && (
         <Select
@@ -91,6 +159,19 @@ export function FilterBar({
                 {org.name}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* List sorting */}
+      {viewMode === "list" && (
+        <Select value={listSort} onValueChange={(v) => onListSortChange(v as "DATE_DESC" | "DATE_ASC")}>
+          <SelectTrigger className="w-[160px] h-8 text-xs">
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="DATE_DESC">Newest first</SelectItem>
+            <SelectItem value="DATE_ASC">Oldest first</SelectItem>
           </SelectContent>
         </Select>
       )}

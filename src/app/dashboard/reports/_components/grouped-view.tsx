@@ -72,7 +72,10 @@ export function GroupedView({
   onSelectLocation,
 }: GroupedViewProps) {
   // If no location selected, select the first one with reports
-  const effectiveSelectedKey = selectedLocationKey || locations[0]?.locationKey;
+  const effectiveSelectedKey =
+    selectedLocationKey && locations.some((l) => l.locationKey === selectedLocationKey)
+      ? selectedLocationKey
+      : locations[0]?.locationKey;
   const selectedLocation = locations.find((l) => l.locationKey === effectiveSelectedKey);
 
   if (locations.length === 0) {

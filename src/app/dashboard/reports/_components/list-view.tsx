@@ -31,6 +31,7 @@ interface ListViewProps {
     limit: number;
     totalPages: number;
   } | undefined;
+  onPageChange?: (page: number) => void;
 }
 
 function ReportLocationDisplay({ location }: { location: string | null }) {
@@ -61,7 +62,7 @@ function ReportLocationDisplay({ location }: { location: string | null }) {
   );
 }
 
-export function ListView({ reports, pagination }: ListViewProps) {
+export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
   const [selectedReport, setSelectedReport] = useState<ReportWithDetails | null>(null);
 
   if (reports.length === 0) {
@@ -159,7 +160,7 @@ export function ListView({ reports, pagination }: ListViewProps) {
               variant="outline"
               size="sm"
               disabled={pagination.page === 1}
-              // onClick={() => setPage(pagination.page - 1)}
+              onClick={() => onPageChange?.(pagination.page - 1)}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Previous
@@ -171,7 +172,7 @@ export function ListView({ reports, pagination }: ListViewProps) {
               variant="outline"
               size="sm"
               disabled={pagination.page === pagination.totalPages}
-              // onClick={() => setPage(pagination.page + 1)}
+              onClick={() => onPageChange?.(pagination.page + 1)}
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
