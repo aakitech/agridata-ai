@@ -1,13 +1,38 @@
 import { db } from "~/server/db";
 import { reports, appUsers } from "~/server/db/schema";
 import { eq, and, sql, desc, gte, lte, count } from "drizzle-orm";
-import { subDays } from "date-fns";
+import { subDays, differenceInDays } from "date-fns";
 import {
-  haversineDistanceMeters,
   parseLocation,
-  formatLatLonKey,
+  parseLocationBucket,
+  haversineDistanceMeters,
   LOCATION_CLUSTER_RADIUS_METERS,
+  formatLatLonKey,
 } from "~/lib/geo";
+
+export interface MapPoint {
+  id: string;
+  lat: number;
+  lon: number;
+  pest: string | null;
+  severity: "HIGH" | "WARNING" | "NORMAL" | null;
+  count: number | null;
+  date: Date;
+  officerName: string;
+  /** Stable bucket key for React keys and one-marker-per-location (e.g. "29.1234,-19.5678") */
+  locationKey: string;
+  /** Raw location WKT string from the latest report */
+  location: string;
+  recency: "fresh" | "recent" | "stale";
+  recentHistory: Array<{
+    id: string;
+    pest: string | null;
+    severity: "HIGH" | "WARNING" | "NORMAL" | null;
+    count: number | null;
+    date: Date;
+    officerName: string;
+  }>;
+}
 
 export class AnalyticsService {
   constructor(
@@ -34,7 +59,7 @@ export class AnalyticsService {
       conditions.push(eq(reports.orgId, filterOrgId));
     }
 
-    // Add time range filter if provided
+    // Add time range filter if provided (default to 7 days for map views)
     if (range) {
       const days = range === "7d" ? 7 : 30;
       const startDate = subDays(new Date(), days);
@@ -42,6 +67,19 @@ export class AnalyticsService {
     }
 
     return conditions.length > 0 ? and(...conditions) : undefined;
+  }
+
+  /**
+   * Determines recency category based on report age
+   * - fresh: 0-2 days (fully opaque marker)
+   * - recent: 3-5 days (slightly faded)
+   * - stale: 6+ days (more faded, still within window)
+   */
+  private getRecency(date: Date): "fresh" | "recent" | "stale" {
+    const daysOld = differenceInDays(new Date(), date);
+    if (daysOld <= 2) return "fresh";
+    if (daysOld <= 5) return "recent";
+    return "stale";
   }
 
   async getStats(filterOrgId?: string, range?: "7d" | "30d") {
@@ -141,36 +179,104 @@ export class AnalyticsService {
     });
   }
 
-  async getMapPoints(filterOrgId?: string, range?: "7d" | "30d") {
-    const whereClause = this.getCombinedFilter(filterOrgId, range);
+  async getMapPoints(
+    filterOrgId?: string,
+    range: "7d" | "30d" = "7d",
+    activeAlertsOnly?: boolean
+  ): Promise<MapPoint[]> {
+    // Default to 7 days if not specified - MVP spec requirement
+    const days = range === "30d" ? 30 : 7;
+    const startDate = subDays(new Date(), days);
 
-    // Fetch reports with locations using query builder to include user relation
+    const conditions = [];
+    const baseFilter = this.getOrgFilter();
+    if (baseFilter) conditions.push(baseFilter);
+
+    if (this.userRole === "super_admin" && filterOrgId) {
+      conditions.push(eq(reports.orgId, filterOrgId));
+    }
+
+    // Time window filter - strict date filtering per MVP spec
+    conditions.push(gte(reports.createdAt, startDate));
+    // Optional: exclude future-dated timestamps
+    conditions.push(lte(reports.createdAt, new Date()));
+
+    // Location must not be null
+    conditions.push(sql`${reports.location} is not null`);
+
+    // Do NOT filter by severity here - activeAlertsOnly is applied after collapsing
+    // so we only show locations whose *latest* state is HIGH/WARNING.
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Fetch all reports within time window, ordered by date descending
     const reportResults = await this.database.query.reports.findMany({
-      where: whereClause
-        ? and(whereClause, sql`${reports.location} is not null`)
-        : sql`${reports.location} is not null`,
+      where: whereClause,
       with: {
         user: true,
       },
-      limit: 200,
+      orderBy: (reports, { desc }) => [desc(reports.createdAt)],
+      limit: 500,
     });
 
-    return reportResults
-      .map((r) => {
-        const coordinates = parseLocation(r.location);
-        if (!coordinates) return null;
-        return {
+    type ReportRow = (typeof reportResults)[number];
+
+    const locationGroups = new Map<string, ReportRow[]>();
+
+    for (const report of reportResults) {
+      const bucket = parseLocationBucket(report.location);
+      if (!bucket) continue;
+      if (!locationGroups.has(bucket.key)) {
+        locationGroups.set(bucket.key, []);
+      }
+      locationGroups.get(bucket.key)!.push(report);
+    }
+
+    const points: MapPoint[] = [];
+
+    for (const [locationKey, locationReports] of locationGroups) {
+      locationReports.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      const latest = locationReports[0]!;
+      const bucket = parseLocationBucket(latest.location);
+      if (!bucket) continue;
+
+      // Apply activeAlertsOnly after collapsing: only include if latest state is HIGH or WARNING
+      if (activeAlertsOnly) {
+        const sev = latest.severity;
+        if (sev !== "HIGH" && sev !== "WARNING") continue;
+      }
+
+      const recentHistory = locationReports
+        .slice(1, 6)
+        .map((r) => ({
           id: r.id,
-          lat: coordinates.lat,
-          lon: coordinates.lon,
-          pest: r.label || "Unknown",
+          pest: r.label,
           severity: r.severity,
           count: r.observedCount,
           date: r.createdAt,
           officerName: r.user?.fullName || r.user?.phoneNumber || "Unknown",
-        };
-      })
-      .filter((p): p is NonNullable<typeof p> => p !== null);
+        }));
+
+      points.push({
+        id: latest.id,
+        lat: bucket.lat,
+        lon: bucket.lon,
+        pest: latest.label,
+        severity: latest.severity,
+        count: latest.observedCount,
+        date: latest.createdAt,
+        officerName: latest.user?.fullName || latest.user?.phoneNumber || "Unknown",
+        locationKey,
+        location: latest.location ?? "",
+        recency: this.getRecency(latest.createdAt),
+        recentHistory,
+      });
+    }
+
+    // Sort by most recent activity (latest-state semantics)
+    points.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    return points;
   }
 
   // New methods for Reports page

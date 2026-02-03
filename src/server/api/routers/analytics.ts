@@ -52,12 +52,17 @@ export const analyticsRouter = createTRPCRouter({
     .input(
       z.object({ 
         filterOrgId: z.string().uuid().optional(),
-        range: z.enum(["7d", "30d"]).optional(),
+        range: z.enum(["7d", "30d"]).optional().default("7d"),
+        activeAlertsOnly: z.boolean().optional().default(false),
       }).optional()
     )
     .query(async ({ ctx, input }) => {
       const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
-      return service.getMapPoints(input?.filterOrgId, input?.range);
+      return service.getMapPoints(
+        input?.filterOrgId, 
+        input?.range ?? "7d",
+        input?.activeAlertsOnly
+      );
     }),
 
   // Reports page endpoints

@@ -1,5 +1,11 @@
 export const LOCATION_CLUSTER_RADIUS_METERS = 25;
 
+/**
+ * Degree bucket step used to approximate ~25m location bucketing.
+ * Note: This is a pragmatic approximation (varies slightly with latitude).
+ */
+export const LOCATION_BUCKET_DEGREES_STEP = 1 / 5000; // 0.0002°
+
 export function parseLocation(location: string | null): { lat: number; lon: number } | null {
   if (!location) return null;
 
@@ -50,4 +56,22 @@ export function haversineDistanceMeters(
 
 export function formatLatLonKey(lat: number, lon: number, precision = 6) {
   return `${lat.toFixed(precision)},${lon.toFixed(precision)}`;
+}
+
+function roundToLocationBucketDegrees(n: number) {
+  return Math.round(n / LOCATION_BUCKET_DEGREES_STEP) * LOCATION_BUCKET_DEGREES_STEP;
+}
+
+/**
+ * Returns bucketed coordinates + a stable key for one-marker-per-location.
+ * Key format matches WKT ordering: "lon,lat".
+ */
+export function parseLocationBucket(
+  location: string | null
+): { key: string; lat: number; lon: number } | null {
+  const coords = parseLocation(location);
+  if (!coords) return null;
+  const bucketLon = roundToLocationBucketDegrees(coords.lon);
+  const bucketLat = roundToLocationBucketDegrees(coords.lat);
+  return { key: `${bucketLon},${bucketLat}`, lat: bucketLat, lon: bucketLon };
 }

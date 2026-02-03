@@ -12,24 +12,43 @@ export const MARKER_COLORS = {
 };
 
 export type SeverityType = "HIGH" | "WARNING" | "NORMAL" | null;
+export type RecencyType = "fresh" | "recent" | "stale";
+
+/**
+ * Get opacity based on recency
+ * - fresh: 100% (fully opaque)
+ * - recent: 80% (slightly faded)
+ * - stale: 60% (more faded but still visible)
+ */
+const getRecencyOpacity = (recency: RecencyType): number => {
+  switch (recency) {
+    case "fresh": return 1;
+    case "recent": return 0.8;
+    case "stale": return 0.6;
+  }
+};
 
 /**
  * Creates a premium-looking custom SVG marker icon
+ * Now supports recency-based visual weight per MVP spec
  */
 export const createCustomMarkerIcon = (
   severity: SeverityType,
   options: {
     showPulse?: boolean;
     label?: string;
+    recency?: RecencyType;
   } = {}
 ) => {
   const color = severity ? MARKER_COLORS[severity] : MARKER_COLORS.DEFAULT;
   const isHigh = severity === "HIGH";
   const showPulse = options.showPulse ?? isHigh;
+  const opacity = options.recency ? getRecencyOpacity(options.recency) : 1;
+  const opacityStyle = opacity < 1 ? `opacity: ${opacity};` : "";
 
   // Modern pin SVG with better shadows and depth
   const svgIcon = `
-    <div class="relative flex items-center justify-center">
+    <div class="relative flex items-center justify-center" style="${opacityStyle}">
       ${showPulse ? `<div class="absolute w-10 h-10 rounded-full animate-ping opacity-25" style="background-color: ${color}"></div>` : ""}
       <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-md">
         <path d="M16 42L11 31.5C11 31.5 0 27 0 16C0 7.16344 7.16344 0 16 0C24.8366 0 32 7.16344 32 16C32 27 21 31.5 21 31.5L16 42Z" fill="${color}"/>
