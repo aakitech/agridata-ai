@@ -7,9 +7,11 @@ import { TimeRangeSelector } from "./_components/time-range-selector";
 import { GroupedView } from "./_components/grouped-view";
 import { ListView } from "./_components/list-view";
 import { FilterBar } from "./_components/filter-bar";
+import { Button } from "~/components/ui/button";
 import { Loader2, FileText, AlertCircle, RefreshCw } from "lucide-react";
 import { subDays } from "date-fns";
 import type { LocationWithReports } from "~/server/modules/analytics/analytics-service";
+import { LOCATION_CLUSTER_RADIUS_METERS } from "~/lib/geo";
 
 type ViewMode = "grouped" | "list";
 type TimeRange = "7d" | "30d" | "90d" | "all";
@@ -27,6 +29,7 @@ export default function ReportsPage() {
   const [orgFilter, setOrgFilter] = useState<string | null>(null);
   const [pestFilter, setPestFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [showGroupedHelper, setShowGroupedHelper] = useState(true);
 
   // List controls
   const [page, setPage] = useState(1);
@@ -38,12 +41,22 @@ export default function ReportsPage() {
     if (saved && (saved === "grouped" || saved === "list")) {
       setViewMode(saved);
     }
+
+    const helperDismissed = localStorage.getItem("agridata-reports-grouped-helper-dismissed");
+    if (helperDismissed === "true") {
+      setShowGroupedHelper(false);
+    }
   }, []);
 
   // Save view mode when changed
   useEffect(() => {
     localStorage.setItem("agridata-reports-view", viewMode);
   }, [viewMode]);
+
+  const dismissGroupedHelper = () => {
+    setShowGroupedHelper(false);
+    localStorage.setItem("agridata-reports-grouped-helper-dismissed", "true");
+  };
 
   // Reset list pagination when key inputs change
   useEffect(() => {
@@ -274,6 +287,20 @@ export default function ReportsPage() {
         listSort={listSort}
         onListSortChange={setListSort}
       />
+
+      {/* Grouped helper message */}
+      {viewMode === "grouped" && showGroupedHelper && (
+        <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <div>
+            <span className="font-medium text-foreground">Grouped view:</span>{" "}
+            shows the latest status per location. Reports within ~{LOCATION_CLUSTER_RADIUS_METERS}m are combined.
+            <span className="ml-1">Use List for a full chronological log.</span>
+          </div>
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={dismissGroupedHelper}>
+            Got it
+          </Button>
+        </div>
+      )}
 
       {/* Error Display */}
       {isError && <ErrorDisplay error={error as Error | null} onRetry={refetch} />}

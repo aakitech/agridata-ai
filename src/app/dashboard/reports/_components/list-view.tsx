@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import { api } from "~/trpc/react";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import type { ReportWithDetails } from "~/server/modules/analytics/analytics-service";
+import { parseLocation } from "~/lib/geo";
 
 interface ListViewProps {
   reports: ReportWithDetails[];
@@ -37,9 +38,9 @@ interface ListViewProps {
 function ReportLocationDisplay({ location }: { location: string | null }) {
   if (!location) return <span className="text-muted-foreground">-</span>;
 
-  const coordinates = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-  const lat = coordinates ? parseFloat(coordinates[2]!) : null;
-  const lon = coordinates ? parseFloat(coordinates[1]!) : null;
+  const coordinates = parseLocation(location);
+  const lat = coordinates?.lat ?? null;
+  const lon = coordinates?.lon ?? null;
 
   const { data: addressData, isLoading } = api.reports.reverseGeocode.useQuery(
     { lat: lat!, lon: lon! },

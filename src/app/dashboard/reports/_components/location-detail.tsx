@@ -37,11 +37,26 @@ export function LocationDetail({ location }: LocationDetailProps) {
     { enabled: true, staleTime: Infinity }
   );
 
+  const parts = addressData
+    ? ([
+      addressData.road,
+        addressData.neighborhood,
+        addressData.suburb,
+        addressData.village,
+        addressData.town,
+        addressData.city,
+        addressData.county,
+        addressData.state,
+      ].filter(Boolean) as string[])
+    : [];
+
+  const uniqueParts: string[] = [];
+  for (const part of parts) {
+    if (!uniqueParts.includes(part)) uniqueParts.push(part);
+  }
+
   const locationName =
-    addressData
-      ? [addressData.suburb, addressData.city, addressData.state].filter(Boolean).join(", ") ||
-        "Unknown location"
-      : "Unknown location";
+    uniqueParts.slice(0, 4).join(", ") || "Unknown location";
 
   return (
     <div className="h-full flex flex-col border rounded-lg bg-card">

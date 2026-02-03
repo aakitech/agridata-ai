@@ -1,4 +1,5 @@
 import { format, subDays, endOfDay, startOfDay } from "date-fns";
+import { parseLocation as parseGeoLocation } from "~/lib/geo";
 
 /**
  * Get the last N days (rolling window from today)
@@ -34,30 +35,5 @@ export function formatDateRange(startDate: Date, endDate: Date): string {
  * - JSON: { lat, lon } or { latitude, longitude }
  */
 export function parseLocation(location: string | null): { lat: number; lon: number } | null {
-  if (!location) return null;
-  
-  // Try PostGIS format: POINT(lon lat)
-  const pointMatch = location.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
-  if (pointMatch) {
-    return {
-      lon: parseFloat(pointMatch[1]!),
-      lat: parseFloat(pointMatch[2]!),
-    };
-  }
-  
-  // Try JSON format
-  try {
-    const parsed = JSON.parse(location) as Record<string, unknown>;
-    if (typeof parsed.lat === "number" && typeof parsed.lon === "number") {
-      return { lat: parsed.lat, lon: parsed.lon };
-    }
-    if (typeof parsed.latitude === "number" && typeof parsed.longitude === "number") {
-      return { lat: parsed.latitude, lon: parsed.longitude };
-    }
-  } catch {
-    // Not JSON, ignore
-  }
-  
-  return null;
+  return parseGeoLocation(location);
 }
-

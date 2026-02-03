@@ -12,15 +12,15 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog";
 import { api } from "~/trpc/react";
+import { parseLocation } from "~/lib/geo";
 
 // Helper component to parse coordinates and fetch address
 function ReportLocationDisplay({ location }: { location: string | null }) {
   if (!location) return null;
 
-  // Parse POINT(lon lat) format
-  const coordinates = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-  const lat = coordinates ? parseFloat(coordinates[2]!) : null;
-  const lon = coordinates ? parseFloat(coordinates[1]!) : null;
+  const coordinates = parseLocation(location);
+  const lat = coordinates?.lat ?? null;
+  const lon = coordinates?.lon ?? null;
 
   // Fetch address using reverse geocoding
   const { data: addressData, isLoading } = api.reports.reverseGeocode.useQuery(

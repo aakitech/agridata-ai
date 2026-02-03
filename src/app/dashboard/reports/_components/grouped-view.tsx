@@ -1,6 +1,4 @@
 "use client";
-
-import { useState, useEffect } from "react";
 import { MapPin, TrendingUp, TrendingDown, Minus, Clock, AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { ScrollArea } from "~/components/ui/scroll-area";
@@ -17,21 +15,12 @@ interface GroupedViewProps {
 }
 
 function LocationNameDisplay({ coordinates }: { coordinates: { lat: number; lon: number } }) {
-  const [displayName, setDisplayName] = useState<string | null>(null);
-  
   const { data: addressData } = api.reports.reverseGeocode.useQuery(
     { lat: coordinates.lat, lon: coordinates.lon },
     { enabled: true, staleTime: Infinity }
   );
 
-  useEffect(() => {
-    if (addressData) {
-      const parts = [addressData.suburb, addressData.city, addressData.state].filter(Boolean);
-      setDisplayName(parts.join(", ") || null);
-    }
-  }, [addressData]);
-
-  if (!displayName) {
+  if (!addressData) {
     return (
       <span className="font-mono text-xs text-muted-foreground">
         {coordinates.lat.toFixed(4)}, {coordinates.lon.toFixed(4)}
@@ -39,7 +28,36 @@ function LocationNameDisplay({ coordinates }: { coordinates: { lat: number; lon:
     );
   }
 
-  return <span className="truncate">{displayName}</span>;
+  const parts = [
+    addressData.road,
+    addressData.neighborhood,
+    addressData.suburb,
+    addressData.village,
+    addressData.town,
+    addressData.city,
+    addressData.county,
+    addressData.state,
+  ].filter(Boolean) as string[];
+
+  const uniqueParts: string[] = [];
+  for (const part of parts) {
+    if (!uniqueParts.includes(part)) uniqueParts.push(part);
+  }
+
+  const label = uniqueParts.slice(0, 4).join(", ");
+  const isCoarse =
+    !addressData.road && !addressData.neighborhood && !addressData.village && !addressData.town;
+
+  return (
+    <div className="min-w-0">
+      <div className="truncate">{label || "Unknown location"}</div>
+      {isCoarse && (
+        <div className="font-mono text-[10px] text-muted-foreground">
+          {coordinates.lat.toFixed(4)}, {coordinates.lon.toFixed(4)}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function getTrendIcon(trend: "up" | "down" | "stable") {

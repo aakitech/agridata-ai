@@ -2,25 +2,12 @@ import { db } from "~/server/db";
 import { reports, appUsers } from "~/server/db/schema";
 import { eq, and, sql, desc, gte, lte, count } from "drizzle-orm";
 import { subDays } from "date-fns";
-
-function haversineDistanceMeters(
-  a: { lat: number; lon: number },
-  b: { lat: number; lon: number }
-) {
-  const R = 6371000; // meters
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-
-  const sinDLat = Math.sin(dLat / 2);
-  const sinDLon = Math.sin(dLon / 2);
-  const h =
-    sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
-  const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-  return R * c;
-}
+import {
+  haversineDistanceMeters,
+  parseLocation,
+  formatLatLonKey,
+  LOCATION_CLUSTER_RADIUS_METERS,
+} from "~/lib/geo";
 
 export class AnalyticsService {
   constructor(
@@ -170,12 +157,12 @@ export class AnalyticsService {
 
     return reportResults
       .map((r) => {
-        const coordinates = r.location?.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
+        const coordinates = parseLocation(r.location);
         if (!coordinates) return null;
         return {
           id: r.id,
-          lat: parseFloat(coordinates[2]!),
-          lon: parseFloat(coordinates[1]!),
+          lat: coordinates.lat,
+          lon: coordinates.lon,
           pest: r.label || "Unknown",
           severity: r.severity,
           count: r.observedCount,
@@ -326,17 +313,11 @@ export class AnalyticsService {
     });
 
     // Group by location using a ~25m radius clustering (handles GPS jitter & near-duplicates)
-    const MAX_CLUSTER_DISTANCE_METERS = 25;
-
     const parsed = reportResults
       .map((report) => {
-        if (!report.location) return null;
-        const coordinates = report.location.match(/POINT\(([^ ]+)\s+([^ ]+)\)/);
+        const coordinates = parseLocation(report.location);
         if (!coordinates) return null;
-        const lat = parseFloat(coordinates[2]!);
-        const lon = parseFloat(coordinates[1]!);
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-        return { report, lat, lon };
+        return { report, lat: coordinates.lat, lon: coordinates.lon };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
 
@@ -366,7 +347,7 @@ export class AnalyticsService {
         }
       }
 
-      if (bestIndex !== -1 && bestDistance <= MAX_CLUSTER_DISTANCE_METERS) {
+      if (bestIndex !== -1 && bestDistance <= LOCATION_CLUSTER_RADIUS_METERS) {
         const cluster = clusters[bestIndex]!;
         cluster.reports.push(item.report);
         cluster.count += 1;
@@ -378,7 +359,7 @@ export class AnalyticsService {
         continue;
       }
 
-      const key = `${item.lat.toFixed(6)},${item.lon.toFixed(6)}`;
+      const key = formatLatLonKey(item.lat, item.lon);
       clusters.push({
         key,
         seed: { lat: item.lat, lon: item.lon },
