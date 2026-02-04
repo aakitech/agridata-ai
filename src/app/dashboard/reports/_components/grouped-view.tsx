@@ -107,15 +107,15 @@ export function GroupedView({
   }
 
   return (
-    <div className="h-full flex gap-4">
+    <div className="h-full flex flex-col gap-4 lg:flex-row">
       {/* Left Sidebar - Location List */}
-      <div className="w-80 flex-shrink-0 flex flex-col border rounded-lg bg-card">
+      <div className="w-full lg:w-80 flex-shrink-0 flex flex-col border rounded-lg bg-card max-h-[45vh] lg:max-h-none">
         <div className="p-3 border-b bg-muted/50">
           <h3 className="font-semibold text-sm">
             📍 Locations ({locations.length})
           </h3>
         </div>
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-2 space-y-1">
             {locations.map((location) => (
               <button
@@ -172,7 +172,7 @@ export function GroupedView({
       </div>
 
       {/* Right Panel - Location Detail */}
-      <div className="flex-1 min-w-0">
+      <div className="w-full flex-1 min-w-0">
         {selectedLocation ? (
           <LocationDetail location={selectedLocation} />
         ) : (

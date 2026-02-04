@@ -79,78 +79,130 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
   return (
     <div className="h-full flex flex-col border rounded-lg bg-card">
       <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader className="sticky top-0 bg-muted/50">
-            <TableRow>
-              <TableHead className="w-[180px]">Date</TableHead>
-              <TableHead>Officer</TableHead>
-              <TableHead>Count</TableHead>
-              <TableHead>Pest</TableHead>
-              <TableHead>Severity</TableHead>
-              <TableHead className="hidden md:table-cell">Location</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {reports.map((report) => (
-              <TableRow
-                key={report.id}
-                className="cursor-pointer hover:bg-accent/50"
-                onClick={() => setSelectedReport(report)}
-              >
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    {format(new Date(report.createdAt), "MMM d, yyyy HH:mm")}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-[10px]">
-                        {report.user?.fullName?.slice(0, 2).toUpperCase() || "??"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{report.user?.fullName || report.user?.phoneNumber || "Unknown"}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="font-mono font-semibold">{report.observedCount ?? "N/A"}</span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Bug className="h-4 w-4 text-muted-foreground" />
-                    <span>{report.label || "Unknown"}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      report.severity === "HIGH"
-                        ? "destructive"
-                        : report.severity === "WARNING"
-                        ? "default"
-                        : "secondary"
-                    }
-                    className="text-[10px]"
-                  >
-                    {report.severity || "NORMAL"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-muted-foreground" />
-                    <ReportLocationDisplay location={report.location} />
-                  </div>
-                </TableCell>
+        <div className="sm:hidden space-y-2 p-2">
+          {reports.map((report) => (
+            <div
+              key={report.id}
+              className="rounded-lg border bg-background p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+              onClick={() => setSelectedReport(report)}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  {format(new Date(report.createdAt), "MMM d, yyyy HH:mm")}
+                </div>
+                <Badge
+                  variant={
+                    report.severity === "HIGH"
+                      ? "destructive"
+                      : report.severity === "WARNING"
+                      ? "default"
+                      : "secondary"
+                  }
+                  className="text-[10px]"
+                >
+                  {report.severity || "NORMAL"}
+                </Badge>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-[10px]">
+                    {report.user?.fullName?.slice(0, 2).toUpperCase() || "??"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm">
+                  {report.user?.fullName || report.user?.phoneNumber || "Unknown"}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1">
+                  <Bug className="h-4 w-4 text-muted-foreground" />
+                  <span>{report.label || "Unknown"}</span>
+                </div>
+                <span className="font-mono font-semibold">{report.observedCount ?? "N/A"}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                <ReportLocationDisplay location={report.location} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden sm:block">
+          <Table>
+            <TableHeader className="sticky top-0 bg-muted/50">
+              <TableRow>
+                <TableHead className="w-[180px]">Date</TableHead>
+                <TableHead>Officer</TableHead>
+                <TableHead>Count</TableHead>
+                <TableHead>Pest</TableHead>
+                <TableHead>Severity</TableHead>
+                <TableHead className="hidden md:table-cell">Location</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {reports.map((report) => (
+                <TableRow
+                  key={report.id}
+                  className="cursor-pointer hover:bg-accent/50"
+                  onClick={() => setSelectedReport(report)}
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      {format(new Date(report.createdAt), "MMM d, yyyy HH:mm")}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-[10px]">
+                          {report.user?.fullName?.slice(0, 2).toUpperCase() || "??"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{report.user?.fullName || report.user?.phoneNumber || "Unknown"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-mono font-semibold">{report.observedCount ?? "N/A"}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Bug className="h-4 w-4 text-muted-foreground" />
+                      <span>{report.label || "Unknown"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        report.severity === "HIGH"
+                          ? "destructive"
+                          : report.severity === "WARNING"
+                          ? "default"
+                          : "secondary"
+                      }
+                      className="text-[10px]"
+                    >
+                      {report.severity || "NORMAL"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      <ReportLocationDisplay location={report.location} />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between p-4 border-t bg-muted/30">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border-t bg-muted/30">
           <div className="text-sm text-muted-foreground">
             Showing {(pagination.page - 1) * pagination.limit + 1} -{" "}
             {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}

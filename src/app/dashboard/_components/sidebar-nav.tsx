@@ -2,14 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  ClipboardList,
-  Users,
-  Building2,
-  Bell,
-  FileText,
-} from "lucide-react";
 import { cn } from "~/lib/utils";
 import {
   Tooltip as ShadTooltip,
@@ -17,6 +9,7 @@ import {
   TooltipProvider as ShadTooltipProvider,
   TooltipTrigger as ShadTooltipTrigger,
 } from "~/components/ui/tooltip";
+import { getNavItems } from "./nav-items";
 
 interface NavLinkProps {
   href: string;
@@ -56,38 +49,12 @@ function NavLink({ href, icon: Icon, label }: NavLinkProps) {
 }
 
 export function SidebarNav({ role }: { role: string }) {
+  const navItems = getNavItems(role);
   return (
     <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-      <NavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-      <NavLink href="/dashboard/reports" icon={FileText} label="Reports" />
-      {(role === "super_admin" || role === "org_admin") && (
-        <>
-          <NavLink
-            href="/dashboard/triage"
-            icon={ClipboardList}
-            label="Triage"
-          />
-          <NavLink
-            href="/dashboard/settings/alerts"
-            icon={Bell}
-            label="Alert Settings"
-          />
-        </>
-      )}
-      {role === "super_admin" && (
-        <>
-          <NavLink
-            href="/dashboard/admin/organizations"
-            icon={Building2}
-            label="Organizations"
-          />
-          <NavLink
-            href="/dashboard/admin/users"
-            icon={Users}
-            label="User Management"
-          />
-        </>
-      )}
+      {navItems.map((item) => (
+        <NavLink key={item.href} href={item.href} icon={item.icon} label={item.label} />
+      ))}
     </nav>
   );
 }

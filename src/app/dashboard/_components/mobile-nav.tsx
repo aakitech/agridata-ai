@@ -8,10 +8,11 @@ import {
   PopoverTrigger 
 } from "~/components/ui/popover";
 import { Button } from "~/components/ui/button";
-import { Menu, LayoutDashboard, ClipboardList, Bell, Building2, Users } from "lucide-react";
+import { Menu } from "lucide-react";
 import { UserAccountNav } from "./user-account-nav";
 import { usePathname } from "next/navigation";
 import { cn } from "~/lib/utils";
+import { getNavItems } from "./nav-items";
 
 interface MobileNavProps {
   user: {
@@ -27,6 +28,7 @@ interface MobileNavProps {
 export function MobileNav({ user }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const navItems = getNavItems(user.role);
 
   return (
     <div className="flex sm:hidden items-center justify-between w-full h-14 px-4 border-b bg-background sticky top-0 z-[100] shadow-sm">
@@ -46,19 +48,16 @@ export function MobileNav({ user }: MobileNavProps) {
             </div>
             <div className="py-2 px-2 bg-background">
                 <div className="space-y-1.5">
-                    <MobileNavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname === "/dashboard"} onClick={() => setOpen(false)} />
-                    {(user.role === "super_admin" || user.role === "org_admin") && (
-                        <>
-                            <MobileNavLink href="/dashboard/triage" icon={ClipboardList} label="Triage" active={pathname.startsWith("/dashboard/triage")} onClick={() => setOpen(false)} />
-                            <MobileNavLink href="/dashboard/settings/alerts" icon={Bell} label="Alert Settings" active={pathname.startsWith("/dashboard/settings/alerts")} onClick={() => setOpen(false)} />
-                        </>
-                    )}
-                    {user.role === "super_admin" && (
-                        <>
-                            <MobileNavLink href="/dashboard/admin/organizations" icon={Building2} label="Organizations" active={pathname.startsWith("/dashboard/admin/organizations")} onClick={() => setOpen(false)} />
-                            <MobileNavLink href="/dashboard/admin/users" icon={Users} label="User Management" active={pathname.startsWith("/dashboard/admin/users")} onClick={() => setOpen(false)} />
-                        </>
-                    )}
+                    {navItems.map((item) => (
+                        <MobileNavLink
+                          key={item.href}
+                          href={item.href}
+                          icon={item.icon}
+                          label={item.label}
+                          active={item.href === "/dashboard" ? pathname === "/dashboard" : (pathname === item.href || pathname.startsWith(item.href + "/"))}
+                          onClick={() => setOpen(false)}
+                        />
+                    ))}
                 </div>
             </div>
           </PopoverContent>

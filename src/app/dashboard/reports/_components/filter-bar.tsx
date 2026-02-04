@@ -51,25 +51,25 @@ export function FilterBar({
   onListSortChange,
 }: FilterBarProps) {
   return (
-    <div className="flex items-center gap-3 flex-wrap">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Filter className="h-4 w-4" />
         <span>Filter by:</span>
       </div>
 
       {/* Quick Search */}
-      <div className="relative">
+      <div className="relative w-full sm:w-auto">
         <Search className="h-4 w-4 text-muted-foreground absolute left-2 top-2" />
         <Input
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search officer or pest…"
-          className="h-8 pl-8 w-[220px] text-xs"
+          className="h-8 pl-8 w-full sm:w-[220px] text-xs"
         />
       </div>
 
       {/* Severity Filter */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Badge
           variant={severity === "ALL" ? "default" : "outline"}
           className="cursor-pointer"
@@ -109,7 +109,7 @@ export function FilterBar({
           value={officerId ?? "all"}
           onValueChange={(v) => onOfficerChange(v === "all" ? null : v)}
         >
-          <SelectTrigger className="w-[180px] h-8 text-xs">
+          <SelectTrigger className="w-full sm:w-[180px] h-8 text-xs">
             <SelectValue placeholder="All Officers" />
           </SelectTrigger>
           <SelectContent>
@@ -129,7 +129,7 @@ export function FilterBar({
           value={pest ?? "all"}
           onValueChange={(v) => onPestChange(v === "all" ? null : v)}
         >
-          <SelectTrigger className="w-[180px] h-8 text-xs">
+          <SelectTrigger className="w-full sm:w-[180px] h-8 text-xs">
             <SelectValue placeholder="All Pests" />
           </SelectTrigger>
           <SelectContent>
@@ -149,7 +149,7 @@ export function FilterBar({
           value={orgId ?? "all"}
           onValueChange={(v) => onOrgChange(v === "all" ? null : v)}
         >
-          <SelectTrigger className="w-[160px] h-8 text-xs">
+          <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
             <SelectValue placeholder="All Organizations" />
           </SelectTrigger>
           <SelectContent>
@@ -166,7 +166,7 @@ export function FilterBar({
       {/* List sorting */}
       {viewMode === "list" && (
         <Select value={listSort} onValueChange={(v) => onListSortChange(v as "DATE_DESC" | "DATE_ASC")}>
-          <SelectTrigger className="w-[160px] h-8 text-xs">
+          <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
             <SelectValue placeholder="Sort" />
           </SelectTrigger>
           <SelectContent>
