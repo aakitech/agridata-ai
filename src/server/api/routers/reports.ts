@@ -109,6 +109,8 @@ export const reportsRouter = createTRPCRouter({
             city?: string;
             town?: string;
             village?: string;
+            road?: string;
+            county?: string;
           };
         };
 
@@ -119,6 +121,11 @@ export const reportsRouter = createTRPCRouter({
           state: data.address.state || data.address.province,
           suburb: data.address.suburb || data.address.neighborhood,
           city: data.address.city || data.address.town || data.address.village,
+          neighborhood: data.address.neighborhood,
+          town: data.address.town,
+          village: data.address.village,
+          road: data.address.road,
+          county: data.address.county,
         };
       } catch (error) {
         console.error("Nominatim error:", error);

@@ -5,6 +5,7 @@ import { Share, Check, X, MapPin, AlertTriangle, Info } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { api } from "~/trpc/react";
+import { parseLocation } from "~/lib/geo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -125,9 +126,9 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
 
 
   // Parse location
-  const coordinates = report.location?.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-  const lat = coordinates ? parseFloat(coordinates[2]!) : null;
-  const lon = coordinates ? parseFloat(coordinates[1]!) : null;
+  const coordinates = parseLocation(report.location ?? null);
+  const lat = coordinates?.lat ?? null;
+  const lon = coordinates?.lon ?? null;
 
   // Server-side reverse geocoding via tRPC
   const { data: addressData, isLoading: isGeocoding } = api.reports.reverseGeocode.useQuery(

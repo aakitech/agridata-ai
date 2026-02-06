@@ -64,4 +64,53 @@ export const analyticsRouter = createTRPCRouter({
         input?.activeAlertsOnly
       );
     }),
+
+  // Reports page endpoints
+  getAllReports: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.date().optional(),
+        severity: z.enum(["HIGH", "WARNING", "NORMAL"]).optional(),
+        officerId: z.string().uuid().optional(),
+        orgId: z.string().uuid().optional(),
+        pest: z.string().optional(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(25),
+        sort: z.enum(["DATE_DESC", "DATE_ASC"]).default("DATE_DESC"),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
+      return service.getAllReports({
+        startDate: input?.startDate,
+        severity: input?.severity,
+        officerId: input?.officerId,
+        orgId: input?.orgId,
+        pest: input?.pest,
+        page: input?.page,
+        limit: input?.limit,
+        sort: input?.sort,
+      });
+    }),
+
+  getReportsByLocation: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.date().optional(),
+        severity: z.enum(["HIGH", "WARNING", "NORMAL"]).optional(),
+        officerId: z.string().uuid().optional(),
+        orgId: z.string().uuid().optional(),
+        pest: z.string().optional(),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const service = new AnalyticsService(ctx.db, ctx.appUser.orgId, ctx.appUser.role);
+      return service.getReportsByLocation({
+        startDate: input?.startDate,
+        severity: input?.severity,
+        officerId: input?.officerId,
+        orgId: input?.orgId,
+        pest: input?.pest,
+      });
+    }),
 });

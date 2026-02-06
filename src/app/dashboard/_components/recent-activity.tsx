@@ -1,7 +1,9 @@
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { formatDistanceToNow, format } from "date-fns";
-import { MapPin, Bug, AlertTriangle, Calendar, User } from "lucide-react";
+import { MapPin, Bug, AlertTriangle, Calendar, User, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -10,15 +12,15 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog";
 import { api } from "~/trpc/react";
+import { parseLocation } from "~/lib/geo";
 
 // Helper component to parse coordinates and fetch address
 function ReportLocationDisplay({ location }: { location: string | null }) {
   if (!location) return null;
 
-  // Parse POINT(lon lat) format
-  const coordinates = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-  const lat = coordinates ? parseFloat(coordinates[2]!) : null;
-  const lon = coordinates ? parseFloat(coordinates[1]!) : null;
+  const coordinates = parseLocation(location);
+  const lat = coordinates?.lat ?? null;
+  const lon = coordinates?.lon ?? null;
 
   // Fetch address using reverse geocoding
   const { data: addressData, isLoading } = api.reports.reverseGeocode.useQuery(
@@ -74,9 +76,19 @@ export function RecentActivity({ reports }: ActivityProps) {
     <div className="h-full flex flex-col">
       <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-card/95 backdrop-blur-sm border-b shadow-sm">
           <h3 className="font-bold text-sm text-foreground uppercase tracking-tight">Recent Activity</h3>
-          <Badge variant="secondary" className="h-5 px-2 text-[10px] font-bold">
-            {reports.length} Reports
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="h-5 px-2 text-[10px] font-bold">
+              {reports.length} Reports
+            </Badge>
+          </div>
+      </div>
+      <div className="px-4 pt-2 pb-1 border-b bg-muted/20">
+        <Link href="/dashboard/reports">
+          <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground hover:text-foreground">
+            View All Reports
+            <ArrowRight className="h-3 w-3 ml-1" />
+          </Button>
+        </Link>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-muted-foreground/20">
         {reports.map((report) => (
