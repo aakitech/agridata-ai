@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api } from "~/trpc/react";
 import { ReportsList } from "./reports-list";
 import { ReportDetail } from "./report-detail";
@@ -8,6 +8,7 @@ import { Loader2, Inbox, CheckCircle2, XCircle, Clock, ArrowLeft } from "lucide-
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Button } from "~/components/ui/button";
+import { withMockWeatherList } from "~/lib/mock-weather";
 
 type TriageStatus = "PENDING_TRIAGE" | "VERIFIED" | "REJECTED";
 
@@ -29,8 +30,9 @@ export function TriageDashboard() {
     { refetchInterval: 30000, refetchOnWindowFocus: true }
   );
   const { data: orgs } = api.organizations.getAll.useQuery();
-  
-  const selectedReport = reports?.find((r) => r.id === selectedReportId);
+
+  const weatherAwareReports = useMemo(() => withMockWeatherList(reports), [reports]);
+  const selectedReport = weatherAwareReports?.find((r) => r.id === selectedReportId);
 
   return (
     <div className="flex flex-col md:flex-row h-full bg-background text-foreground">
@@ -110,9 +112,9 @@ export function TriageDashboard() {
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
               Loading...
             </div>
-          ) : reports && reports.length > 0 ? (
+          ) : weatherAwareReports && weatherAwareReports.length > 0 ? (
             <ReportsList
-              reports={reports}
+              reports={weatherAwareReports}
               selectedId={selectedReportId}
               onSelect={setSelectedReportId}
             />
@@ -155,9 +157,13 @@ export function TriageDashboard() {
               userRole={userRole}
               onComplete={() => {
                 // Auto-select next report or clear selection
-                const currentIndex = reports?.findIndex((r) => r.id === selectedReportId);
-                if (currentIndex !== undefined && reports && currentIndex < reports.length - 1) {
-                  setSelectedReportId(reports[currentIndex + 1]!.id);
+                const currentIndex = weatherAwareReports?.findIndex((r) => r.id === selectedReportId);
+                if (
+                  currentIndex !== undefined &&
+                  weatherAwareReports &&
+                  currentIndex < weatherAwareReports.length - 1
+                ) {
+                  setSelectedReportId(weatherAwareReports[currentIndex + 1]!.id);
                 } else {
                   setSelectedReportId(null);
                 }
