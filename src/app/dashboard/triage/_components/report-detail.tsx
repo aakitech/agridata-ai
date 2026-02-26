@@ -51,6 +51,17 @@ type Report = {
     mediaUrl: string;
     contentType: string | null;
   }>;
+  weather?: {
+    status: "PENDING" | "OK" | "FAILED" | "NEEDS_REVIEW";
+    source: string | null;
+    fetchedAt: Date | null;
+    rainDayMm: string | null;
+    rain7dMm: string | null;
+    tempMinC: string | null;
+    tempMaxC: string | null;
+    tempMeanC: string | null;
+    qualityFlag: "UNKNOWN" | "PLAUSIBLE" | "SUSPECT";
+  } | null;
 };
 
 interface ReportDetailProps {
@@ -142,6 +153,24 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
     : report.mediaUrl 
     ? [report.mediaUrl] 
     : [];
+
+  const weather = report.weather;
+
+  const formatMetric = (value: string | null, suffix: string) => {
+    if (!value) return "N/A";
+    const n = Number.parseFloat(value);
+    if (!Number.isFinite(n)) return "N/A";
+    return `${n.toFixed(1)}${suffix}`;
+  };
+
+  const weatherStatusLabel =
+    weather?.status === "PENDING"
+      ? "Pending"
+      : weather?.status === "OK"
+        ? "Estimated"
+        : weather?.status === "NEEDS_REVIEW"
+          ? "Needs Review"
+          : "Unavailable";
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
@@ -243,6 +272,62 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
           ) : (
             <div className="flex items-center justify-center h-32 text-muted-foreground bg-muted/50 rounded-lg border border-dashed">
               No location data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Weather Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Weather Context</CardTitle>
+          <CardDescription>
+            Estimated daily weather conditions for this report location
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Status:</span>
+            <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium">
+              {weather ? weatherStatusLabel : "Unavailable"}
+            </span>
+            {weather?.source && (
+              <span className="text-xs text-muted-foreground">
+                Source: {weather.source}
+              </span>
+            )}
+          </div>
+
+          {weather?.status === "OK" || weather?.status === "NEEDS_REVIEW" ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Rain (Day)</Label>
+                <div className="text-base font-semibold">{formatMetric(weather.rainDayMm, " mm")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Rain (7d)</Label>
+                <div className="text-base font-semibold">{formatMetric(weather.rain7dMm, " mm")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Temp (Mean)</Label>
+                <div className="text-base font-semibold">{formatMetric(weather.tempMeanC, "°C")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Temp (Min)</Label>
+                <div className="text-base font-semibold">{formatMetric(weather.tempMinC, "°C")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Temp (Max)</Label>
+                <div className="text-base font-semibold">{formatMetric(weather.tempMaxC, "°C")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Quality</Label>
+                <div className="text-base font-semibold">{weather.qualityFlag}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              Weather data is not available yet for this report.
             </div>
           )}
         </CardContent>

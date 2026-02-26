@@ -1,5 +1,5 @@
 import { db } from "~/server/db";
-import { botSessions, reports } from "~/server/db/schema";
+import { botSessions, reports, reportWeather } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import {
   type WorkflowConfig,
@@ -8,6 +8,11 @@ import {
 } from "./workflow-types";
 import { MediaService } from "~/server/modules/media/media-service";
 import { AlertsService } from "~/server/modules/alerts/alerts-service";
+import { parseLocation } from "~/lib/geo";
+import { env } from "~/env";
+import { computeGridKey, toObservedLocalDate } from "~/server/modules/weather/weather-utils";
+
+const DEFAULT_WEATHER_TIMEZONE = env.WEATHER_DEFAULT_TIMEZONE || "Africa/Harare";
 
 export class WorkflowProcessor {
   private config: WorkflowConfig;
@@ -349,7 +354,34 @@ export class WorkflowProcessor {
       })
       .returning();
 
-    // 5. Reset Session
+    // 5. Enqueue weather enrichment without blocking report completion.
+    if (report?.location) {
+      try {
+        const coords = parseLocation(report.location);
+        if (coords) {
+          const observedLocalDate = toObservedLocalDate(
+            report.createdAt,
+            DEFAULT_WEATHER_TIMEZONE
+          );
+          await db.insert(reportWeather).values({
+            reportId: report.id,
+            orgId: report.orgId,
+            lat: coords.lat.toFixed(6),
+            lon: coords.lon.toFixed(6),
+            observedAt: report.createdAt,
+            observedLocalDate,
+            timezone: DEFAULT_WEATHER_TIMEZONE,
+            gridKey: computeGridKey(coords.lat, coords.lon, observedLocalDate),
+            source: env.WEATHER_PROVIDER,
+            status: "PENDING",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to enqueue weather enrichment for report:", report.id, error);
+      }
+    }
+
+    // 6. Reset Session
     await db
       .update(botSessions)
       .set({
