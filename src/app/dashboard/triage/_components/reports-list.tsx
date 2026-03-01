@@ -35,6 +35,7 @@ type Report = {
     fetchedAt?: Date | string | null;
     rainDayMm?: string | number | null;
     tempMeanC?: string | number | null;
+    isProvisional?: boolean;
     qualityFlag?: "UNKNOWN" | "PLAUSIBLE" | "SUSPECT";
     isMock?: boolean;
   } | null;
@@ -126,6 +127,11 @@ export function ReportsList({ reports, selectedId, onSelect }: ReportsListProps)
                   {weather?.isMock && (
                     <Badge variant="outline" className="h-4 px-1 text-[9px]">
                       Mock Weather
+                    </Badge>
+                  )}
+                  {weather?.isProvisional && (
+                    <Badge variant="outline" className="h-4 px-1 text-[9px] border-amber-300 text-amber-700">
+                      Provisional
                     </Badge>
                   )}
                   {weather?.status === "OK" && (

@@ -56,6 +56,7 @@ type QueueRow = {
   lat: string | null;
   lon: string | null;
   attemptCount: number;
+  isProvisional: boolean;
 };
 
 export class WeatherEnrichmentService {
@@ -126,7 +127,77 @@ export class WeatherEnrichmentService {
     };
   }
 
-  private async enrichRow(row: QueueRow): Promise<"OK" | "NEEDS_REVIEW" | "FAILED" | "RETRIED"> {
+  async processProvisionalBatch(limit = env.WEATHER_ENRICHMENT_BATCH_SIZE) {
+    const leasedIds = await this.leaseProvisionalBatch(limit);
+    if (leasedIds.length === 0) {
+      return { leased: 0, processed: 0, finalized: 0, stillProvisional: 0, failed: 0, retried: 0 };
+    }
+
+    const rows = await this.database.query.reportWeather.findMany({
+      where: inArray(reportWeather.id, leasedIds),
+      orderBy: (table, { asc }) => [asc(table.observedAt)],
+    });
+
+    let finalized = 0;
+    let stillProvisional = 0;
+    let failed = 0;
+    let retried = 0;
+
+    for (const row of rows as QueueRow[]) {
+      const result = await this.enrichRow(row, { skipCache: true });
+      if (result === "NEEDS_REVIEW" || result === "OK") {
+        const refreshed = await this.database.query.reportWeather.findFirst({
+          where: (table, { eq }) => eq(table.id, row.id),
+        });
+        if (refreshed?.isProvisional) stillProvisional += 1;
+        else finalized += 1;
+      }
+      if (result === "FAILED") failed += 1;
+      if (result === "RETRIED") retried += 1;
+    }
+
+    return {
+      leased: leasedIds.length,
+      processed: rows.length,
+      finalized,
+      stillProvisional,
+      failed,
+      retried,
+    };
+  }
+
+  private async leaseProvisionalBatch(limit: number): Promise<string[]> {
+    const ids = await this.database.transaction(async (tx) => {
+      const rows = (await tx.execute(sql`
+        SELECT id
+        FROM agridata_report_weather
+        WHERE is_provisional = true
+          AND status IN ('OK'::weather_enrichment_status, 'NEEDS_REVIEW'::weather_enrichment_status)
+          AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+        ORDER BY observed_at ASC
+        LIMIT ${limit}
+        FOR UPDATE SKIP LOCKED
+      `)) as Array<{ id: string }>;
+
+      const rowIds = rows.map((r) => r.id);
+      if (rowIds.length === 0) return [];
+
+      const leaseUntil = new Date(Date.now() + LEASE_MINUTES * 60 * 1000);
+      await tx
+        .update(reportWeather)
+        .set({ nextRetryAt: leaseUntil })
+        .where(inArray(reportWeather.id, rowIds));
+
+      return rowIds;
+    });
+
+    return ids;
+  }
+
+  private async enrichRow(
+    row: QueueRow,
+    options?: { skipCache?: boolean }
+  ): Promise<"OK" | "NEEDS_REVIEW" | "FAILED" | "RETRIED"> {
     const lat = toNumberOrNull(row.lat);
     const lon = toNumberOrNull(row.lon);
 
@@ -148,7 +219,7 @@ export class WeatherEnrichmentService {
 
     try {
       const gridKey = row.gridKey;
-      const cached = gridKey
+      const cached = !options?.skipCache && gridKey
         ? await this.database.query.reportWeather.findFirst({
             where: (table, { and, eq, ne }) =>
               and(
@@ -169,6 +240,7 @@ export class WeatherEnrichmentService {
               tempMinC: toNumberOrNull(cached.tempMinC),
               tempMaxC: toNumberOrNull(cached.tempMaxC),
               tempMeanC: toNumberOrNull(cached.tempMeanC),
+              isProvisional: cached.isProvisional,
               providerVersion: cached.providerVersion,
               rawPayload: null,
             }
@@ -194,6 +266,7 @@ export class WeatherEnrichmentService {
           qualityFlag: quality.flag,
           errorCode: quality.errorCode,
           source: cached?.source ?? this.provider.name,
+          isProvisional: weather.isProvisional,
           fetchedAt: new Date(),
           nextRetryAt: null,
           lastErrorAt: quality.flag === "SUSPECT" ? new Date() : null,

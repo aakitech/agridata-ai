@@ -91,21 +91,24 @@ export async function GET(req: NextRequest) {
     })
     .filter((v): v is NonNullable<typeof v> => v !== null);
 
+  let insertedCount = 0;
   if (values.length > 0) {
-    await db
+    const inserted = await db
       .insert(reportWeather)
       .values(values)
-      .onConflictDoNothing({ target: reportWeather.reportId });
+      .onConflictDoNothing({ target: reportWeather.reportId })
+      .returning({ reportId: reportWeather.reportId });
+    insertedCount = inserted.length;
   }
 
   return NextResponse.json({
     success: true,
     scanned: result.length,
-    enqueued: values.length,
+    candidateCount: values.length,
+    enqueued: insertedCount,
     limit,
     orgId: orgId ?? null,
     from: from ?? null,
     to: to ?? null,
   });
 }
-

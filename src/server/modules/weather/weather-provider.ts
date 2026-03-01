@@ -4,6 +4,7 @@ export type DailyWeatherSnapshot = {
   tempMinC: number | null;
   tempMaxC: number | null;
   tempMeanC: number | null;
+  isProvisional: boolean;
   providerVersion?: string | null;
   rawPayload?: unknown;
 };
@@ -35,6 +36,39 @@ function toNumberOrNull(value: unknown): number | null {
   return null;
 }
 
+function getLocalDateString(date: Date, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
+  if (!year || !month || !day) throw new Error(`Invalid local date for timezone ${timezone}`);
+  return `${year}-${month}-${day}`;
+}
+
+async function fetchJsonWithTimeout(url: string, timeoutMs = 15_000): Promise<unknown> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`PROVIDER_HTTP_${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("PROVIDER_TIMEOUT");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export class OpenMeteoWeatherProvider implements WeatherProvider {
   readonly name = "open-meteo";
 
@@ -46,23 +80,34 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
   }): Promise<DailyWeatherSnapshot> {
     const startDate = shiftDate(params.observedLocalDate, -6);
     const endDate = params.observedLocalDate;
-    const baseUrl = "https://archive-api.open-meteo.com/v1/archive";
+    const todayLocalDate = getLocalDateString(new Date(), params.timezone);
+    const useProvisionalFeed = params.observedLocalDate >= todayLocalDate;
 
-    const search = new URLSearchParams({
-      latitude: String(params.lat),
-      longitude: String(params.lon),
-      start_date: startDate,
-      end_date: endDate,
-      timezone: params.timezone,
-      daily: "precipitation_sum,temperature_2m_min,temperature_2m_max",
-    });
+    const baseUrl = useProvisionalFeed
+      ? "https://api.open-meteo.com/v1/forecast"
+      : "https://archive-api.open-meteo.com/v1/archive";
 
-    const response = await fetch(`${baseUrl}?${search.toString()}`);
-    if (!response.ok) {
-      throw new Error(`PROVIDER_HTTP_${response.status}`);
-    }
+    const search = useProvisionalFeed
+      ? new URLSearchParams({
+          latitude: String(params.lat),
+          longitude: String(params.lon),
+          timezone: params.timezone,
+          daily: "precipitation_sum,temperature_2m_min,temperature_2m_max",
+          past_days: "7",
+          forecast_days: "1",
+        })
+      : new URLSearchParams({
+          latitude: String(params.lat),
+          longitude: String(params.lon),
+          start_date: startDate,
+          end_date: endDate,
+          timezone: params.timezone,
+          daily: "precipitation_sum,temperature_2m_min,temperature_2m_max",
+        });
 
-    const payload = (await response.json()) as {
+    const payload = (await fetchJsonWithTimeout(
+      `${baseUrl}?${search.toString()}`
+    )) as {
       daily?: {
         time?: string[];
         precipitation_sum?: Array<number | string | null>;
@@ -106,6 +151,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
       tempMinC,
       tempMaxC,
       tempMeanC,
+      isProvisional: useProvisionalFeed,
       providerVersion:
         typeof payload.generationtime_ms === "number"
           ? `generationtime_ms:${payload.generationtime_ms}`

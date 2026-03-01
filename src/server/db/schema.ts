@@ -213,6 +213,7 @@ export const reportWeather = createTable(
     timezone: text("timezone").default("Africa/Harare").notNull(),
     gridKey: text("grid_key"),
     source: text("source"),
+    isProvisional: boolean("is_provisional").default(false).notNull(),
     status: weatherEnrichmentStatusEnum("status").default("PENDING").notNull(),
     attemptCount: integer("attempt_count").default(0).notNull(),
     nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
@@ -240,6 +241,7 @@ export const reportWeather = createTable(
   },
   (table) => [
     index("report_weather_status_next_retry_idx").on(table.status, table.nextRetryAt),
+    index("report_weather_provisional_status_idx").on(table.isProvisional, table.status),
     index("report_weather_org_observed_at_idx").on(table.orgId, table.observedAt),
     index("report_weather_grid_observed_date_idx").on(table.gridKey, table.observedLocalDate),
     index("report_weather_quality_status_idx").on(table.qualityFlag, table.status),

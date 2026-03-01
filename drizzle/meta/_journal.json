@@ -36,6 +36,13 @@
       "when": 1771459200000,
       "tag": "0006_add_report_weather",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771545600000,
+      "tag": "0007_add_weather_provisional_flag",
+      "breakpoints": true
     }
   ]
 }

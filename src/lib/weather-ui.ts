@@ -13,6 +13,7 @@ export type ReportWeatherUI = {
   tempMaxC: number | null;
   tempMeanC: number | null;
   observedAt?: string | Date | null;
+  isProvisional?: boolean;
   isMock?: boolean;
 };
 
@@ -28,6 +29,7 @@ type RawWeatherLike = {
   tempMinC?: string | number | null;
   tempMaxC?: string | number | null;
   tempMeanC?: string | number | null;
+  isProvisional?: boolean;
   isMock?: boolean;
 } | null | undefined;
 
@@ -53,6 +55,7 @@ export function normalizeReportWeatherUI(weather: RawWeatherLike): ReportWeather
     tempMinC: toNumberOrNull(weather.tempMinC),
     tempMaxC: toNumberOrNull(weather.tempMaxC),
     tempMeanC: toNumberOrNull(weather.tempMeanC),
+    isProvisional: weather.isProvisional === true,
     isMock: weather.isMock === true,
   };
 }
@@ -108,4 +111,3 @@ export function formatIsoLocalDate(dateLike: Date | string | null | undefined): 
   if (Number.isNaN(d.getTime())) return "N/A";
   return d.toISOString().slice(0, 10);
 }
-

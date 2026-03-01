@@ -69,6 +69,7 @@ type Report = {
     tempMinC: string | null;
     tempMaxC: string | null;
     tempMeanC: string | null;
+    isProvisional?: boolean;
     qualityFlag: "UNKNOWN" | "PLAUSIBLE" | "SUSPECT";
   } | null;
 };
@@ -308,6 +309,11 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
             {weather?.isMock && (
               <span className="inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium">
                 Mock Weather
+              </span>
+            )}
+            {weather?.isProvisional && (
+              <span className="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
+                Provisional
               </span>
             )}
             {weather?.source && (
