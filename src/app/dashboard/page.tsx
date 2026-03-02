@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api } from "~/trpc/react";
 import { StatsCards } from "./_components/stats-cards";
 import { TrendChart } from "./_components/trend-chart";
@@ -12,6 +12,7 @@ import { Label } from "~/components/ui/label";
 import { Loader2, AlertCircle, Bell } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import dynamic from "next/dynamic";
+import { withMockWeatherList } from "~/lib/mock-weather";
 
 const DashboardMap = dynamic(() => import("./_components/dashboard-map").then(mod => mod.DashboardMap), { 
     ssr: false,
@@ -55,6 +56,7 @@ export default function DashboardPage() {
   const { data: orgs } = api.organizations.getAll.useQuery();
 
   const isLoading = statsLoading || trendsLoading || activityLoading || mapLoading;
+  const weatherAwareMapPoints = useMemo(() => withMockWeatherList(mapPoints as any), [mapPoints]);
 
   if (isLoading && !stats) {
       return (
@@ -163,7 +165,7 @@ export default function DashboardPage() {
             
             <div className="h-[450px]">
               {mapPoints ? (
-                  <DashboardMap points={mapPoints as any} />
+                  <DashboardMap points={weatherAwareMapPoints as any} />
               ) : (
                   <div className="h-full w-full bg-muted rounded-xl flex items-center justify-center animate-pulse">Map Loading...</div>
               )}

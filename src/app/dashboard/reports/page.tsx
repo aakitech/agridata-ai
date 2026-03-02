@@ -12,6 +12,7 @@ import { Loader2, FileText, AlertCircle, RefreshCw } from "lucide-react";
 import { subDays } from "date-fns";
 import type { LocationWithReports } from "~/server/modules/analytics/analytics-service";
 import { LOCATION_CLUSTER_RADIUS_METERS } from "~/lib/geo";
+import { withMockWeatherLocations } from "~/lib/mock-weather";
 
 type ViewMode = "grouped" | "list";
 type TimeRange = "7d" | "30d" | "90d" | "all";
@@ -174,18 +175,22 @@ export default function ReportsPage() {
     : listData?.pagination.total ?? 0;
 
   const normalizedSearch = search.trim().toLowerCase();
+  const weatherAwareGroupedData = useMemo<LocationWithReports[] | undefined>(
+    () => withMockWeatherLocations(groupedData as any) as LocationWithReports[] | undefined,
+    [groupedData]
+  );
 
   const filteredGroupedData = useMemo(() => {
-    if (!groupedData) return groupedData;
-    if (!normalizedSearch) return groupedData;
-    return groupedData.filter((loc) => {
+    if (!weatherAwareGroupedData) return weatherAwareGroupedData;
+    if (!normalizedSearch) return weatherAwareGroupedData;
+    return weatherAwareGroupedData.filter((loc) => {
       const latest = loc.latestReport;
       return (
         latest.pest.toLowerCase().includes(normalizedSearch) ||
         latest.officer.toLowerCase().includes(normalizedSearch)
       );
     });
-  }, [groupedData, normalizedSearch]);
+  }, [weatherAwareGroupedData, normalizedSearch]);
 
   const filteredListReports = useMemo(() => {
     if (!listData?.reports) return listData?.reports;
