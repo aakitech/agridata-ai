@@ -28,5 +28,14 @@ export interface MpbcReportData {
     lon: number;
     severity: "NORMAL" | "WARNING" | "HIGH" | null;
   }>;
+  provinceBreakdown: Array<{
+    province: string;
+    totalReports: number;
+    locations: number;
+    highAlerts: number;
+    warningAlerts: number;
+    normalAlerts: number;
+    sharePercentage: number;
+  }>;
 }
 

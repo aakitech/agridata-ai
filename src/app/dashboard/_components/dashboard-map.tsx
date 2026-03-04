@@ -213,9 +213,20 @@ export function DashboardMap({ points }: DashboardMapProps) {
   const center: [number, number] = [-19.0154, 29.1549];
   const zoom = 6;
 
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
+    setIsMounted(true);
     injectMarkerStyles();
   }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="h-full w-full rounded-xl overflow-hidden border shadow-inner bg-muted/5 flex items-center justify-center animate-pulse">
+        Loading Map...
+      </div>
+    );
+  }
 
   return (
     <div className="h-full w-full rounded-xl overflow-hidden border shadow-inner bg-muted/5">

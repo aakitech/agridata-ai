@@ -132,11 +132,157 @@ export class MpbcReportPdfRenderer {
       });
     });
 
+    // ---- Province Breakdown Page ----
+    doc.addPage();
+    doc.font("Helvetica-Bold").fillColor("#111").fontSize(16).text("Province Breakdown", left, 60);
+    doc.font("Helvetica").fillColor("#666").fontSize(10).text(
+      "Geographic distribution of trap reports by administrative region",
+      left,
+      85,
+      { width: contentWidth }
+    );
+
+    let y = 115;
+
+    if (reportData.provinceBreakdown.length === 0) {
+      doc.font("Helvetica-Oblique").fillColor("#666").fontSize(11).text(
+        "No province data available for this reporting period.",
+        left,
+        y + 30,
+        { width: contentWidth, align: "center" }
+      );
+    } else {
+      // Province breakdown table
+      const provCols = [
+        { label: "Province / Region", w: 150 },
+        { label: "Reports", w: 60 },
+        { label: "Sites", w: 50 },
+        { label: "High", w: 55 },
+        { label: "Warning", w: 65 },
+        { label: "Normal", w: 60 },
+        { label: "Share", w: contentWidth - (150 + 60 + 50 + 55 + 65 + 60) },
+      ] as const;
+
+      const provHeaderH = 20;
+      doc.save();
+      doc.rect(left, y, contentWidth, provHeaderH).fill("#f3f4f6");
+      doc.restore();
+
+      let cx = left;
+      doc.font("Helvetica-Bold").fillColor("#111").fontSize(9);
+      for (const c of provCols) {
+        doc.text(c.label, cx + 6, y + 6, { width: c.w - 12 });
+        cx += c.w;
+      }
+      y += provHeaderH;
+
+      const provRowH = 24;
+      doc.font("Helvetica").fillColor("#111").fontSize(8);
+      
+      for (const prov of reportData.provinceBreakdown) {
+        if (y + provRowH > pageHeight - 60) {
+          doc.addPage();
+          y = 60;
+        }
+
+        // Row border
+        doc.save();
+        doc.moveTo(left, y).lineTo(right, y).strokeColor("#e5e5e5").stroke();
+        doc.restore();
+
+        cx = left;
+        const vPad = 6;
+
+        // Province name
+        doc.text(prov.province, cx + 6, y + vPad, { width: provCols[0].w - 12 });
+        cx += provCols[0].w;
+
+        // Total Reports
+        doc.text(String(prov.totalReports), cx + 6, y + vPad, { width: provCols[1].w - 12, align: "right" });
+        cx += provCols[1].w;
+
+        // Sites
+        doc.text(String(prov.locations), cx + 6, y + vPad, { width: provCols[2].w - 12, align: "right" });
+        cx += provCols[2].w;
+
+        // High Alerts
+        if (prov.highAlerts > 0) {
+          doc.save();
+          doc.roundedRect(cx + 6, y + vPad - 1, provCols[3].w - 12, 12, 3).fill("#fee2e2");
+          doc.restore();
+          doc.fillColor("#991b1b").font("Helvetica-Bold").fontSize(7.5).text(
+            String(prov.highAlerts),
+            cx + 6,
+            y + vPad,
+            { width: provCols[3].w - 12, align: "center" }
+          );
+          doc.fillColor("#111").font("Helvetica").fontSize(8);
+        } else {
+          doc.fillColor("#999").text("—", cx + 6, y + vPad, { width: provCols[3].w - 12, align: "center" });
+          doc.fillColor("#111");
+        }
+        cx += provCols[3].w;
+
+        // Warning Alerts
+        if (prov.warningAlerts > 0) {
+          doc.save();
+          doc.roundedRect(cx + 6, y + vPad - 1, provCols[4].w - 12, 12, 3).fill("#fef3c7");
+          doc.restore();
+          doc.fillColor("#92400e").font("Helvetica-Bold").fontSize(7.5).text(
+            String(prov.warningAlerts),
+            cx + 6,
+            y + vPad,
+            { width: provCols[4].w - 12, align: "center" }
+          );
+          doc.fillColor("#111").font("Helvetica").fontSize(8);
+        } else {
+          doc.fillColor("#999").text("—", cx + 6, y + vPad, { width: provCols[4].w - 12, align: "center" });
+          doc.fillColor("#111");
+        }
+        cx += provCols[4].w;
+
+        // Normal Alerts
+        if (prov.normalAlerts > 0) {
+          doc.save();
+          doc.roundedRect(cx + 6, y + vPad - 1, provCols[5].w - 12, 12, 3).fill("#d1fae5");
+          doc.restore();
+          doc.fillColor("#065f46").font("Helvetica-Bold").fontSize(7.5).text(
+            String(prov.normalAlerts),
+            cx + 6,
+            y + vPad,
+            { width: provCols[5].w - 12, align: "center" }
+          );
+          doc.fillColor("#111").font("Helvetica").fontSize(8);
+        } else {
+          doc.fillColor("#999").text("—", cx + 6, y + vPad, { width: provCols[5].w - 12, align: "center" });
+          doc.fillColor("#111");
+        }
+        cx += provCols[5].w;
+
+        // Share percentage
+        doc.text(`${prov.sharePercentage.toFixed(1)}%`, cx + 6, y + vPad, {
+          width: provCols[6].w - 12,
+          align: "right",
+        });
+
+        y += provRowH;
+      }
+
+      // Summary footer note
+      doc.moveDown(1);
+      doc.font("Helvetica").fillColor("#666").fontSize(8).text(
+        `${reportData.provinceBreakdown.length} province${reportData.provinceBreakdown.length !== 1 ? "s" : ""} recorded during this period.`,
+        left,
+        y + 15,
+        { width: contentWidth, align: "left" }
+      );
+    }
+
     // ---- Page 2: High Alert Focus ----
     doc.addPage();
     doc.font("Helvetica-Bold").fillColor("#111").fontSize(16).text("High Alert Trap Observations", left, 60);
 
-    let y = 95;
+    y = 95;
 
     if (highAlerts.length === 0) {
       doc.font("Helvetica-Oblique").fillColor("#666").fontSize(11).text(
