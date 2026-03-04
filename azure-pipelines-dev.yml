@@ -45,8 +45,13 @@ stages:
         VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
 
     - script: |
+        set -euo pipefail
         # 2. Deploy the prebuilt app and capture only the final unique URL
         DEPLOY_URL=$(vercel deploy --prebuilt --meta githubCommitRef=develop --token=$(VERCEL_TOKEN) | tail -n 1)
+        if [ -z "$DEPLOY_URL" ]; then
+          echo "DEPLOY_URL is empty. Failing pipeline before alias step."
+          exit 1
+        fi
         # Save the URL into an Azure variable for the next step
         echo "##vso[task.setvariable variable=DEPLOY_URL]$DEPLOY_URL"
         echo "Successfully deployed unique build to: $DEPLOY_URL"
@@ -56,10 +61,12 @@ stages:
         VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
 
     - script: |
-        # 3. Ensure the project context recognizes the domain 
-        vercel domains add agridata-ai-qa.aakitech.com --token=$(VERCEL_TOKEN)
-        
-        # 4. Map your fixed QA domain to the latest build URL
+        set -euo pipefail
+        # 3. Map your fixed QA domain to the latest build URL
+        if [ -z "$(DEPLOY_URL)" ]; then
+          echo "Pipeline variable DEPLOY_URL is empty. Cannot update QA alias."
+          exit 1
+        fi
         vercel alias set $(DEPLOY_URL) agridata-ai-qa.aakitech.com --token=$(VERCEL_TOKEN)
         echo "QA site updated at https://agridata-ai-qa.aakitech.com"
       displayName: 'Update QA URL Alias'
