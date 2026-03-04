@@ -14,6 +14,12 @@ import { format, formatDistanceToNow } from "date-fns";
 import { api } from "~/trpc/react";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import type { LocationWithReports } from "~/server/modules/analytics/analytics-service";
+import {
+  formatWeatherMetric,
+  getWeatherStatusUI,
+  normalizeReportWeatherUI,
+} from "~/lib/weather-ui";
+import { cn } from "~/lib/utils";
 
 interface LocationDetailProps {
   location: LocationWithReports;
@@ -32,6 +38,8 @@ function getTrendIcon(trend: "up" | "down" | "stable") {
 
 export function LocationDetail({ location }: LocationDetailProps) {
   const latest = location.latestReport;
+  const latestWeather = normalizeReportWeatherUI(latest.weather);
+  const latestWeatherStatus = getWeatherStatusUI(latestWeather?.status);
   const { data: addressData, isLoading: addressLoading } = api.reports.reverseGeocode.useQuery(
     { lat: location.coordinates.lat, lon: location.coordinates.lon },
     { enabled: true, staleTime: Infinity }
@@ -83,22 +91,39 @@ export function LocationDetail({ location }: LocationDetailProps) {
         <div className="mt-4 p-3 bg-background rounded-lg border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Badge
-                variant={
-                  latest.severity === "HIGH"
-                    ? "destructive"
-                    : latest.severity === "WARNING"
-                    ? "default"
-                    : "secondary"
-                }
-                className="text-sm h-7 px-3"
-              >
-                Current: {latest.severity || "NORMAL"}
-              </Badge>
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                Last reported {formatDistanceToNow(new Date(latest.date), { addSuffix: true })}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  variant={
+                    latest.severity === "HIGH"
+                      ? "destructive"
+                      : latest.severity === "WARNING"
+                      ? "default"
+                      : "secondary"
+                  }
+                  className="text-sm h-7 px-3"
+                >
+                  Current: {latest.severity || "NORMAL"}
+                </Badge>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
+                    latestWeatherStatus.toneClass
+                  )}
+                  title="Estimated weather from external provider (latest report only)"
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", latestWeatherStatus.dotClass)} />
+                  Weather: {latestWeather ? latestWeatherStatus.label : "Unavailable"}
+                </span>
+                {latestWeather?.isMock && (
+                  <Badge variant="outline" className="h-6 text-[10px]">
+                    Mock Weather
+                  </Badge>
+                )}
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  Last reported {formatDistanceToNow(new Date(latest.date), { addSuffix: true })}
+                </span>
+              </div>
             </div>
             {location.trend && (
               <div className="flex items-center gap-1 text-sm">
@@ -116,6 +141,28 @@ export function LocationDetail({ location }: LocationDetailProps) {
             <span className="text-muted-foreground">•</span>
             <span className="text-sm text-muted-foreground">by {latest.officer}</span>
           </div>
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="rounded-md border bg-background p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Weather Date (Local)</div>
+              <div className="text-sm font-medium">{latestWeather?.observedLocalDate || "N/A"}</div>
+            </div>
+            <div className="rounded-md border bg-background p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Rain (Day)</div>
+              <div className="text-sm font-medium">
+                {latestWeather && (latestWeather.status === "OK" || latestWeather.status === "NEEDS_REVIEW")
+                  ? formatWeatherMetric(latestWeather.rainDayMm, " mm")
+                  : "N/A"}
+              </div>
+            </div>
+            <div className="rounded-md border bg-background p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Temp (Mean)</div>
+              <div className="text-sm font-medium">
+                {latestWeather && (latestWeather.status === "OK" || latestWeather.status === "NEEDS_REVIEW")
+                  ? formatWeatherMetric(latestWeather.tempMeanC, "°C")
+                  : "N/A"}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -126,7 +173,10 @@ export function LocationDetail({ location }: LocationDetailProps) {
         </div>
         <ScrollArea className="h-[calc(100%-40px)]">
           <div className="p-3 space-y-2">
-            {location.reports.map((report) => (
+            {location.reports.map((report) => {
+              const reportWeather = normalizeReportWeatherUI(report.weather);
+              const reportWeatherStatus = getWeatherStatusUI(reportWeather?.status);
+              return (
               <Dialog key={report.id}>
                 <DialogTrigger asChild>
                   <div className="p-3 rounded-lg border bg-background hover:bg-accent/50 cursor-pointer transition-colors">
@@ -207,10 +257,59 @@ export function LocationDetail({ location }: LocationDetailProps) {
                         <Calendar className="h-4 w-4" />
                       </span>
                     </div>
+                    <div className="rounded-lg border p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground uppercase">Weather</span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium ring-1 ring-inset",
+                            reportWeatherStatus.toneClass
+                          )}
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", reportWeatherStatus.dotClass)} />
+                          {reportWeather ? reportWeatherStatus.label : "Unavailable"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <div className="text-muted-foreground">Weather Date (Local)</div>
+                          <div className="font-medium">{reportWeather?.observedLocalDate || "N/A"}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Source</div>
+                          <div className="font-medium truncate">{reportWeather?.source || "N/A"}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Rain (Day)</div>
+                          <div className="font-medium">
+                            {reportWeather && (reportWeather.status === "OK" || reportWeather.status === "NEEDS_REVIEW")
+                              ? formatWeatherMetric(reportWeather.rainDayMm, " mm")
+                              : "N/A"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Temp (Mean)</div>
+                          <div className="font-medium">
+                            {reportWeather && (reportWeather.status === "OK" || reportWeather.status === "NEEDS_REVIEW")
+                              ? formatWeatherMetric(reportWeather.tempMeanC, "°C")
+                              : "N/A"}
+                          </div>
+                        </div>
+                      </div>
+                      {reportWeather?.fetchedAt && (
+                        <div className="text-[10px] text-muted-foreground">
+                          Fetched: {new Date(reportWeather.fetchedAt).toLocaleString()}
+                        </div>
+                      )}
+                      {reportWeather?.isMock && (
+                        <div className="text-[10px] text-muted-foreground">Mock Weather</div>
+                      )}
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
-            ))}
+              );
+            })}
           </div>
         </ScrollArea>
       </div>

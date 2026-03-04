@@ -1,6 +1,8 @@
 import { sql, relations } from "drizzle-orm";
 import {
+  date,
   index,
+  numeric,
   pgTableCreator,
   timestamp,
   varchar,
@@ -63,6 +65,19 @@ export const severityEnum = pgEnum("severity", ["NORMAL", "WARNING", "HIGH"]);
 export const severitySourceEnum = pgEnum("severity_source", [
   "ORG_CONFIG",
   "DEFAULT_FALLBACK",
+]);
+
+export const weatherEnrichmentStatusEnum = pgEnum("weather_enrichment_status", [
+  "PENDING",
+  "OK",
+  "FAILED",
+  "NEEDS_REVIEW",
+]);
+
+export const weatherQualityFlagEnum = pgEnum("weather_quality_flag", [
+  "UNKNOWN",
+  "PLAUSIBLE",
+  "SUSPECT",
 ]);
 
 export const organizations = createTable("organizations", {
@@ -182,17 +197,70 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   }),
 }));
 
-export const reportsRelations = relations(reports, ({ one, many }) => ({
+export const reportWeather = createTable(
+  "report_weather",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reportId: uuid("report_id")
+      .references(() => reports.id, { onDelete: "cascade" })
+      .notNull()
+      .unique(),
+    orgId: uuid("org_id").references(() => organizations.id, { onDelete: "cascade" }),
+    lat: numeric("lat", { precision: 9, scale: 6 }),
+    lon: numeric("lon", { precision: 9, scale: 6 }),
+    observedAt: timestamp("observed_at", { withTimezone: true }).notNull(),
+    observedLocalDate: date("observed_local_date").notNull(),
+    timezone: text("timezone").default("Africa/Harare").notNull(),
+    gridKey: text("grid_key"),
+    source: text("source"),
+    isProvisional: boolean("is_provisional").default(false).notNull(),
+    status: weatherEnrichmentStatusEnum("status").default("PENDING").notNull(),
+    attemptCount: integer("attempt_count").default(0).notNull(),
+    nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
+    lastErrorAt: timestamp("last_error_at", { withTimezone: true }),
+    errorCode: text("error_code"),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }),
+    rainDayMm: numeric("rain_day_mm", { precision: 10, scale: 3 }),
+    rain7dMm: numeric("rain_7d_mm", { precision: 10, scale: 3 }),
+    tempMinC: numeric("temp_min_c", { precision: 6, scale: 2 }),
+    tempMaxC: numeric("temp_max_c", { precision: 6, scale: 2 }),
+    tempMeanC: numeric("temp_mean_c", { precision: 6, scale: 2 }),
+    humidityMeanPct: numeric("humidity_mean_pct", { precision: 6, scale: 2 }),
+    reviewedBy: uuid("reviewed_by").references(() => appUsers.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewNote: text("review_note"),
+    qualityFlag: weatherQualityFlagEnum("quality_flag").default("UNKNOWN").notNull(),
+    providerVersion: text("provider_version"),
+    providerPayload: jsonb("provider_payload"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => [
+    index("report_weather_status_next_retry_idx").on(table.status, table.nextRetryAt),
+    index("report_weather_provisional_status_idx").on(table.isProvisional, table.status),
+    index("report_weather_org_observed_at_idx").on(table.orgId, table.observedAt),
+    index("report_weather_grid_observed_date_idx").on(table.gridKey, table.observedLocalDate),
+    index("report_weather_quality_status_idx").on(table.qualityFlag, table.status),
+  ]
+);
+
+export const reportWeatherRelations = relations(reportWeather, ({ one }) => ({
+  report: one(reports, {
+    fields: [reportWeather.reportId],
+    references: [reports.id],
+  }),
   organization: one(organizations, {
-    fields: [reports.orgId],
+    fields: [reportWeather.orgId],
     references: [organizations.id],
   }),
-  user: one(appUsers, {
-    fields: [reports.userId],
+  reviewer: one(appUsers, {
+    fields: [reportWeather.reviewedBy],
     references: [appUsers.id],
   }),
-  media: many(reportMedia),
-  enhancements: many(triageEnhancements),
 }));
 
 export const reportMedia = createTable("report_media", {
@@ -211,6 +279,23 @@ export const reportMediaRelations = relations(reportMedia, ({ one }) => ({
   report: one(reports, {
     fields: [reportMedia.reportId],
     references: [reports.id],
+  }),
+}));
+
+export const reportsRelations = relations(reports, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [reports.orgId],
+    references: [organizations.id],
+  }),
+  user: one(appUsers, {
+    fields: [reports.userId],
+    references: [appUsers.id],
+  }),
+  media: many(reportMedia),
+  enhancements: many(triageEnhancements),
+  weather: one(reportWeather, {
+    fields: [reports.id],
+    references: [reportWeather.reportId],
   }),
 }));
 

@@ -23,6 +23,13 @@ import {
 } from "~/components/ui/dialog";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { canHardTriage } from "~/lib/permissions";
+import {
+  formatIsoLocalDate,
+  formatWeatherMetric,
+  getWeatherStatusUI,
+  normalizeReportWeatherUI,
+} from "~/lib/weather-ui";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { EnhancementForm } from "./enhancement-form";
 import { EnhancementList } from "./enhancement-list";
 
@@ -51,6 +58,20 @@ type Report = {
     mediaUrl: string;
     contentType: string | null;
   }>;
+  weather?: {
+    status: "PENDING" | "OK" | "FAILED" | "NEEDS_REVIEW";
+    source: string | null;
+    fetchedAt: Date | null;
+    observedLocalDate: string;
+    observedAt: Date;
+    rainDayMm: string | null;
+    rain7dMm: string | null;
+    tempMinC: string | null;
+    tempMaxC: string | null;
+    tempMeanC: string | null;
+    isProvisional?: boolean;
+    qualityFlag: "UNKNOWN" | "PLAUSIBLE" | "SUSPECT";
+  } | null;
 };
 
 interface ReportDetailProps {
@@ -142,6 +163,10 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
     : report.mediaUrl 
     ? [report.mediaUrl] 
     : [];
+
+  const weather = normalizeReportWeatherUI(report.weather);
+  const weatherStatus = getWeatherStatusUI(weather?.status);
+  const reportLocalDate = formatIsoLocalDate(report.createdAt);
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
@@ -243,6 +268,114 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
           ) : (
             <div className="flex items-center justify-center h-32 text-muted-foreground bg-muted/50 rounded-lg border border-dashed">
               No location data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Weather Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Weather Context</CardTitle>
+          <CardDescription>
+            <span className="inline-flex items-center gap-1">
+              Estimated daily weather conditions for this report location
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-4 w-4 items-center justify-center rounded-full border text-muted-foreground hover:text-foreground"
+                    aria-label="Weather estimate help"
+                  >
+                    <Info className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[260px] text-xs">
+                  Estimated from an external weather provider for the report location and local date.
+                </TooltipContent>
+              </Tooltip>
+            </span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Status:</span>
+            <span
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${weatherStatus.toneClass}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${weatherStatus.dotClass}`} />
+              {weather ? weatherStatus.label : "Unavailable"}
+            </span>
+            {weather?.isMock && (
+              <span className="inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium">
+                Mock Weather
+              </span>
+            )}
+            {weather?.isProvisional && (
+              <span className="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
+                Provisional
+              </span>
+            )}
+            {weather?.source && (
+              <span className="text-xs text-muted-foreground">
+                Source: {weather.source}
+              </span>
+            )}
+          </div>
+
+          {weather && (
+            <div className="space-y-3">
+              <div className="rounded-lg border p-3 text-sm">
+                <Label className="text-xs text-muted-foreground">Report Date vs Weather Date (Local)</Label>
+                <div className="font-medium">
+                  Report: {reportLocalDate} • Weather: {weather.observedLocalDate || "N/A"}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Weather Date (Local)</Label>
+                <div className="font-medium">{weather.observedLocalDate}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Fetched At</Label>
+                <div className="font-medium">
+                  {weather.fetchedAt ? new Date(weather.fetchedAt).toLocaleString() : "N/A"}
+                </div>
+              </div>
+            </div>
+            </div>
+          )}
+
+          {weather?.status === "OK" || weather?.status === "NEEDS_REVIEW" ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Rain (Day)</Label>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.rainDayMm, " mm")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Rain (7d)</Label>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.rain7dMm, " mm")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Temp (Mean)</Label>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.tempMeanC, "°C")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Temp (Min)</Label>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.tempMinC, "°C")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Temp (Max)</Label>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.tempMaxC, "°C")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Quality</Label>
+                <div className="text-base font-semibold">{weather.qualityFlag}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              Weather data is not available yet for this report.
             </div>
           )}
         </CardContent>

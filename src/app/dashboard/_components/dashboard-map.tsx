@@ -29,6 +29,11 @@ import {
   Minus,
 } from "lucide-react";
 import { cn } from "~/lib/utils";
+import {
+  formatWeatherMetric,
+  getWeatherStatusUI,
+  normalizeReportWeatherUI,
+} from "~/lib/weather-ui";
 
 interface MapPoint {
   id: string;
@@ -51,6 +56,19 @@ interface MapPoint {
     date: Date;
     officerName: string;
   }>;
+  weather?: {
+    status: "PENDING" | "OK" | "FAILED" | "NEEDS_REVIEW";
+    qualityFlag?: "UNKNOWN" | "PLAUSIBLE" | "SUSPECT";
+    source?: string | null;
+    observedLocalDate?: string;
+    fetchedAt?: string | Date | null;
+    rainDayMm?: number | string | null;
+    tempMeanC?: number | string | null;
+    tempMinC?: number | string | null;
+    tempMaxC?: number | string | null;
+    rain7dMm?: number | string | null;
+    isMock?: boolean;
+  } | null;
 }
 
 interface DashboardMapProps {
@@ -261,6 +279,8 @@ export function DashboardMap({ points }: DashboardMapProps) {
               recency: point.recency,
             });
             const trend = getTrend(point);
+            const weather = normalizeReportWeatherUI(point.weather);
+            const weatherStatus = getWeatherStatusUI(weather?.status);
 
             return (
               <Marker
@@ -355,7 +375,37 @@ export function DashboardMap({ points }: DashboardMapProps) {
                       </p>
                     </div>
 
-                    {/* 5. Previous reports (same location bucket) */}
+                    {/* 5. Weather snapshot (latest report only) */}
+                    <div className="border-t border-muted-foreground/15 pt-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Weather
+                        </span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-medium ring-1 ring-inset",
+                            weatherStatus.toneClass
+                          )}
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", weatherStatus.dotClass)} />
+                          {weather ? weatherStatus.label : "Unavailable"}
+                        </span>
+                      </div>
+                      <div className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
+                        <div>
+                          Rain (day): {weather && (weather.status === "OK" || weather.status === "NEEDS_REVIEW") ? formatWeatherMetric(weather.rainDayMm, " mm") : "N/A"}
+                        </div>
+                        <div>
+                          Temp (mean): {weather && (weather.status === "OK" || weather.status === "NEEDS_REVIEW") ? formatWeatherMetric(weather.tempMeanC, " °C") : "N/A"}
+                        </div>
+                        <div>
+                          Date: {weather?.observedLocalDate || "N/A"}
+                        </div>
+                        {weather?.isMock && <div>Mock Weather</div>}
+                      </div>
+                    </div>
+
+                    {/* 6. Previous reports (same location bucket) */}
                     <HistorySection history={point.recentHistory} />
                   </div>
                 </Popup>
