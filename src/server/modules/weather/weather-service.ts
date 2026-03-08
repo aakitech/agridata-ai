@@ -127,6 +127,40 @@ export class WeatherEnrichmentService {
     };
   }
 
+  async enrichReportWeather(reportId: string): Promise<"OK" | "NEEDS_REVIEW" | "FAILED" | "RETRIED" | "SKIPPED"> {
+    const leasedIds = await this.database.transaction(async (tx) => {
+      const rows = (await tx.execute(sql`
+        SELECT id
+        FROM agridata_report_weather
+        WHERE report_id = ${reportId}
+          AND status = 'PENDING'::weather_enrichment_status
+          AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      `)) as Array<{ id: string }>;
+
+      const rowIds = rows.map((r) => r.id);
+      if (rowIds.length === 0) return [];
+
+      const leaseUntil = new Date(Date.now() + LEASE_MINUTES * 60 * 1000);
+      await tx
+        .update(reportWeather)
+        .set({ nextRetryAt: leaseUntil })
+        .where(inArray(reportWeather.id, rowIds));
+
+      return rowIds;
+    });
+
+    if (leasedIds.length === 0) return "SKIPPED";
+
+    const row = await this.database.query.reportWeather.findFirst({
+      where: eq(reportWeather.id, leasedIds[0]!),
+    });
+
+    if (!row) return "SKIPPED";
+    return this.enrichRow(row as QueueRow);
+  }
+
   async processProvisionalBatch(limit = env.WEATHER_ENRICHMENT_BATCH_SIZE) {
     const leasedIds = await this.leaseProvisionalBatch(limit);
     if (leasedIds.length === 0) {
