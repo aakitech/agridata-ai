@@ -141,24 +141,48 @@ export function LocationDetail({ location }: LocationDetailProps) {
             <span className="text-muted-foreground">•</span>
             <span className="text-sm text-muted-foreground">by {latest.officer}</span>
           </div>
-          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-6 gap-2">
             <div className="rounded-md border bg-background p-2">
               <div className="text-[10px] uppercase text-muted-foreground">Weather Date (Local)</div>
               <div className="text-sm font-medium">{latestWeather?.observedLocalDate || "N/A"}</div>
             </div>
             <div className="rounded-md border bg-background p-2">
-              <div className="text-[10px] uppercase text-muted-foreground">Rain (Day)</div>
+              <div className="text-[10px] uppercase text-muted-foreground">Rainfall</div>
               <div className="text-sm font-medium">
                 {latestWeather && (latestWeather.status === "OK" || latestWeather.status === "NEEDS_REVIEW")
-                  ? formatWeatherMetric(latestWeather.rainDayMm, " mm")
+                  ? formatWeatherMetric(latestWeather.rainfallMm, " mm")
                   : "N/A"}
               </div>
             </div>
             <div className="rounded-md border bg-background p-2">
-              <div className="text-[10px] uppercase text-muted-foreground">Temp (Mean)</div>
+              <div className="text-[10px] uppercase text-muted-foreground">Temp (Avg)</div>
               <div className="text-sm font-medium">
                 {latestWeather && (latestWeather.status === "OK" || latestWeather.status === "NEEDS_REVIEW")
-                  ? formatWeatherMetric(latestWeather.tempMeanC, "°C")
+                  ? formatWeatherMetric(latestWeather.avgTempC, "°C")
+                  : "N/A"}
+              </div>
+            </div>
+            <div className="rounded-md border bg-background p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Temp (Min)</div>
+              <div className="text-sm font-medium">
+                {latestWeather && (latestWeather.status === "OK" || latestWeather.status === "NEEDS_REVIEW")
+                  ? formatWeatherMetric(latestWeather.minTempC, "°C")
+                  : "N/A"}
+              </div>
+            </div>
+            <div className="rounded-md border bg-background p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Temp (Max)</div>
+              <div className="text-sm font-medium">
+                {latestWeather && (latestWeather.status === "OK" || latestWeather.status === "NEEDS_REVIEW")
+                  ? formatWeatherMetric(latestWeather.maxTempC, "°C")
+                  : "N/A"}
+              </div>
+            </div>
+            <div className="rounded-md border bg-background p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Relative Humidity</div>
+              <div className="text-sm font-medium">
+                {latestWeather && (latestWeather.status === "OK" || latestWeather.status === "NEEDS_REVIEW")
+                  ? formatWeatherMetric(latestWeather.relativeHumidityPct, "%")
                   : "N/A"}
               </div>
             </div>
@@ -280,18 +304,42 @@ export function LocationDetail({ location }: LocationDetailProps) {
                           <div className="font-medium truncate">{reportWeather?.source || "N/A"}</div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Rain (Day)</div>
+                          <div className="text-muted-foreground">Rainfall</div>
                           <div className="font-medium">
                             {reportWeather && (reportWeather.status === "OK" || reportWeather.status === "NEEDS_REVIEW")
-                              ? formatWeatherMetric(reportWeather.rainDayMm, " mm")
+                              ? formatWeatherMetric(reportWeather.rainfallMm, " mm")
                               : "N/A"}
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Temp (Mean)</div>
+                          <div className="text-muted-foreground">Temp (Avg)</div>
                           <div className="font-medium">
                             {reportWeather && (reportWeather.status === "OK" || reportWeather.status === "NEEDS_REVIEW")
-                              ? formatWeatherMetric(reportWeather.tempMeanC, "°C")
+                              ? formatWeatherMetric(reportWeather.avgTempC, "°C")
+                              : "N/A"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Temp (Min)</div>
+                          <div className="font-medium">
+                            {reportWeather && (reportWeather.status === "OK" || reportWeather.status === "NEEDS_REVIEW")
+                              ? formatWeatherMetric(reportWeather.minTempC, "°C")
+                              : "N/A"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Temp (Max)</div>
+                          <div className="font-medium">
+                            {reportWeather && (reportWeather.status === "OK" || reportWeather.status === "NEEDS_REVIEW")
+                              ? formatWeatherMetric(reportWeather.maxTempC, "°C")
+                              : "N/A"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Relative Humidity</div>
+                          <div className="font-medium">
+                            {reportWeather && (reportWeather.status === "OK" || reportWeather.status === "NEEDS_REVIEW")
+                              ? formatWeatherMetric(reportWeather.relativeHumidityPct, "%")
                               : "N/A"}
                           </div>
                         </div>

@@ -7,6 +7,11 @@ export type ReportWeatherUI = {
   source: string | null;
   observedLocalDate: string;
   fetchedAt: string | Date | null;
+  rainfallMm: number | null;
+  relativeHumidityPct: number | null;
+  minTempC: number | null;
+  maxTempC: number | null;
+  avgTempC: number | null;
   rainDayMm: number | null;
   rain7dMm: number | null;
   tempMinC: number | null;
@@ -24,6 +29,11 @@ type RawWeatherLike = {
   observedLocalDate?: string | Date | null;
   fetchedAt?: string | Date | null;
   observedAt?: string | Date | null;
+  rainfallMm?: string | number | null;
+  relativeHumidityPct?: string | number | null;
+  minTempC?: string | number | null;
+  maxTempC?: string | number | null;
+  avgTempC?: string | number | null;
   rainDayMm?: string | number | null;
   rain7dMm?: string | number | null;
   tempMinC?: string | number | null;
@@ -43,6 +53,12 @@ export function normalizeReportWeatherUI(weather: RawWeatherLike): ReportWeather
         ? weather.observedLocalDate
         : "";
 
+  const rainfallMm = toNumberOrNull(weather.rainfallMm) ?? toNumberOrNull(weather.rainDayMm);
+  const minTempC = toNumberOrNull(weather.minTempC) ?? toNumberOrNull(weather.tempMinC);
+  const maxTempC = toNumberOrNull(weather.maxTempC) ?? toNumberOrNull(weather.tempMaxC);
+  const avgTempC = toNumberOrNull(weather.avgTempC) ?? toNumberOrNull(weather.tempMeanC);
+  const relativeHumidityPct = toNumberOrNull(weather.relativeHumidityPct);
+
   return {
     status: weather.status,
     qualityFlag: weather.qualityFlag ?? "UNKNOWN",
@@ -50,11 +66,16 @@ export function normalizeReportWeatherUI(weather: RawWeatherLike): ReportWeather
     observedLocalDate,
     fetchedAt: weather.fetchedAt ?? null,
     observedAt: weather.observedAt ?? null,
-    rainDayMm: toNumberOrNull(weather.rainDayMm),
+    rainfallMm,
+    relativeHumidityPct,
+    minTempC,
+    maxTempC,
+    avgTempC,
+    rainDayMm: rainfallMm,
     rain7dMm: toNumberOrNull(weather.rain7dMm),
-    tempMinC: toNumberOrNull(weather.tempMinC),
-    tempMaxC: toNumberOrNull(weather.tempMaxC),
-    tempMeanC: toNumberOrNull(weather.tempMeanC),
+    tempMinC: minTempC,
+    tempMaxC: maxTempC,
+    tempMeanC: avgTempC,
     isProvisional: weather.isProvisional === true,
     isMock: weather.isMock === true,
   };

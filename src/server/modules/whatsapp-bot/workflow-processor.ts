@@ -13,7 +13,7 @@ import { env } from "~/env";
 import { computeGridKey, toObservedLocalDate } from "~/server/modules/weather/weather-utils";
 import { WeatherEnrichmentService } from "~/server/modules/weather/weather-service";
 
-const DEFAULT_WEATHER_TIMEZONE = env.WEATHER_DEFAULT_TIMEZONE || "Africa/Harare";
+const DEFAULT_WEATHER_TIMEZONE = env.WEATHER_DEFAULT_TIMEZONE || "Africa/Johannesburg";
 const INLINE_WEATHER_TIMEOUT_MS = Math.max(0, env.WEATHER_INLINE_ENRICHMENT_TIMEOUT_MS);
 
 export class WorkflowProcessor {
@@ -357,7 +357,7 @@ export class WorkflowProcessor {
       .returning();
 
     // 5. Enqueue weather enrichment without blocking report completion.
-    if (report?.location) {
+    if (report?.location && env.WEATHER_ENRICHMENT_ENABLED) {
       try {
         const coords = parseLocation(report.location);
         if (coords) {
@@ -378,7 +378,7 @@ export class WorkflowProcessor {
             status: "PENDING",
           });
 
-          if (INLINE_WEATHER_TIMEOUT_MS > 0) {
+          if (env.WEATHER_INLINE_ENRICHMENT_ENABLED && INLINE_WEATHER_TIMEOUT_MS > 0) {
             const weatherService = new WeatherEnrichmentService(db);
             console.info(
               `INLINE_WEATHER_START reportId=${report.id} timeoutMs=${INLINE_WEATHER_TIMEOUT_MS}`

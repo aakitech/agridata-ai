@@ -21,6 +21,14 @@ export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!env.WEATHER_ENRICHMENT_ENABLED) {
+    return NextResponse.json({
+      success: true,
+      provider: env.WEATHER_PROVIDER,
+      skipped_by_config: true,
+      reason: "WEATHER_ENRICHMENT_ENABLED=false",
+    });
+  }
 
   const batchSizeParam = req.nextUrl.searchParams.get("batchSize");
   const batchSize =

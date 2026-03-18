@@ -94,6 +94,10 @@ export class WeatherEnrichmentService {
   }
 
   async processPendingBatch(limit = env.WEATHER_ENRICHMENT_BATCH_SIZE) {
+    if (!env.WEATHER_ENRICHMENT_ENABLED) {
+      return { leased: 0, processed: 0, ok: 0, needsReview: 0, failed: 0, retried: 0 };
+    }
+
     const leasedIds = await this.leasePendingBatch(limit);
     if (leasedIds.length === 0) {
       return { leased: 0, processed: 0, ok: 0, needsReview: 0, failed: 0, retried: 0 };
@@ -128,6 +132,8 @@ export class WeatherEnrichmentService {
   }
 
   async enrichReportWeather(reportId: string): Promise<"OK" | "NEEDS_REVIEW" | "FAILED" | "RETRIED" | "SKIPPED"> {
+    if (!env.WEATHER_ENRICHMENT_ENABLED) return "SKIPPED";
+
     const leasedIds = await this.database.transaction(async (tx) => {
       const rows = (await tx.execute(sql`
         SELECT id
@@ -162,6 +168,10 @@ export class WeatherEnrichmentService {
   }
 
   async processProvisionalBatch(limit = env.WEATHER_ENRICHMENT_BATCH_SIZE) {
+    if (!env.WEATHER_ENRICHMENT_ENABLED) {
+      return { leased: 0, processed: 0, finalized: 0, stillProvisional: 0, failed: 0, retried: 0 };
+    }
+
     const leasedIds = await this.leaseProvisionalBatch(limit);
     if (leasedIds.length === 0) {
       return { leased: 0, processed: 0, finalized: 0, stillProvisional: 0, failed: 0, retried: 0 };
@@ -274,6 +284,7 @@ export class WeatherEnrichmentService {
               tempMinC: toNumberOrNull(cached.tempMinC),
               tempMaxC: toNumberOrNull(cached.tempMaxC),
               tempMeanC: toNumberOrNull(cached.tempMeanC),
+              relativeHumidityPct: toNumberOrNull(cached.relativeHumidityPct),
               isProvisional: cached.isProvisional,
               providerVersion: cached.providerVersion,
               rawPayload: null,
@@ -309,6 +320,8 @@ export class WeatherEnrichmentService {
           tempMinC: weather.tempMinC != null ? weather.tempMinC.toString() : null,
           tempMaxC: weather.tempMaxC != null ? weather.tempMaxC.toString() : null,
           tempMeanC: weather.tempMeanC != null ? weather.tempMeanC.toString() : null,
+          relativeHumidityPct:
+            weather.relativeHumidityPct != null ? weather.relativeHumidityPct.toString() : null,
           providerVersion: weather.providerVersion ?? null,
           providerPayload: weather.rawPayload ?? null,
           updatedAt: new Date(),
@@ -351,6 +364,7 @@ export class WeatherEnrichmentService {
     const tempMean = weather.tempMeanC;
     const rainDay = weather.rainDayMm;
     const rain7d = weather.rain7dMm;
+    const relativeHumidity = weather.relativeHumidityPct;
     if (tempMean != null && (tempMean < -5 || tempMean > 50)) {
       return { flag: "SUSPECT", errorCode: "TEMP_MEAN_OUT_OF_RANGE" };
     }
@@ -360,12 +374,15 @@ export class WeatherEnrichmentService {
     if (rain7d != null && (rain7d < 0 || rain7d > 1000)) {
       return { flag: "SUSPECT", errorCode: "RAIN_7D_OUT_OF_RANGE" };
     }
+    if (relativeHumidity != null && (relativeHumidity < 0 || relativeHumidity > 100)) {
+      return { flag: "SUSPECT", errorCode: "RELATIVE_HUMIDITY_OUT_OF_RANGE" };
+    }
     if (
       weather.tempMinC == null ||
       weather.tempMaxC == null ||
       weather.tempMeanC == null ||
       weather.rainDayMm == null ||
-      weather.rain7dMm == null
+      weather.relativeHumidityPct == null
     ) {
       return { flag: "SUSPECT", errorCode: "MISSING_WEATHER_FIELDS" };
     }

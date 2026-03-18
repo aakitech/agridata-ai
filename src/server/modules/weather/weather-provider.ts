@@ -4,6 +4,7 @@ export type DailyWeatherSnapshot = {
   tempMinC: number | null;
   tempMaxC: number | null;
   tempMeanC: number | null;
+  relativeHumidityPct: number | null;
   isProvisional: boolean;
   providerVersion?: string | null;
   rawPayload?: unknown;
@@ -34,6 +35,12 @@ function toNumberOrNull(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return Number((total / values.length).toFixed(2));
 }
 
 function getLocalDateString(date: Date, timezone: string): string {
@@ -93,6 +100,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
           longitude: String(params.lon),
           timezone: params.timezone,
           daily: "precipitation_sum,temperature_2m_min,temperature_2m_max",
+          hourly: "relative_humidity_2m",
           past_days: "7",
           forecast_days: "1",
         })
@@ -103,6 +111,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
           end_date: endDate,
           timezone: params.timezone,
           daily: "precipitation_sum,temperature_2m_min,temperature_2m_max",
+          hourly: "relative_humidity_2m",
         });
 
     const payload = (await fetchJsonWithTimeout(
@@ -114,6 +123,10 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
         temperature_2m_min?: Array<number | string | null>;
         temperature_2m_max?: Array<number | string | null>;
       };
+      hourly?: {
+        time?: string[];
+        relative_humidity_2m?: Array<number | string | null>;
+      };
       generationtime_ms?: number;
     };
 
@@ -121,6 +134,8 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
     const rain = payload.daily?.precipitation_sum ?? [];
     const tempMin = payload.daily?.temperature_2m_min ?? [];
     const tempMax = payload.daily?.temperature_2m_max ?? [];
+    const humidityTimes = payload.hourly?.time ?? [];
+    const humidityValues = payload.hourly?.relative_humidity_2m ?? [];
 
     if (days.length === 0) {
       throw new Error("PROVIDER_EMPTY_DAILY");
@@ -144,6 +159,13 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
       0
     );
     const rain7dMm = Number(rain7dMmRaw.toFixed(3));
+    const humidityForTargetDay = humidityTimes
+      .map((time, index) => {
+        if (!time.startsWith(params.observedLocalDate)) return null;
+        return toNumberOrNull(humidityValues[index]);
+      })
+      .filter((value): value is number => value != null);
+    const relativeHumidityPct = average(humidityForTargetDay);
 
     return {
       rainDayMm,
@@ -151,6 +173,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
       tempMinC,
       tempMaxC,
       tempMeanC,
+      relativeHumidityPct,
       isProvisional: useProvisionalFeed,
       providerVersion:
         typeof payload.generationtime_ms === "number"

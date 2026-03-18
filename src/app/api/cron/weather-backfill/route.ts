@@ -27,6 +27,15 @@ export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!env.WEATHER_BACKFILL_ENABLED || !env.WEATHER_ENRICHMENT_ENABLED) {
+    return NextResponse.json({
+      success: true,
+      skipped_by_config: true,
+      reason: !env.WEATHER_ENRICHMENT_ENABLED
+        ? "WEATHER_ENRICHMENT_ENABLED=false"
+        : "WEATHER_BACKFILL_ENABLED=false",
+    });
+  }
 
   const orgId = req.nextUrl.searchParams.get("orgId");
   const from = req.nextUrl.searchParams.get("from");

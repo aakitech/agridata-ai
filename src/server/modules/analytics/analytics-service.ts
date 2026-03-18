@@ -42,6 +42,11 @@ export interface WeatherSummary {
   observedLocalDate: string;
   fetchedAt: Date | null;
   observedAt: Date | null;
+  rainfallMm: number | null;
+  relativeHumidityPct: number | null;
+  minTempC: number | null;
+  maxTempC: number | null;
+  avgTempC: number | null;
   rainDayMm: number | null;
   rain7dMm: number | null;
   tempMinC: number | null;
@@ -119,8 +124,14 @@ export class AnalyticsService {
     tempMinC: unknown;
     tempMaxC: unknown;
     tempMeanC: unknown;
+    relativeHumidityPct: unknown;
   } | null | undefined): WeatherSummary | null {
     if (!weather) return null;
+    const rainDayMm = this.toNumberOrNull(weather.rainDayMm);
+    const tempMinC = this.toNumberOrNull(weather.tempMinC);
+    const tempMaxC = this.toNumberOrNull(weather.tempMaxC);
+    const tempMeanC = this.toNumberOrNull(weather.tempMeanC);
+    const relativeHumidityPct = this.toNumberOrNull(weather.relativeHumidityPct);
     return {
       status: weather.status,
       qualityFlag: weather.qualityFlag,
@@ -128,11 +139,16 @@ export class AnalyticsService {
       observedLocalDate: weather.observedLocalDate,
       fetchedAt: weather.fetchedAt ?? null,
       observedAt: weather.observedAt ?? null,
-      rainDayMm: this.toNumberOrNull(weather.rainDayMm),
+      rainfallMm: rainDayMm,
+      relativeHumidityPct,
+      minTempC: tempMinC,
+      maxTempC: tempMaxC,
+      avgTempC: tempMeanC,
+      rainDayMm,
       rain7dMm: this.toNumberOrNull(weather.rain7dMm),
-      tempMinC: this.toNumberOrNull(weather.tempMinC),
-      tempMaxC: this.toNumberOrNull(weather.tempMaxC),
-      tempMeanC: this.toNumberOrNull(weather.tempMeanC),
+      tempMinC,
+      tempMaxC,
+      tempMeanC,
     };
   }
 
