@@ -277,17 +277,8 @@ export default function ReportsPage() {
 
   const filteredGroupedData = useMemo(() => {
     if (!weatherAwareGroupedData) return weatherAwareGroupedData;
-    if (!normalizedSearch) return weatherAwareGroupedData;
-    return weatherAwareGroupedData.filter((loc) => {
-      const latest = loc.latestReport;
-      return (
-        latest.pest.toLowerCase().includes(normalizedSearch) ||
-        latest.officer.toLowerCase().includes(normalizedSearch)
-      );
-    });
-  }, [weatherAwareGroupedData, normalizedSearch]);
-    if (!groupedData) return groupedData;
-    let filtered = groupedData;
+
+    let filtered = weatherAwareGroupedData;
 
     // Province filter
     if (provinceFilter) {
@@ -309,7 +300,7 @@ export default function ReportsPage() {
     }
 
     return filtered;
-  }, [groupedData, normalizedSearch, provinceFilter, getLocationProvince]);
+  }, [weatherAwareGroupedData, normalizedSearch, provinceFilter, getLocationProvince]);
 
   const filteredListReports = useMemo(() => {
     if (!listData?.reports) return listData?.reports;

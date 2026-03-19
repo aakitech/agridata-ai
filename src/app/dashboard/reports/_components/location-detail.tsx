@@ -3,6 +3,7 @@
 import { MapPin, TrendingUp, TrendingDown, Minus, Clock, Calendar, User, Bug } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { ScrollArea } from "~/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,18 @@ function getTrendIcon(trend: "up" | "down" | "stable") {
       return <TrendingDown className="h-4 w-4 text-green-500" />;
     case "stable":
       return <Minus className="h-4 w-4 text-muted-foreground" />;
+  }
+}
+
+function getSeverityTooltip(severity: string | null): string {
+  switch (severity) {
+    case "HIGH":
+      return "Reports where observed counts exceed defined pest thresholds.";
+    case "WARNING":
+      return "Reports approaching threshold levels.";
+    case "NORMAL":
+    default:
+      return "Reports below alert thresholds.";
   }
 }
 
@@ -92,18 +105,25 @@ export function LocationDetail({ location }: LocationDetailProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  variant={
-                    latest.severity === "HIGH"
-                      ? "destructive"
-                      : latest.severity === "WARNING"
-                      ? "default"
-                      : "secondary"
-                  }
-                  className="text-sm h-7 px-3"
-                >
-                  Current: {latest.severity || "NORMAL"}
-                </Badge>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant={
+                        latest.severity === "HIGH"
+                          ? "destructive"
+                          : latest.severity === "WARNING"
+                          ? "default"
+                          : "secondary"
+                      }
+                      className="text-sm h-7 px-3"
+                    >
+                      Current: {latest.severity || "NORMAL"}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[260px] text-xs">
+                    {getSeverityTooltip(latest.severity)}
+                  </TooltipContent>
+                </Tooltip>
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
@@ -194,18 +214,25 @@ export function LocationDetail({ location }: LocationDetailProps) {
                           </div>
                         </div>
                       </div>
-                      <Badge
-                        variant={
-                          report.severity === "HIGH"
-                            ? "destructive"
-                            : report.severity === "WARNING"
-                            ? "default"
-                            : "secondary"
-                        }
-                        className="text-[10px]"
-                      >
-                        {report.severity || "NORMAL"}
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant={
+                              report.severity === "HIGH"
+                                ? "destructive"
+                                : report.severity === "WARNING"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className="text-[10px]"
+                          >
+                            {report.severity || "NORMAL"}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[260px] text-xs">
+                          {getSeverityTooltip(report.severity)}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <div className="mt-2 flex items-center gap-2 text-sm">
                       <Bug className="h-4 w-4 text-muted-foreground" />
@@ -231,17 +258,24 @@ export function LocationDetail({ location }: LocationDetailProps) {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Severity</span>
-                      <Badge
-                        variant={
-                          report.severity === "HIGH"
-                            ? "destructive"
-                            : report.severity === "WARNING"
-                            ? "default"
-                            : "secondary"
-                        }
-                      >
-                        {report.severity || "NORMAL"}
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant={
+                              report.severity === "HIGH"
+                                ? "destructive"
+                                : report.severity === "WARNING"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
+                            {report.severity || "NORMAL"}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[260px] text-xs">
+                          {getSeverityTooltip(report.severity)}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Officer</span>

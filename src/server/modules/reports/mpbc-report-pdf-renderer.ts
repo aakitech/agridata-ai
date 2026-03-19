@@ -154,22 +154,22 @@ export class MpbcReportPdfRenderer {
     } else {
       // Province breakdown table
       const provCols = [
-        { label: "Province / Region", w: 150 },
-        { label: "Reports", w: 60 },
-        { label: "Sites", w: 50 },
-        { label: "High", w: 55 },
-        { label: "Warning", w: 65 },
-        { label: "Normal", w: 60 },
-        { label: "Share", w: contentWidth - (150 + 60 + 50 + 55 + 65 + 60) },
+        { label: "Province / Region", w: 120 },
+        { label: "Reports", w: 50 },
+        { label: "Sites", w: 40 },
+        { label: "High Severity", w: 60 },
+        { label: "Moderate Severity", w: 70 },
+        { label: "Low Severity", w: 60 },
+        { label: "Share of Total Reports", w: contentWidth - (120 + 50 + 40 + 60 + 70 + 60) },
       ] as const;
 
-      const provHeaderH = 20;
+      const provHeaderH = 24;
       doc.save();
       doc.rect(left, y, contentWidth, provHeaderH).fill("#f3f4f6");
       doc.restore();
 
       let cx = left;
-      doc.font("Helvetica-Bold").fillColor("#111").fontSize(9);
+      doc.font("Helvetica-Bold").fillColor("#111").fontSize(8);
       for (const c of provCols) {
         doc.text(c.label, cx + 6, y + 6, { width: c.w - 12 });
         cx += c.w;

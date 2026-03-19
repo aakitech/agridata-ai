@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { MapPin, AlertTriangle, AlertCircle, CheckCircle, Loader2, ExternalLink } from "lucide-react";
+import { MapPin, AlertTriangle, AlertCircle, CheckCircle, Loader2, ExternalLink, CircleHelp } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { api } from "~/trpc/react";
 import type { LocationWithReports } from "~/server/modules/analytics/analytics-service";
 
@@ -28,6 +29,37 @@ interface ProvinceRow {
   warningAlerts: number;
   normalAlerts: number;
   locations: number;
+}
+
+function SeverityHeader({
+  label,
+  description,
+  icon,
+}: {
+  label: string;
+  description: string;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-1">
+      {icon}
+      <span>{label}</span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+            aria-label={`${label} definition`}
+          >
+            <CircleHelp className="h-3 w-3" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[260px] text-[11px]">
+          {description}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
 }
 
 export function ProvinceBreakdown({ locations }: ProvinceBreakdownProps) {
@@ -175,24 +207,45 @@ function ProvinceTable({
           <TableHead className="text-xs text-right">Reports</TableHead>
           <TableHead className="text-xs text-right">Sites</TableHead>
           <TableHead className="text-xs text-center">
-            <div className="flex items-center justify-center gap-1">
-              <AlertTriangle className="h-3 w-3 text-red-500" />
-              <span>High</span>
-            </div>
+            <SeverityHeader
+              label="High Severity"
+              description="Reports where observed counts exceed defined pest thresholds."
+              icon={<AlertTriangle className="h-3 w-3 text-red-500" />}
+            />
           </TableHead>
           <TableHead className="text-xs text-center">
-            <div className="flex items-center justify-center gap-1">
-              <AlertCircle className="h-3 w-3 text-amber-500" />
-              <span>Warn</span>
-            </div>
+            <SeverityHeader
+              label="Moderate Severity"
+              description="Reports approaching threshold levels."
+              icon={<AlertCircle className="h-3 w-3 text-amber-500" />}
+            />
           </TableHead>
           <TableHead className="text-xs text-center">
-            <div className="flex items-center justify-center gap-1">
-              <CheckCircle className="h-3 w-3 text-green-500" />
-              <span>Normal</span>
+            <SeverityHeader
+              label="Low Severity"
+              description="Reports below alert thresholds."
+              icon={<CheckCircle className="h-3 w-3 text-green-500" />}
+            />
+          </TableHead>
+          <TableHead className="text-xs text-right">
+            <div className="flex items-center justify-end gap-1">
+              <span>Share of Total Reports</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+                    aria-label="Share of Total Reports definition"
+                  >
+                    <CircleHelp className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[260px] text-[11px]">
+                  Percentage of all reports in the selected time window coming from this province.
+                </TooltipContent>
+              </Tooltip>
             </div>
           </TableHead>
-          <TableHead className="text-xs text-right">Share</TableHead>
           <TableHead className="text-xs text-center">Details</TableHead>
         </TableRow>
       </TableHeader>
