@@ -265,11 +265,16 @@ export class WeatherEnrichmentService {
       const gridKey = row.gridKey;
       const cached = !options?.skipCache && gridKey
         ? await this.database.query.reportWeather.findFirst({
-            where: (table, { and, eq, ne }) =>
+            where: (table, { and, eq, isNotNull, ne }) =>
               and(
                 eq(table.gridKey, gridKey),
                 eq(table.observedLocalDate, row.observedLocalDate),
                 eq(table.status, "OK"),
+                isNotNull(table.rainDayMm),
+                isNotNull(table.tempMinC),
+                isNotNull(table.tempMaxC),
+                isNotNull(table.tempMeanC),
+                isNotNull(table.relativeHumidityPct),
                 ne(table.reportId, row.reportId)
               ),
             orderBy: (table, { desc }) => [desc(table.fetchedAt), desc(table.updatedAt)],
