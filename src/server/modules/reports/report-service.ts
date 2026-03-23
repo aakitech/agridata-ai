@@ -136,6 +136,59 @@ export class ReportService {
     const reportsWithGeocoding = await this.enrichWithGeocoding(sortedAllReports);
     const highAlertsWithGeocoding = await this.enrichWithGeocoding(sortedHighAlertReports);
 
+    // Build province breakdown from all reports with geocoding
+    const provinceMap = new Map<string, {
+      totalReports: number;
+      locations: Set<string>;
+      highAlerts: number;
+      warningAlerts: number;
+      normalAlerts: number;
+    }>();
+
+    for (const report of reportsWithGeocoding) {
+      const province = report.province ?? "Unknown";
+      
+      const existing = provinceMap.get(province) ?? {
+        totalReports: 0,
+        locations: new Set<string>(),
+        highAlerts: 0,
+        warningAlerts: 0,
+        normalAlerts: 0,
+      };
+
+      existing.totalReports += 1;
+      if (report.location) {
+        existing.locations.add(report.location);
+      }
+
+      switch (report.severity) {
+        case "HIGH":
+          existing.highAlerts += 1;
+          break;
+        case "WARNING":
+          existing.warningAlerts += 1;
+          break;
+        case "NORMAL":
+          existing.normalAlerts += 1;
+          break;
+      }
+
+      provinceMap.set(province, existing);
+    }
+
+    const totalReportsCount = totalReportsResult?.count ?? 0;
+    const provinceBreakdown = Array.from(provinceMap.entries())
+      .map(([province, data]) => ({
+        province,
+        totalReports: data.totalReports,
+        locations: data.locations.size,
+        highAlerts: data.highAlerts,
+        warningAlerts: data.warningAlerts,
+        normalAlerts: data.normalAlerts,
+        sharePercentage: totalReportsCount > 0 ? (data.totalReports / totalReportsCount) * 100 : 0,
+      }))
+      .sort((a, b) => b.totalReports - a.totalReports);
+
     return {
       organization: {
         id: org.id,
@@ -154,10 +207,11 @@ export class ReportService {
       highAlertReports: highAlertsWithGeocoding,
       allReports: reportsWithGeocoding,
       mapPoints,
+      provinceBreakdown,
     };
   }
 
-  private async enrichWithGeocoding(reports: ReportWithRelations[]): Promise<ReportWithRelations[]> {
+  private async enrichWithGeocoding(reports: ReportWithRelations[]): Promise<Array<ReportWithRelations & { province?: string }>> {
     const enriched = [...reports];
     const uniqueLocations = new Set<string>();
     
@@ -166,6 +220,7 @@ export class ReportService {
     });
 
     const locationMap = new Map<string, string | null>();
+    const provinceMap = new Map<string, string>();
     
     for (const loc of uniqueLocations) {
       if (geocodeCache.has(loc)) {
@@ -197,8 +252,12 @@ export class ReportService {
             const area = addr.city || addr.state || addr.country || "";
             const result = descriptive !== area && area ? `${descriptive}, ${area}` : descriptive || area || null;
             
+            // Extract province (state or county)
+            const province = addr.state || addr.province || addr.county || "Unknown";
+            
             geocodeCache.set(loc, result);
             locationMap.set(loc, result);
+            provinceMap.set(loc, province);
           } else {
             geocodeCache.set(loc, null);
           }
@@ -210,7 +269,8 @@ export class ReportService {
 
     return enriched.map(r => ({
       ...r,
-      geocodedLocation: r.location ? locationMap.get(r.location) : null
+      geocodedLocation: r.location ? locationMap.get(r.location) : null,
+      province: r.location ? provinceMap.get(r.location) : undefined,
     }));
   }
 }

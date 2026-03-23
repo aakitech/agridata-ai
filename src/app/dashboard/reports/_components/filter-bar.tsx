@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Filter, AlertTriangle, CheckCircle, AlertCircle, Search } from "lucide-react";
+import { Filter, AlertTriangle, CheckCircle, AlertCircle, Search, MapPin, X } from "lucide-react";
+import { Button } from "~/components/ui/button";
 
 interface FilterBarProps {
   viewMode: "grouped" | "list";
@@ -27,6 +28,9 @@ interface FilterBarProps {
   pest: string | null;
   onPestChange: (value: string | null) => void;
   pestOptions: string[] | undefined;
+  province: string | null;
+  onProvinceChange: (value: string | null) => void;
+  provinceOptions: string[] | undefined;
   listSort: "DATE_DESC" | "DATE_ASC";
   onListSortChange: (sort: "DATE_DESC" | "DATE_ASC") => void;
 }
@@ -47,6 +51,9 @@ export function FilterBar({
   pest,
   onPestChange,
   pestOptions,
+  province,
+  onProvinceChange,
+  provinceOptions,
   listSort,
   onListSortChange,
 }: FilterBarProps) {
@@ -142,6 +149,39 @@ export function FilterBar({
           </SelectContent>
         </Select>
       )}
+
+      {/* Province Filter */}
+      {province ? (
+        <div className="flex items-center gap-1 h-8 px-2 bg-blue-50 border border-blue-200 rounded-md text-xs">
+          <MapPin className="h-3 w-3 text-blue-500" />
+          <span className="text-blue-700 font-medium">{province}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-5 w-5 p-0 ml-1 text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+            onClick={() => onProvinceChange(null)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      ) : provinceOptions && provinceOptions.length > 0 ? (
+        <Select
+          value="all"
+          onValueChange={(v) => onProvinceChange(v === "all" ? null : v)}
+        >
+          <SelectTrigger className="w-full sm:w-[180px] h-8 text-xs">
+            <SelectValue placeholder="All Provinces" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Provinces</SelectItem>
+            {provinceOptions.map((p) => (
+              <SelectItem key={p} value={p}>
+                {p}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : null}
 
       {/* Organization Filter (super_admin only) */}
       {userRole === "super_admin" && organizations && organizations.length > 0 && (

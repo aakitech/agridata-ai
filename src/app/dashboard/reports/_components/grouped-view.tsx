@@ -2,6 +2,7 @@
 import { MapPin, TrendingUp, TrendingDown, Minus, Clock, AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { ScrollArea } from "~/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "~/trpc/react";
@@ -84,6 +85,18 @@ function getSeverityIcon(severity: string | null) {
   }
 }
 
+function getSeverityTooltip(severity: string | null): string {
+  switch (severity) {
+    case "HIGH":
+      return "Reports where observed counts exceed defined pest thresholds.";
+    case "WARNING":
+      return "Reports approaching threshold levels.";
+    case "NORMAL":
+    default:
+      return "Reports below alert thresholds.";
+  }
+}
+
 export function GroupedView({
   locations,
   selectedLocationKey,
@@ -109,7 +122,7 @@ export function GroupedView({
   return (
     <div className="h-full flex flex-col gap-4 lg:flex-row">
       {/* Left Sidebar - Location List */}
-      <div className="w-full lg:w-80 flex-shrink-0 flex flex-col border rounded-lg bg-card max-h-[45vh] lg:max-h-none">
+      <div className="w-full lg:w-80 shrink-0 flex flex-col border rounded-lg bg-card max-h-[45vh] lg:max-h-none">
         <div className="p-3 border-b bg-muted/50">
           <h3 className="font-semibold text-sm">
             📍 Locations ({locations.length})
@@ -143,18 +156,25 @@ export function GroupedView({
 
                 {/* Status Summary */}
                 <div className="mt-2 flex items-center gap-2 text-xs">
-                  <Badge
-                    variant={
-                      location.latestReport.severity === "HIGH"
-                        ? "destructive"
-                        : location.latestReport.severity === "WARNING"
-                        ? "default"
-                        : "secondary"
-                    }
-                    className="text-[9px] h-4"
-                  >
-                    {location.latestReport.severity || "NORMAL"}
-                  </Badge>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant={
+                          location.latestReport.severity === "HIGH"
+                            ? "destructive"
+                            : location.latestReport.severity === "WARNING"
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="text-[9px] h-4"
+                      >
+                        {location.latestReport.severity || "NORMAL"}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[260px] text-xs">
+                      {getSeverityTooltip(location.latestReport.severity)}
+                    </TooltipContent>
+                  </Tooltip>
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {formatDistanceToNow(new Date(location.latestReport.date), { addSuffix: true })}
