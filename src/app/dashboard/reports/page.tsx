@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import { ViewToggle } from "./_components/view-toggle";
 import { TimeRangeSelector } from "./_components/time-range-selector";
@@ -19,6 +20,9 @@ type TimeRange = "7d" | "30d" | "90d" | "all";
 type ListSort = "DATE_DESC" | "DATE_ASC";
 
 export default function ReportsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   // View mode with localStorage persistence
   const [viewMode, setViewMode] = useState<ViewMode>("grouped");
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
@@ -29,8 +33,32 @@ export default function ReportsPage() {
   const [officerFilter, setOfficerFilter] = useState<string | null>(null);
   const [orgFilter, setOrgFilter] = useState<string | null>(null);
   const [pestFilter, setPestFilter] = useState<string | null>(null);
+  const [provinceFilter, setProvinceFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showGroupedHelper, setShowGroupedHelper] = useState(true);
+
+  // Read province from URL param on mount
+  useEffect(() => {
+    const province = searchParams.get("province");
+    if (province) {
+      setProvinceFilter(province);
+      // Switch to grouped view when filtering by province (locations are spatial)
+      setViewMode("grouped");
+    }
+  }, [searchParams]);
+
+  // Update URL when province filter changes
+  const handleProvinceChange = useCallback((value: string | null) => {
+    setProvinceFilter(value);
+    const params = new URLSearchParams(window.location.search);
+    if (value) {
+      params.set("province", value);
+    } else {
+      params.delete("province");
+    }
+    const qs = params.toString();
+    router.replace(`/dashboard/reports${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [router]);
 
   // List controls
   const [page, setPage] = useState(1);
@@ -62,7 +90,7 @@ export default function ReportsPage() {
   // Reset list pagination when key inputs change
   useEffect(() => {
     setPage(1);
-  }, [timeRange, severityFilter, officerFilter, orgFilter, pestFilter, listSort, viewMode, search]);
+  }, [timeRange, severityFilter, officerFilter, orgFilter, pestFilter, provinceFilter, listSort, viewMode, search]);
 
   // Calculate date range - memoized to prevent unnecessary re-fetches
   const startDate = useMemo(() => {
@@ -163,6 +191,73 @@ export default function ReportsPage() {
     return pests;
   }, [groupedData, listData?.reports]);
 
+  // Province resolution: geocode unique coordinates from grouped data to extract province names
+  const uniqueCoords = useMemo(() => {
+    if (!groupedData) return [];
+    const map = new Map<string, { lat: number; lon: number }>();
+    for (const loc of groupedData) {
+      const key = `${loc.coordinates.lat.toFixed(3)},${loc.coordinates.lon.toFixed(3)}`;
+      if (!map.has(key)) {
+        map.set(key, loc.coordinates);
+      }
+    }
+    return Array.from(map.entries());
+  }, [groupedData]);
+
+  // Imperative batch geocode using tRPC utils (avoids hooks-in-loop violation)
+  const utils = api.useUtils();
+  const [coordToProvince, setCoordToProvince] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    if (uniqueCoords.length === 0) {
+      setCoordToProvince(new Map());
+      return;
+    }
+
+    let cancelled = false;
+
+    async function resolveProvinces() {
+      const map = new Map<string, string>();
+      await Promise.all(
+        uniqueCoords.map(async ([key, coords]) => {
+          try {
+            const result = await utils.reports.reverseGeocode.fetch(
+              { lat: coords.lat, lon: coords.lon }
+            );
+            if (result && !cancelled) {
+              map.set(key, result.state ?? result.county ?? "Unknown");
+            }
+          } catch {
+            // ignore geocoding failures for individual coordinates
+          }
+        })
+      );
+      if (!cancelled) {
+        setCoordToProvince(map);
+      }
+    }
+
+    void resolveProvinces();
+    return () => { cancelled = true; };
+  }, [uniqueCoords, utils]);
+
+  // Available province options for the filter dropdown
+  const provinceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const province of coordToProvince.values()) {
+      if (province !== "Unknown" && province !== "Resolving...") {
+        set.add(province);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [coordToProvince]);
+
+  // Helper: get province name for a location
+  const getLocationProvince = useCallback((loc: LocationWithReports): string | null => {
+    const key = `${loc.coordinates.lat.toFixed(3)},${loc.coordinates.lon.toFixed(3)}`;
+    return coordToProvince.get(key) ?? null;
+  }, [coordToProvince]);
+
   // Combined loading and error states
   const isLoading = viewMode === "grouped" ? groupedLoading : listLoading;
   const isError = viewMode === "grouped" ? isGroupedError : isListError;
@@ -182,15 +277,30 @@ export default function ReportsPage() {
 
   const filteredGroupedData = useMemo(() => {
     if (!weatherAwareGroupedData) return weatherAwareGroupedData;
-    if (!normalizedSearch) return weatherAwareGroupedData;
-    return weatherAwareGroupedData.filter((loc) => {
-      const latest = loc.latestReport;
-      return (
-        latest.pest.toLowerCase().includes(normalizedSearch) ||
-        latest.officer.toLowerCase().includes(normalizedSearch)
-      );
-    });
-  }, [weatherAwareGroupedData, normalizedSearch]);
+
+    let filtered = weatherAwareGroupedData;
+
+    // Province filter
+    if (provinceFilter) {
+      filtered = filtered.filter((loc) => {
+        const province = getLocationProvince(loc);
+        return province === provinceFilter;
+      });
+    }
+
+    // Search filter
+    if (normalizedSearch) {
+      filtered = filtered.filter((loc) => {
+        const latest = loc.latestReport;
+        return (
+          latest.pest.toLowerCase().includes(normalizedSearch) ||
+          latest.officer.toLowerCase().includes(normalizedSearch)
+        );
+      });
+    }
+
+    return filtered;
+  }, [weatherAwareGroupedData, normalizedSearch, provinceFilter, getLocationProvince]);
 
   const filteredListReports = useMemo(() => {
     if (!listData?.reports) return listData?.reports;
@@ -289,6 +399,9 @@ export default function ReportsPage() {
         pest={pestFilter}
         onPestChange={setPestFilter}
         pestOptions={pestOptions}
+        province={provinceFilter}
+        onProvinceChange={handleProvinceChange}
+        provinceOptions={provinceOptions}
         listSort={listSort}
         onListSortChange={setListSort}
       />
