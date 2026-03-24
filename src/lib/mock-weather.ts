@@ -29,11 +29,16 @@ function buildMockWeather(item: WeatherCarrier, preset: MockPresetName): ReportW
     return {
       status: "OK",
       qualityFlag: "PLAUSIBLE",
+      rainfallMm: 8.4,
       rainDayMm: 8.4,
       rain7dMm: 31.2,
+      minTempC: 16.2,
       tempMinC: 16.2,
+      maxTempC: 28.1,
       tempMaxC: 28.1,
+      avgTempC: 22.2,
       tempMeanC: 22.2,
+      relativeHumidityPct: 68.4,
       ...common,
     } as ReportWeatherUI;
   }
@@ -42,11 +47,16 @@ function buildMockWeather(item: WeatherCarrier, preset: MockPresetName): ReportW
     return {
       status: "PENDING",
       qualityFlag: "UNKNOWN",
+      rainfallMm: null,
       rainDayMm: null,
       rain7dMm: null,
+      minTempC: null,
       tempMinC: null,
+      maxTempC: null,
       tempMaxC: null,
+      avgTempC: null,
       tempMeanC: null,
+      relativeHumidityPct: null,
       ...common,
     } as ReportWeatherUI;
   }
@@ -55,11 +65,16 @@ function buildMockWeather(item: WeatherCarrier, preset: MockPresetName): ReportW
     return {
       status: "NEEDS_REVIEW",
       qualityFlag: "SUSPECT",
+      rainfallMm: 42.7,
       rainDayMm: 42.7,
       rain7dMm: 118.5,
+      minTempC: 14.1,
       tempMinC: 14.1,
+      maxTempC: 36.8,
       tempMaxC: 36.8,
+      avgTempC: 25.5,
       tempMeanC: 25.5,
+      relativeHumidityPct: 91.2,
       ...common,
     } as ReportWeatherUI;
   }
@@ -67,11 +82,16 @@ function buildMockWeather(item: WeatherCarrier, preset: MockPresetName): ReportW
   return {
     status: "FAILED",
     qualityFlag: "UNKNOWN",
+    rainfallMm: null,
     rainDayMm: null,
     rain7dMm: null,
+    minTempC: null,
     tempMinC: null,
+    maxTempC: null,
     tempMaxC: null,
+    avgTempC: null,
     tempMeanC: null,
+    relativeHumidityPct: null,
     ...common,
   } as ReportWeatherUI;
 }

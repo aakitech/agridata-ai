@@ -4,7 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Badge } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
-import { Phone, Image as ImageIcon, CloudRain, Thermometer } from "lucide-react";
+import { Phone, Image as ImageIcon, CloudRain, Thermometer, Droplets } from "lucide-react";
 import {
   formatWeatherMetric,
   getWeatherStatusUI,
@@ -33,6 +33,9 @@ type Report = {
     source?: string | null;
     observedLocalDate?: string;
     fetchedAt?: Date | string | null;
+    rainfallMm?: string | number | null;
+    relativeHumidityPct?: string | number | null;
+    avgTempC?: string | number | null;
     rainDayMm?: string | number | null;
     tempMeanC?: string | number | null;
     isProvisional?: boolean;
@@ -138,11 +141,15 @@ export function ReportsList({ reports, selectedId, onSelect }: ReportsListProps)
                     <>
                       <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                         <CloudRain className="h-2.5 w-2.5" />
-                        Rain: {formatWeatherMetric(weather.rainDayMm, "mm")}
+                        Rainfall: {formatWeatherMetric(weather.rainfallMm, " mm")}
                       </span>
                       <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                         <Thermometer className="h-2.5 w-2.5" />
-                        Temp: {formatWeatherMetric(weather.tempMeanC, "°C")}
+                        Temp (Avg): {formatWeatherMetric(weather.avgTempC, "°C")}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Droplets className="h-2.5 w-2.5" />
+                        RH: {formatWeatherMetric(weather.relativeHumidityPct, "%")}
                       </span>
                     </>
                   )}

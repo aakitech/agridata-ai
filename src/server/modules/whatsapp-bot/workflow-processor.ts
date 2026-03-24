@@ -11,8 +11,10 @@ import { AlertsService } from "~/server/modules/alerts/alerts-service";
 import { parseLocation } from "~/lib/geo";
 import { env } from "~/env";
 import { computeGridKey, toObservedLocalDate } from "~/server/modules/weather/weather-utils";
+import { WeatherEnrichmentService } from "~/server/modules/weather/weather-service";
 
-const DEFAULT_WEATHER_TIMEZONE = env.WEATHER_DEFAULT_TIMEZONE || "Africa/Harare";
+const DEFAULT_WEATHER_TIMEZONE = env.WEATHER_DEFAULT_TIMEZONE || "Africa/Johannesburg";
+const INLINE_WEATHER_TIMEOUT_MS = Math.max(0, env.WEATHER_INLINE_ENRICHMENT_TIMEOUT_MS);
 
 export class WorkflowProcessor {
   private config: WorkflowConfig;
@@ -355,7 +357,7 @@ export class WorkflowProcessor {
       .returning();
 
     // 5. Enqueue weather enrichment without blocking report completion.
-    if (report?.location) {
+    if (report?.location && env.WEATHER_ENRICHMENT_ENABLED) {
       try {
         const coords = parseLocation(report.location);
         if (coords) {
@@ -375,6 +377,40 @@ export class WorkflowProcessor {
             source: env.WEATHER_PROVIDER,
             status: "PENDING",
           });
+
+          if (env.WEATHER_INLINE_ENRICHMENT_ENABLED && INLINE_WEATHER_TIMEOUT_MS > 0) {
+            const weatherService = new WeatherEnrichmentService(db);
+            console.info(
+              `INLINE_WEATHER_START reportId=${report.id} timeoutMs=${INLINE_WEATHER_TIMEOUT_MS}`
+            );
+            const inlineEnrichment = weatherService
+              .enrichReportWeather(report.id)
+              .catch((error) => {
+                console.error(
+                  "Inline weather enrichment failed for report:",
+                  report.id,
+                  error
+                );
+                return "FAILED" as const;
+              });
+
+            const result = await Promise.race([
+              inlineEnrichment,
+              new Promise<"TIMEOUT">((resolve) =>
+                setTimeout(() => resolve("TIMEOUT"), INLINE_WEATHER_TIMEOUT_MS)
+              ),
+            ]);
+
+            if (result === "TIMEOUT") {
+              console.warn(
+                `INLINE_WEATHER_TIMEOUT reportId=${report.id} timeoutMs=${INLINE_WEATHER_TIMEOUT_MS}`
+              );
+            } else {
+              console.info(
+                `INLINE_WEATHER_RESULT reportId=${report.id} result=${result}`
+              );
+            }
+          }
         }
       } catch (error) {
         console.error("Failed to enqueue weather enrichment for report:", report.id, error);

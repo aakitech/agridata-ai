@@ -66,6 +66,11 @@ type Report = {
     observedAt: Date;
     rainDayMm: string | null;
     rain7dMm: string | null;
+    relativeHumidityPct?: string | null;
+    rainfallMm?: string | null;
+    minTempC?: string | null;
+    maxTempC?: string | null;
+    avgTempC?: string | null;
     tempMinC: string | null;
     tempMaxC: string | null;
     tempMeanC: string | null;
@@ -349,24 +354,28 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
           {weather?.status === "OK" || weather?.status === "NEEDS_REVIEW" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="rounded-lg border p-3">
-                <Label className="text-xs text-muted-foreground">Rain (Day)</Label>
-                <div className="text-base font-semibold">{formatWeatherMetric(weather.rainDayMm, " mm")}</div>
+                <Label className="text-xs text-muted-foreground">Rainfall</Label>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.rainfallMm, " mm")}</div>
               </div>
               <div className="rounded-lg border p-3">
                 <Label className="text-xs text-muted-foreground">Rain (7d)</Label>
                 <div className="text-base font-semibold">{formatWeatherMetric(weather.rain7dMm, " mm")}</div>
               </div>
               <div className="rounded-lg border p-3">
-                <Label className="text-xs text-muted-foreground">Temp (Mean)</Label>
-                <div className="text-base font-semibold">{formatWeatherMetric(weather.tempMeanC, "°C")}</div>
+                <Label className="text-xs text-muted-foreground">Temp (Avg)</Label>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.avgTempC, "°C")}</div>
               </div>
               <div className="rounded-lg border p-3">
                 <Label className="text-xs text-muted-foreground">Temp (Min)</Label>
-                <div className="text-base font-semibold">{formatWeatherMetric(weather.tempMinC, "°C")}</div>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.minTempC, "°C")}</div>
               </div>
               <div className="rounded-lg border p-3">
                 <Label className="text-xs text-muted-foreground">Temp (Max)</Label>
-                <div className="text-base font-semibold">{formatWeatherMetric(weather.tempMaxC, "°C")}</div>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.maxTempC, "°C")}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Relative Humidity</Label>
+                <div className="text-base font-semibold">{formatWeatherMetric(weather.relativeHumidityPct, "%")}</div>
               </div>
               <div className="rounded-lg border p-3">
                 <Label className="text-xs text-muted-foreground">Quality</Label>

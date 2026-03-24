@@ -62,6 +62,9 @@ interface MapPoint {
     source?: string | null;
     observedLocalDate?: string;
     fetchedAt?: string | Date | null;
+    rainfallMm?: number | string | null;
+    relativeHumidityPct?: number | string | null;
+    avgTempC?: number | string | null;
     rainDayMm?: number | string | null;
     tempMeanC?: number | string | null;
     tempMinC?: number | string | null;
@@ -393,10 +396,13 @@ export function DashboardMap({ points }: DashboardMapProps) {
                       </div>
                       <div className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
                         <div>
-                          Rain (day): {weather && (weather.status === "OK" || weather.status === "NEEDS_REVIEW") ? formatWeatherMetric(weather.rainDayMm, " mm") : "N/A"}
+                          Rainfall: {weather && (weather.status === "OK" || weather.status === "NEEDS_REVIEW") ? formatWeatherMetric(weather.rainfallMm, " mm") : "N/A"}
                         </div>
                         <div>
-                          Temp (mean): {weather && (weather.status === "OK" || weather.status === "NEEDS_REVIEW") ? formatWeatherMetric(weather.tempMeanC, " °C") : "N/A"}
+                          Temp (avg): {weather && (weather.status === "OK" || weather.status === "NEEDS_REVIEW") ? formatWeatherMetric(weather.avgTempC, " °C") : "N/A"}
+                        </div>
+                        <div>
+                          RH: {weather && (weather.status === "OK" || weather.status === "NEEDS_REVIEW") ? formatWeatherMetric(weather.relativeHumidityPct, "%") : "N/A"}
                         </div>
                         <div>
                           Date: {weather?.observedLocalDate || "N/A"}
