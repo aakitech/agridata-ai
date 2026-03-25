@@ -10,6 +10,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "seed:workflows": "npx tsx --env-file=.env scripts/whatsapp-bot-seed-workflows.ts",
+    "seed:mpbc-pest-configs": "npx tsx --env-file=.env scripts/seed-mpbc-pest-configs.ts",
     "seed:mpbc-30day": "npx tsx --env-file=.env scripts/seed-mpbc-30day-test-data.ts",
     "bootstrap-admin": "npx tsx --env-file=.env scripts/bootstrap-admin.ts",
     "diagnose:user": "npx tsx --env-file=.env scripts/diagnose-blocked-users.ts",

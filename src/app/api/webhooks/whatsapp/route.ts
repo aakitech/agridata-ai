@@ -38,11 +38,13 @@ function validateTwilioSignature(token: string, signature: string, url: string, 
 export async function POST(req: NextRequest) {
   try {
     // 1. Get the raw body
-    const text = await req.text();
+    const rawBody = Buffer.from(await req.arrayBuffer());
+    const text = rawBody.toString("utf8");
     
     if (!text || text.length === 0) {
       console.error("⚠️ Empty body received! This will cause signature validation to fail.");
       console.error("   Headers:", Object.fromEntries(req.headers.entries()));
+      console.error("   Raw body bytes:", rawBody.length);
     }
     
     const params = new URLSearchParams(text);
@@ -58,7 +60,10 @@ export async function POST(req: NextRequest) {
     // Construct the actual URL that Twilio sees from the incoming request
     // This ensures exact match with what Twilio uses to generate the signature
     const protocol = req.headers.get("x-forwarded-proto") || "https";
-    const host = req.headers.get("host") || req.nextUrl.host;
+    const host =
+      req.headers.get("x-forwarded-host") ||
+      req.headers.get("host") ||
+      req.nextUrl.host;
     const pathname = req.nextUrl.pathname;
     const search = req.nextUrl.search; // Includes query parameters if any
     const url = `${protocol}://${host}${pathname}${search}`;

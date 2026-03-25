@@ -37,6 +37,21 @@ function severityColor(sev: Severity): { fill: string; text: string } {
   return { fill: "#d1fae5", text: "#065f46" };
 }
 
+function formatObservationMethod(method: string | null | undefined): string {
+  switch (method) {
+    case "PHEROMONE_TRAP":
+      return "Trap";
+    case "FIELD_OBSERVATION":
+      return "Field";
+    case "EVENT_OBSERVATION":
+      return "Event";
+    case "SIGN_BASED":
+      return "Sign";
+    default:
+      return "";
+  }
+}
+
 export class MpbcReportPdfRenderer {
   async render(reportData: MpbcReportData): Promise<Buffer> {
     // Ensure deterministic ordering beyond the service (defensive)
@@ -74,7 +89,7 @@ export class MpbcReportPdfRenderer {
     const periodType = daysDiff <= 14 ? "Weekly" : "Monthly";
     const periodLabel = daysDiff <= 14 ? "Last 7 Days" : "Last 30 Days";
 
-    doc.font("Helvetica-Bold").fontSize(22).text(`${periodType} Trap Monitoring Report`, left, 120, {
+    doc.font("Helvetica-Bold").fontSize(22).text(`${periodType} Pest Surveillance Report`, left, 120, {
       width: contentWidth,
       align: "center",
     });
@@ -106,7 +121,7 @@ export class MpbcReportPdfRenderer {
     const metrics = [
       { label: "Total Reports Submitted", value: reportData.summaryMetrics.totalReports, emphasize: false },
       { label: "Active Officers", value: reportData.summaryMetrics.activeOfficers, emphasize: false },
-      { label: "Trap Locations Visited", value: reportData.summaryMetrics.uniqueLocations, emphasize: false },
+      { label: "Reporting Locations", value: reportData.summaryMetrics.uniqueLocations, emphasize: false },
       { label: "High Alert Reports", value: reportData.summaryMetrics.highAlertCount, emphasize: reportData.summaryMetrics.highAlertCount > 0 },
     ] as const;
 
@@ -136,7 +151,7 @@ export class MpbcReportPdfRenderer {
     doc.addPage();
     doc.font("Helvetica-Bold").fillColor("#111").fontSize(16).text("Province Breakdown", left, 60);
     doc.font("Helvetica").fillColor("#666").fontSize(10).text(
-      "Geographic distribution of trap reports by administrative region",
+      "Geographic distribution of pest reports by administrative region",
       left,
       85,
       { width: contentWidth }
@@ -280,13 +295,13 @@ export class MpbcReportPdfRenderer {
 
     // ---- Page 2: High Alert Focus ----
     doc.addPage();
-    doc.font("Helvetica-Bold").fillColor("#111").fontSize(16).text("High Alert Trap Observations", left, 60);
+    doc.font("Helvetica-Bold").fillColor("#111").fontSize(16).text("High Alert Observations", left, 60);
 
     y = 95;
 
     if (highAlerts.length === 0) {
       doc.font("Helvetica-Oblique").fillColor("#666").fontSize(11).text(
-        "No high-risk trap counts were detected during this reporting period.",
+        "No high-alert pest observations were detected during this reporting period.",
         left,
         y + 30,
         { width: contentWidth, align: "center" }
@@ -297,7 +312,7 @@ export class MpbcReportPdfRenderer {
         { key: "date", label: "Date", w: 55 },
         { key: "location", label: "Location", w: 165 },
         { key: "pest", label: "Pest", w: 85 },
-        { key: "count", label: "Count", w: 45 },
+        { key: "count", label: "Primary", w: 45 },
         { key: "severity", label: "Severity", w: 65 },
         { key: "officer", label: "Officer", w: contentWidth - (55 + 165 + 85 + 45 + 65) },
       ] as const;
@@ -332,7 +347,7 @@ export class MpbcReportPdfRenderer {
         const values = {
           date: format(r.createdAt, "MMM dd"),
           location: formatLocation(r.location, r.geocodedLocation),
-          pest: r.label || "N/A",
+          pest: [r.label || "N/A", formatObservationMethod(r.observationMethod)].filter(Boolean).join(" • "),
           count: r.observedCount ?? "N/A",
           severity: r.severity ?? "NORMAL",
           officer: r.user?.fullName || r.user?.phoneNumber || "Unknown",
@@ -372,9 +387,9 @@ export class MpbcReportPdfRenderer {
       { width: contentWidth, align: "center" }
     );
 
-    // ---- Page 3: Trap Activity Summary ----
+    // ---- Page 3: Observation Summary ----
     doc.addPage();
-    doc.font("Helvetica-Bold").fillColor("#111").fontSize(16).text("Trap Activity Summary", left, 60);
+    doc.font("Helvetica-Bold").fillColor("#111").fontSize(16).text("Observation Summary", left, 60);
     y = 95;
 
     if (allReports.length === 0) {
@@ -389,7 +404,7 @@ export class MpbcReportPdfRenderer {
         { label: "Date", w: 55 },
         { label: "Location", w: 165 },
         { label: "Pest", w: 85 },
-        { label: "Count", w: 45 },
+        { label: "Primary", w: 45 },
         { label: "Severity", w: 65 },
         { label: "Officer", w: contentWidth - (55 + 165 + 85 + 45 + 65) },
       ] as const;
@@ -423,7 +438,7 @@ export class MpbcReportPdfRenderer {
         const vPad = 8;
         doc.text(format(r.createdAt, "MMM dd"), cx + 6, y + vPad, { width: cols[0].w - 12 }); cx += cols[0].w;
         doc.text(formatLocation(r.location, r.geocodedLocation), cx + 6, y + vPad, { width: cols[1].w - 12, lineGap: 1 }); cx += cols[1].w;
-        doc.text(r.label || "N/A", cx + 6, y + vPad, { width: cols[2].w - 12 }); cx += cols[2].w;
+        doc.text([r.label || "N/A", formatObservationMethod(r.observationMethod)].filter(Boolean).join(" • "), cx + 6, y + vPad, { width: cols[2].w - 12 }); cx += cols[2].w;
         doc.text(String(r.observedCount ?? "N/A"), cx + 6, y + vPad, { width: cols[3].w - 12 }); cx += cols[3].w;
 
         const sev = r.severity ?? "NORMAL";

@@ -12,6 +12,7 @@ import {
   pgEnum,
   boolean,
   integer,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -67,6 +68,38 @@ export const severitySourceEnum = pgEnum("severity_source", [
   "DEFAULT_FALLBACK",
 ]);
 
+export const observationMethodEnum = pgEnum("observation_method", [
+  "PHEROMONE_TRAP",
+  "FIELD_OBSERVATION",
+  "EVENT_OBSERVATION",
+  "SIGN_BASED",
+]);
+
+export const alertTriggerEnum = pgEnum("alert_trigger", [
+  "WARNING_AND_HIGH",
+  "HIGH_ONLY",
+  "NONE",
+]);
+
+export const pestFieldTypeEnum = pgEnum("pest_field_type", [
+  "number",
+  "select",
+  "boolean",
+  "text",
+]);
+
+export const pestFieldCaptureModeEnum = pgEnum("pest_field_capture_mode", [
+  "RAW",
+  "CONTEXT",
+]);
+
+export const pestRuleConditionKindEnum = pgEnum("pest_rule_condition_kind", [
+  "NUMERIC",
+  "DERIVED",
+  "CATEGORICAL",
+  "DEFAULT",
+]);
+
 export const weatherEnrichmentStatusEnum = pgEnum("weather_enrichment_status", [
   "PENDING",
   "OK",
@@ -118,50 +151,199 @@ export const appUsers = createTable(
 
 export const riskLevelEnum = pgEnum("risk_level", ["LOW", "MEDIUM", "HIGH"]);
 
-export const reports = createTable("reports", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  orgId: uuid("org_id")
-    .references(() => organizations.id)
-    .notNull(),
-  userId: uuid("user_id")
-    .references(() => appUsers.id)
-    .notNull(),
-  status: reportStatusEnum("status").default("DRAFT").notNull(),
-  category: reportCategoryEnum("category"),
+export const pestConfigurations = createTable(
+  "pest_configurations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    key: text("key").notNull(),
+    label: text("label").notNull(),
+    active: boolean("active").default(true).notNull(),
+    displayOrder: integer("display_order").default(0).notNull(),
+    defaultObservationMethod: observationMethodEnum("default_observation_method").notNull(),
+    alertTrigger: alertTriggerEnum("alert_trigger").default("WARNING_AND_HIGH").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => [
+    index("pest_configurations_org_active_display_idx").on(
+      table.orgId,
+      table.active,
+      table.displayOrder
+    ),
+    index("pest_configurations_org_key_idx").on(table.orgId, table.key),
+    uniqueIndex("pest_configurations_org_key_unique_idx").on(
+      table.orgId,
+      table.key
+    ),
+  ]
+);
 
-  // Dynamic Collection Fields
-  workflowId: text("workflow_id"),
-  label: text("label"), // Replaces explicit category inference in some cases
-  quantity: text("quantity"), // captured via bot
-  dataPayload: jsonb("data_payload"),
+export const pestObservationConfigs = createTable(
+  "pest_observation_configs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pestConfigurationId: uuid("pest_configuration_id")
+      .references(() => pestConfigurations.id, { onDelete: "cascade" })
+      .notNull(),
+    method: observationMethodEnum("method").notNull(),
+    active: boolean("active").default(true).notNull(),
+    displayOrder: integer("display_order").default(0).notNull(),
+    countFieldKey: text("count_field_key"),
+    summaryFieldKeys: jsonb("summary_field_keys"),
+    guidanceText: text("guidance_text"),
+    derivedDefinitions: jsonb("derived_definitions"),
+    confirmationNormalTemplate: text("confirmation_normal_template"),
+    confirmationWarningTemplate: text("confirmation_warning_template"),
+    confirmationHighTemplate: text("confirmation_high_template"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => [
+    index("pest_observation_configs_pest_display_idx").on(
+      table.pestConfigurationId,
+      table.displayOrder
+    ),
+    uniqueIndex("pest_observation_configs_pest_method_unique_idx").on(
+      table.pestConfigurationId,
+      table.method
+    ),
+  ]
+);
 
-  mediaUrl: text("media_url"),
+export const pestObservationFields = createTable(
+  "pest_observation_fields",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    observationConfigId: uuid("observation_config_id")
+      .references(() => pestObservationConfigs.id, { onDelete: "cascade" })
+      .notNull(),
+    key: text("key").notNull(),
+    label: text("label").notNull(),
+    prompt: text("prompt").notNull(),
+    helpText: text("help_text"),
+    fieldType: pestFieldTypeEnum("field_type").notNull(),
+    required: boolean("required").default(true).notNull(),
+    displayOrder: integer("display_order").default(0).notNull(),
+    defaultValue: jsonb("default_value"),
+    options: jsonb("options"),
+    validationRules: jsonb("validation_rules"),
+    captureMode: pestFieldCaptureModeEnum("capture_mode").default("RAW").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => [
+    index("pest_observation_fields_config_display_idx").on(
+      table.observationConfigId,
+      table.displayOrder
+    ),
+    uniqueIndex("pest_observation_fields_config_key_unique_idx").on(
+      table.observationConfigId,
+      table.key
+    ),
+  ]
+);
 
-  // Using text for location for now as PostGIS setup in Drizzle can be complex without extensions
-  // We will store 'POINT(long lat)' string or JSON
-  location: text("location"),
-  description: text("description"),
+export const pestSeverityRules = createTable(
+  "pest_severity_rules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    observationConfigId: uuid("observation_config_id")
+      .references(() => pestObservationConfigs.id, { onDelete: "cascade" })
+      .notNull(),
+    ruleOrder: integer("rule_order").default(0).notNull(),
+    severity: severityEnum("severity").notNull(),
+    conditionKind: pestRuleConditionKindEnum("condition_kind").notNull(),
+    conditionExpression: jsonb("condition_expression").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => [
+    index("pest_severity_rules_config_order_idx").on(
+      table.observationConfigId,
+      table.ruleOrder
+    ),
+  ]
+);
 
-  // Expert Triage Fields
-  diagnosis: text("diagnosis"),
-  riskLevel: riskLevelEnum("risk_level"),
-  rejectionReason: text("rejection_reason"),
-  verifiedAt: timestamp("verified_at", { withTimezone: true }),
-  verifiedBy: uuid("verified_by"), // References app_users(id) presumably, or auth id
+export const reports = createTable(
+  "reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .references(() => organizations.id)
+      .notNull(),
+    userId: uuid("user_id")
+      .references(() => appUsers.id)
+      .notNull(),
+    status: reportStatusEnum("status").default("DRAFT").notNull(),
+    category: reportCategoryEnum("category"),
 
-  // Enhancement tracking
-  enhancementCount: integer("enhancement_count").default(0).notNull(),
-  lastEnhancementAt: timestamp("last_enhancement_at", { withTimezone: true }),
+    // Dynamic Collection Fields
+    workflowId: text("workflow_id"),
+    pestConfigurationId: uuid("pest_configuration_id").references(
+      () => pestConfigurations.id,
+      { onDelete: "set null" }
+    ),
+    pestKey: text("pest_key"),
+    observationMethod: observationMethodEnum("observation_method"),
+    label: text("label"), // Replaces explicit category inference in some cases
+    quantity: text("quantity"), // captured via bot
+    dataPayload: jsonb("data_payload"),
 
-  // Alert severity (computed at ingestion time)
-  severity: severityEnum("severity"),
-  observedCount: integer("observed_count"), // Raw count used for severity computation
-  severitySource: severitySourceEnum("severity_source"), // Source of severity computation (ORG_CONFIG or DEFAULT_FALLBACK)
+    mediaUrl: text("media_url"),
 
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+    // Using text for location for now as PostGIS setup in Drizzle can be complex without extensions
+    // We will store 'POINT(long lat)' string or JSON
+    location: text("location"),
+    description: text("description"),
+
+    // Expert Triage Fields
+    diagnosis: text("diagnosis"),
+    riskLevel: riskLevelEnum("risk_level"),
+    rejectionReason: text("rejection_reason"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    verifiedBy: uuid("verified_by"), // References app_users(id) presumably, or auth id
+
+    // Enhancement tracking
+    enhancementCount: integer("enhancement_count").default(0).notNull(),
+    lastEnhancementAt: timestamp("last_enhancement_at", { withTimezone: true }),
+
+    // Alert severity (computed at ingestion time)
+    severity: severityEnum("severity"),
+    observedCount: integer("observed_count"), // Raw count used for severity computation
+    severitySource: severitySourceEnum("severity_source"), // Source of severity computation (ORG_CONFIG or DEFAULT_FALLBACK)
+    alertTriggered: boolean("alert_triggered"),
+    alertTriggerReason: text("alert_trigger_reason"),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => [
+    index("reports_pest_key_idx").on(table.pestKey),
+    index("reports_observation_method_idx").on(table.observationMethod),
+    index("reports_pest_configuration_id_idx").on(table.pestConfigurationId),
+  ]
+);
 
 export const botSessions = createTable("bot_sessions", {
   userId: uuid("user_id")
@@ -183,6 +365,7 @@ export const botSessions = createTable("bot_sessions", {
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(appUsers),
   reports: many(reports),
+  pestConfigurations: many(pestConfigurations),
 }));
 
 export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
@@ -196,6 +379,50 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
     references: [botSessions.userId],
   }),
 }));
+
+export const pestConfigurationsRelations = relations(
+  pestConfigurations,
+  ({ one, many }) => ({
+    organization: one(organizations, {
+      fields: [pestConfigurations.orgId],
+      references: [organizations.id],
+    }),
+    observationConfigs: many(pestObservationConfigs),
+    reports: many(reports),
+  })
+);
+
+export const pestObservationConfigsRelations = relations(
+  pestObservationConfigs,
+  ({ one, many }) => ({
+    pestConfiguration: one(pestConfigurations, {
+      fields: [pestObservationConfigs.pestConfigurationId],
+      references: [pestConfigurations.id],
+    }),
+    fields: many(pestObservationFields),
+    severityRules: many(pestSeverityRules),
+  })
+);
+
+export const pestObservationFieldsRelations = relations(
+  pestObservationFields,
+  ({ one }) => ({
+    observationConfig: one(pestObservationConfigs, {
+      fields: [pestObservationFields.observationConfigId],
+      references: [pestObservationConfigs.id],
+    }),
+  })
+);
+
+export const pestSeverityRulesRelations = relations(
+  pestSeverityRules,
+  ({ one }) => ({
+    observationConfig: one(pestObservationConfigs, {
+      fields: [pestSeverityRules.observationConfigId],
+      references: [pestObservationConfigs.id],
+    }),
+  })
+);
 
 export const reportWeather = createTable(
   "report_weather",
@@ -287,6 +514,10 @@ export const reportsRelations = relations(reports, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [reports.orgId],
     references: [organizations.id],
+  }),
+  pestConfiguration: one(pestConfigurations, {
+    fields: [reports.pestConfigurationId],
+    references: [pestConfigurations.id],
   }),
   user: one(appUsers, {
     fields: [reports.userId],

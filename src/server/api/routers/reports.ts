@@ -212,7 +212,7 @@ export const reportsRouter = createTRPCRouter({
       // Convert dates to ISO strings for proper serialization
       return {
         pdf: base64Pdf,
-        filename: `MPBC_${periodType}_Trap_Report_${formatDateRange(startDate, endDate)}.pdf`,
+        filename: `MPBC_${periodType}_Pest_Surveillance_Report_${formatDateRange(startDate, endDate)}.pdf`,
         metadata: {
           organization: reportData.organization?.name ?? "MPBC",
           period: {

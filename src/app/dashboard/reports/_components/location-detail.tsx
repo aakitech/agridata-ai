@@ -156,9 +156,12 @@ export function LocationDetail({ location }: LocationDetailProps) {
           </div>
           <div className="mt-2 flex items-center gap-2">
             <span className="text-sm">
-              Latest: <span className="font-semibold">{latest.count ?? "N/A"}</span> {latest.pest}
+              Latest: <span className="font-semibold">{latest.summaryValue ?? latest.count ?? "N/A"}</span> {latest.pest}
             </span>
             <span className="text-muted-foreground">•</span>
+            {latest.observationMethod && (
+              <span className="text-sm text-muted-foreground">{latest.observationMethod}</span>
+            )}
             <span className="text-sm text-muted-foreground">by {latest.officer}</span>
           </div>
           <div className="mt-3 grid grid-cols-1 md:grid-cols-6 gap-2">
@@ -260,9 +263,12 @@ export function LocationDetail({ location }: LocationDetailProps) {
                     </div>
                     <div className="mt-2 flex items-center gap-2 text-sm">
                       <Bug className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold">{report.count ?? "N/A"}</span>
+                      <span className="font-semibold">{report.summaryValue ?? report.count ?? "N/A"}</span>
                       <span>{report.pest || "Unknown"}</span>
                     </div>
+                    {report.observationMethod && (
+                      <div className="mt-1 text-xs text-muted-foreground">{report.observationMethod}</div>
+                    )}
                   </div>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
@@ -274,10 +280,13 @@ export function LocationDetail({ location }: LocationDetailProps) {
                       <div className="p-3 bg-muted/40 rounded-lg">
                         <div className="text-xs text-muted-foreground uppercase">Pest</div>
                         <div className="text-lg font-bold">{report.pest || "Unknown"}</div>
+                        {report.observationMethod && (
+                          <div className="text-xs text-muted-foreground">{report.observationMethod}</div>
+                        )}
                       </div>
                       <div className="p-3 bg-muted/40 rounded-lg">
-                        <div className="text-xs text-muted-foreground uppercase">Count</div>
-                        <div className="text-lg font-bold font-mono">{report.count ?? "N/A"}</div>
+                        <div className="text-xs text-muted-foreground uppercase">Primary Value</div>
+                        <div className="text-lg font-bold font-mono">{report.summaryValue ?? report.count ?? "N/A"}</div>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">

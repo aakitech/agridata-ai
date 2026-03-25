@@ -179,10 +179,10 @@ export default function ReportsPage() {
     }
 
     for (const r of listData?.reports ?? []) {
-      if (!r.label) {
+      if (!r.displayLabel || r.displayLabel === "Unknown") {
         sawUnknown = true;
       } else {
-        set.add(r.label);
+        set.add(r.displayLabel);
       }
     }
 
@@ -307,7 +307,7 @@ export default function ReportsPage() {
     if (!normalizedSearch) return listData.reports;
     return listData.reports.filter((r) => {
       const officer = (r.user?.fullName || r.user?.phoneNumber || "").toLowerCase();
-      const pest = (r.label || "").toLowerCase();
+      const pest = (r.displayLabel || r.label || "").toLowerCase();
       return officer.includes(normalizedSearch) || pest.includes(normalizedSearch);
     });
   }, [listData?.reports, normalizedSearch]);

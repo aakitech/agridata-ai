@@ -311,30 +311,56 @@ export class WorkflowProcessor {
     const isValidCount =
       observedCount !== null && !isNaN(observedCount) && observedCount >= 0;
 
-    // 3. Compute severity using AlertsService
+    // 3. Compute severity and alert outcome using AlertsService
     let severity: "NORMAL" | "WARNING" | "HIGH" | null = null;
     let severitySource: "ORG_CONFIG" | "DEFAULT_FALLBACK" | null = null;
+    let pestConfigurationId: string | null = null;
+    let normalizedPestKey: string | null = typeof pestKey === "string" ? pestKey : null;
+    let observationMethod: "PHEROMONE_TRAP" | "FIELD_OBSERVATION" | "EVENT_OBSERVATION" | "SIGN_BASED" | null = null;
+    let alertTriggered: boolean | null = null;
+    let alertTriggerReason: string | null = null;
+    let derivedValues: Record<string, unknown> = {};
+
     if (pestKey && isValidCount) {
       try {
         const alertsService = new AlertsService(db, this.orgId, "org_admin");
-        const result = await alertsService.computeSeverity(
-          this.orgId,
+        const result = await alertsService.computePestAssessment({
+          orgId: this.orgId,
           pestKey,
-          observedCount
-        );
+          raw: computedData as Record<string, unknown>,
+        });
         severity = result.severity;
         severitySource = result.source;
+        pestConfigurationId = result.pestConfigurationId;
+        normalizedPestKey = result.pestKey;
+        observationMethod = result.observationMethod;
+        alertTriggered = result.alertTriggered;
+        alertTriggerReason = result.alertTriggerReason;
+        derivedValues = result.derived;
       } catch (error) {
         console.error("Error computing severity:", error);
         // Default to NORMAL on error with ORG_CONFIG source
         severity = "NORMAL";
         severitySource = "ORG_CONFIG";
+        alertTriggered = false;
       }
     } else {
       // No pestKey or count: default to NORMAL with ORG_CONFIG source
       severity = "NORMAL";
       severitySource = "ORG_CONFIG";
+      alertTriggered = false;
     }
+
+    const normalizedPayload = {
+      raw: computedData,
+      derived: derivedValues,
+      context: {},
+      meta: {
+        pestKey: normalizedPestKey,
+        pestLabel: typeof pestKey === "string" ? pestKey : null,
+        observationMethod,
+      },
+    };
 
     // 4. Persist Report
     const [report] = await db
@@ -343,7 +369,10 @@ export class WorkflowProcessor {
         userId: this.userId,
         orgId: this.orgId,
         workflowId: this.config.id,
-        dataPayload: computedData,
+        pestConfigurationId,
+        pestKey: normalizedPestKey,
+        observationMethod,
+        dataPayload: normalizedPayload,
         status: "PENDING_TRIAGE",
         // Extract common fields for indexing if they exist in data
         location: data["location"] || null,
@@ -353,6 +382,8 @@ export class WorkflowProcessor {
         observedCount: isValidCount ? observedCount : null,
         severity: severity,
         severitySource: severitySource,
+        alertTriggered,
+        alertTriggerReason,
       })
       .returning();
 

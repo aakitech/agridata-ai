@@ -22,7 +22,7 @@ export function getNavItems(role: string): NavItem[] {
   if (role === "super_admin" || role === "org_admin") {
     items.push(
       { href: "/dashboard/triage", label: "Triage", icon: ClipboardList },
-      { href: "/dashboard/settings/alerts", label: "Alert Settings", icon: Bell }
+      { href: "/dashboard/settings/alerts", label: "Pest Configurations", icon: Bell }
     );
   }
 
