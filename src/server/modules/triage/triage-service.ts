@@ -33,6 +33,7 @@ export class TriageService {
         user: true,
         media: true,
         organization: true, // Always fetch organization for display
+        weather: true,
       },
       orderBy: (reports, { desc }) => 
         status === "PENDING_TRIAGE" 
@@ -58,6 +59,7 @@ export class TriageService {
         user: true,
         media: true,
         organization: true,
+        weather: true,
       },
     });
   }

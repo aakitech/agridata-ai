@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { api } from "~/trpc/react";
 import { StatsCards } from "./_components/stats-cards";
 import { TrendChart } from "./_components/trend-chart";
 import { RecentActivity } from "./_components/recent-activity";
 import { GenerateReportButton } from "./_components/generate-report-button";
+import { ProvinceBreakdown } from "./_components/province-breakdown";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import { Loader2, AlertCircle, Bell } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import dynamic from "next/dynamic";
+import { withMockWeatherList } from "~/lib/mock-weather";
 
 const DashboardMap = dynamic(() => import("./_components/dashboard-map").then(mod => mod.DashboardMap), { 
     ssr: false,
@@ -51,10 +53,23 @@ export default function DashboardPage() {
     { refetchInterval: 120000, refetchOnWindowFocus: true }
   );
   
+  // Fetch Location Breakdown (for province aggregation)
+  const locationStartDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - (range === "30d" ? 30 : 7));
+    return d;
+  }, [range]);
+
+  const { data: locationData } = api.analytics.getReportsByLocation.useQuery(
+    { orgId: filterOrgId, startDate: locationStartDate },
+    { refetchInterval: 120000, refetchOnWindowFocus: true }
+  );
+
   // Fetch Orgs (for filter)
   const { data: orgs } = api.organizations.getAll.useQuery();
 
   const isLoading = statsLoading || trendsLoading || activityLoading || mapLoading;
+  const weatherAwareMapPoints = useMemo(() => withMockWeatherList(mapPoints as any), [mapPoints]);
 
   if (isLoading && !stats) {
       return (
@@ -163,7 +178,7 @@ export default function DashboardPage() {
             
             <div className="h-[450px]">
               {mapPoints ? (
-                  <DashboardMap points={mapPoints as any} />
+                  <DashboardMap points={weatherAwareMapPoints as any} />
               ) : (
                   <div className="h-full w-full bg-muted rounded-xl flex items-center justify-center animate-pulse">Map Loading...</div>
               )}
@@ -174,6 +189,11 @@ export default function DashboardPage() {
             {activity && <RecentActivity reports={activity as any} />}
          </div>
       </div>
+
+      {/* Province Breakdown */}
+      {locationData && locationData.length > 0 && (
+        <ProvinceBreakdown locations={locationData} />
+      )}
 
       {/* Analytics Row */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

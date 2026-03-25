@@ -32,6 +32,26 @@ export interface MapPoint {
     date: Date;
     officerName: string;
   }>;
+  weather?: WeatherSummary | null;
+}
+
+export interface WeatherSummary {
+  status: "PENDING" | "OK" | "FAILED" | "NEEDS_REVIEW";
+  qualityFlag: "UNKNOWN" | "PLAUSIBLE" | "SUSPECT";
+  source: string | null;
+  observedLocalDate: string;
+  fetchedAt: Date | null;
+  observedAt: Date | null;
+  rainfallMm: number | null;
+  relativeHumidityPct: number | null;
+  minTempC: number | null;
+  maxTempC: number | null;
+  avgTempC: number | null;
+  rainDayMm: number | null;
+  rain7dMm: number | null;
+  tempMinC: number | null;
+  tempMaxC: number | null;
+  tempMeanC: number | null;
 }
 
 export class AnalyticsService {
@@ -80,6 +100,56 @@ export class AnalyticsService {
     if (daysOld <= 2) return "fresh";
     if (daysOld <= 5) return "recent";
     return "stale";
+  }
+
+  private toNumberOrNull(value: unknown): number | null {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    if (typeof value === "string") {
+      const n = Number.parseFloat(value);
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  }
+
+  private mapWeatherSummary(weather: {
+    status: "PENDING" | "OK" | "FAILED" | "NEEDS_REVIEW";
+    qualityFlag: "UNKNOWN" | "PLAUSIBLE" | "SUSPECT";
+    source: string | null;
+    observedLocalDate: string;
+    fetchedAt: Date | null;
+    observedAt: Date;
+    rainDayMm: unknown;
+    rain7dMm: unknown;
+    tempMinC: unknown;
+    tempMaxC: unknown;
+    tempMeanC: unknown;
+    relativeHumidityPct: unknown;
+  } | null | undefined): WeatherSummary | null {
+    if (!weather) return null;
+    const rainDayMm = this.toNumberOrNull(weather.rainDayMm);
+    const tempMinC = this.toNumberOrNull(weather.tempMinC);
+    const tempMaxC = this.toNumberOrNull(weather.tempMaxC);
+    const tempMeanC = this.toNumberOrNull(weather.tempMeanC);
+    const relativeHumidityPct = this.toNumberOrNull(weather.relativeHumidityPct);
+    return {
+      status: weather.status,
+      qualityFlag: weather.qualityFlag,
+      source: weather.source ?? null,
+      observedLocalDate: weather.observedLocalDate,
+      fetchedAt: weather.fetchedAt ?? null,
+      observedAt: weather.observedAt ?? null,
+      rainfallMm: rainDayMm,
+      relativeHumidityPct,
+      minTempC: tempMinC,
+      maxTempC: tempMaxC,
+      avgTempC: tempMeanC,
+      rainDayMm,
+      rain7dMm: this.toNumberOrNull(weather.rain7dMm),
+      tempMinC,
+      tempMaxC,
+      tempMeanC,
+    };
   }
 
   async getStats(filterOrgId?: string, range?: "7d" | "30d") {
@@ -214,6 +284,7 @@ export class AnalyticsService {
       where: whereClause,
       with: {
         user: true,
+        weather: true,
       },
       orderBy: (reports, { desc }) => [desc(reports.createdAt)],
       limit: 500,
@@ -270,6 +341,7 @@ export class AnalyticsService {
         location: latest.location ?? "",
         recency: this.getRecency(latest.createdAt),
         recentHistory,
+        weather: this.mapWeatherSummary(latest.weather),
       });
     }
 
@@ -413,6 +485,7 @@ export class AnalyticsService {
       with: {
         organization: true,
         user: true,
+        weather: true,
       },
       orderBy: (reports, { desc }) => [desc(reports.createdAt)],
       limit: 500,
@@ -510,6 +583,7 @@ export class AnalyticsService {
           count: latest.observedCount,
           pest: latest.label || "Unknown",
           officer: latest.user?.fullName || latest.user?.phoneNumber || "Unknown",
+          weather: this.mapWeatherSummary(latest.weather),
         },
         trend,
         reports: groupReports.map((r) => ({
@@ -520,6 +594,7 @@ export class AnalyticsService {
           pest: r.label || "Unknown",
           officer: r.user?.fullName || r.user?.phoneNumber || "Unknown",
           description: r.description,
+          weather: this.mapWeatherSummary(r.weather),
         })),
       });
     }
@@ -557,6 +632,7 @@ export interface LocationWithReports {
     count: number | null;
     pest: string;
     officer: string;
+    weather?: WeatherSummary | null;
   };
   trend: "up" | "down" | "stable";
   reports: Array<{
@@ -567,5 +643,6 @@ export interface LocationWithReports {
     pest: string;
     officer: string;
     description: string | null;
+    weather?: WeatherSummary | null;
   }>;
 }

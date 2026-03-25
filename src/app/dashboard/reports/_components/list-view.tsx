@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Calendar, User, Bug, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Calendar, User, Bug, ChevronLeft, ChevronRight, CircleHelp } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -33,6 +34,18 @@ interface ListViewProps {
     totalPages: number;
   } | undefined;
   onPageChange?: (page: number) => void;
+}
+
+function getSeverityTooltip(severity: string | null): string {
+  switch (severity) {
+    case "HIGH":
+      return "Reports where observed counts exceed defined pest thresholds.";
+    case "WARNING":
+      return "Reports approaching threshold levels.";
+    case "NORMAL":
+    default:
+      return "Reports below alert thresholds.";
+  }
 }
 
 function ReportLocationDisplay({ location }: { location: string | null }) {
@@ -91,18 +104,25 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   {format(new Date(report.createdAt), "MMM d, yyyy HH:mm")}
                 </div>
-                <Badge
-                  variant={
-                    report.severity === "HIGH"
-                      ? "destructive"
-                      : report.severity === "WARNING"
-                      ? "default"
-                      : "secondary"
-                  }
-                  className="text-[10px]"
-                >
-                  {report.severity || "NORMAL"}
-                </Badge>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant={
+                        report.severity === "HIGH"
+                          ? "destructive"
+                          : report.severity === "WARNING"
+                          ? "default"
+                          : "secondary"
+                      }
+                      className="text-[10px]"
+                    >
+                      {report.severity || "NORMAL"}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[260px] text-xs">
+                    {getSeverityTooltip(report.severity)}
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <div className="mt-2 flex items-center gap-2">
                 <Avatar className="h-6 w-6">
@@ -137,7 +157,25 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
                 <TableHead>Officer</TableHead>
                 <TableHead>Count</TableHead>
                 <TableHead>Pest</TableHead>
-                <TableHead>Severity</TableHead>
+                <TableHead>
+                  <div className="inline-flex items-center gap-1">
+                    <span>Severity</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+                          aria-label="Severity definition"
+                        >
+                          <CircleHelp className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[260px] text-xs">
+                        High: reports where observed counts exceed defined pest thresholds. Warning: reports approaching threshold levels. Normal: reports below alert thresholds.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TableHead>
                 <TableHead className="hidden md:table-cell">Location</TableHead>
               </TableRow>
             </TableHeader>
@@ -174,18 +212,25 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        report.severity === "HIGH"
-                          ? "destructive"
-                          : report.severity === "WARNING"
-                          ? "default"
-                          : "secondary"
-                      }
-                      className="text-[10px]"
-                    >
-                      {report.severity || "NORMAL"}
-                    </Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge
+                          variant={
+                            report.severity === "HIGH"
+                              ? "destructive"
+                              : report.severity === "WARNING"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className="text-[10px]"
+                        >
+                          {report.severity || "NORMAL"}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[260px] text-xs">
+                        {getSeverityTooltip(report.severity)}
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div className="flex items-center gap-1">
@@ -254,17 +299,24 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Severity</span>
-                <Badge
-                  variant={
-                    selectedReport.severity === "HIGH"
-                      ? "destructive"
-                      : selectedReport.severity === "WARNING"
-                      ? "default"
-                      : "secondary"
-                  }
-                >
-                  {selectedReport.severity || "NORMAL"}
-                </Badge>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant={
+                        selectedReport.severity === "HIGH"
+                          ? "destructive"
+                          : selectedReport.severity === "WARNING"
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {selectedReport.severity || "NORMAL"}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[260px] text-xs">
+                    {getSeverityTooltip(selectedReport.severity)}
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Officer</span>
