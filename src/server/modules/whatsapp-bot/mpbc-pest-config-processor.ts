@@ -176,7 +176,7 @@ export class MpbcPestConfigProcessor {
       }
 
       data.photo = validation.value;
-      const step = this.buildLocationStep();
+      const step = this.buildLocationStep(data);
       await this.updateSession(step.id, data);
       return { message: step.question, done: false, currentStep: step };
     }
@@ -187,9 +187,9 @@ export class MpbcPestConfigProcessor {
         return {
           message: `❌ ${validation.error}`,
           done: false,
-          currentStep: this.buildLocationStep(),
-        };
-      }
+            currentStep: this.buildLocationStep(data),
+          };
+        }
 
       data.location = validation.value;
       const finalReport = await this.completeReport(data);
@@ -319,12 +319,15 @@ export class MpbcPestConfigProcessor {
     };
   }
 
-  private buildLocationStep(): WorkflowStep {
+  private buildLocationStep(data?: SessionData): WorkflowStep {
+    const isTrapFlow = data?.observation_method === "PHEROMONE_TRAP";
     return {
       id: "location",
       type: "location",
       question:
-        "Please share your GPS location for this observation.\n\nTap the attachment button, choose Location, and send your current location.",
+        isTrapFlow
+          ? "📍 Please share your GPS location for this trap.\n\n💡 How to share:\n1. Tap the 📎 (attachment) button\n2. Select 'Location'\n3. Send your current location"
+          : "📍 Please share your GPS location for this observation.\n\n💡 How to share:\n1. Tap the 📎 (attachment) button\n2. Select 'Location'\n3. Send your current location",
     };
   }
 
@@ -579,19 +582,36 @@ export class MpbcPestConfigProcessor {
 
   private getConfirmationMessage(report: typeof reports.$inferSelect) {
     const pestName = report.label ?? "pest";
-    const method = report.observationMethod
-      ? this.formatObservationMethodLabel(report.observationMethod)
-      : "observation";
-    const countInfo =
-      report.observedCount != null ? `Primary value: ${report.observedCount}` : "Observation recorded";
+    const count = report.observedCount ?? "?";
+    const isTrapFlow = report.observationMethod === "PHEROMONE_TRAP";
+    const baseInfo = isTrapFlow
+      ? `${pestName} count: ${count}`
+      : `${pestName} observation: ${count}`;
+
+    if (report.severitySource === "DEFAULT_FALLBACK") {
+      switch (report.severity) {
+        case "HIGH":
+          return `🚨 POTENTIAL HIGH RISK\n\n${baseInfo}\n\nAlert thresholds are not yet configured.\nThis assessment is based on general guidance.`;
+        case "WARNING":
+          return `⚠️ POTENTIAL RISK\n\n${baseInfo}\n\nAlert thresholds are not yet configured.\nThis assessment is based on general guidance.`;
+        default:
+          return `✅ Report received.\n\n${baseInfo}\nStatus: Recorded\n\nThank you for your submission.`;
+      }
+    }
 
     switch (report.severity) {
       case "HIGH":
-        return `🚨 Report received.\n\nPest: ${pestName}\nMethod: ${method}\n${countInfo}\nStatus: High alert\n\nPlease notify your supervisor and monitor closely.`;
+        return isTrapFlow
+          ? `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🔴\n\nThis exceeds the outbreak threshold.\nPlease notify your supervisor and begin field scouting in surrounding areas.`
+          : `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🔴\n\nPlease notify your supervisor and monitor closely.`;
       case "WARNING":
-        return `⚠️ Report received.\n\nPest: ${pestName}\nMethod: ${method}\n${countInfo}\nStatus: Warning\n\nPlease continue close monitoring.`;
+        return isTrapFlow
+          ? `⚠️ Report received.\n\n${baseInfo}\nStatus: Warning 🟠\n\nPlease monitor traps closely and watch for increasing activity.`
+          : `⚠️ Report received.\n\n${baseInfo}\nStatus: Warning 🟠\n\nPlease continue close monitoring.`;
       default:
-        return `✅ Report received.\n\nPest: ${pestName}\nMethod: ${method}\n${countInfo}\nStatus: Recorded\n\nThank you for your submission.`;
+        return isTrapFlow
+          ? `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`
+          : `✅ Report received.\n\n${baseInfo}\nStatus: Recorded\n\nThank you for your submission.`;
     }
   }
 

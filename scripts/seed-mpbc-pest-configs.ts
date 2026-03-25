@@ -62,7 +62,7 @@ const phaseOnePests: SeedPest[] = [
       method: "PHEROMONE_TRAP",
       displayOrder: 1,
       countFieldKey: "moth_count",
-      summaryFieldKeys: ["moth_count", "trap_functional"],
+      summaryFieldKeys: ["moth_count"],
       guidanceText: "Record the number of moths caught in the pheromone trap.",
       fields: [
         {
@@ -73,14 +73,6 @@ const phaseOnePests: SeedPest[] = [
           required: true,
           displayOrder: 1,
           validationRules: { min: 0 },
-        },
-        {
-          key: "trap_functional",
-          label: "Trap functional",
-          prompt: "Was the trap functional at the time of observation?",
-          fieldType: "boolean",
-          required: false,
-          displayOrder: 2,
         },
       ],
       severityRules: [
