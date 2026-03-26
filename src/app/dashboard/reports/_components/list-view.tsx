@@ -141,6 +141,9 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
                 </div>
                 <span className="font-mono font-semibold">{report.summaryValue ?? report.observedCount ?? "N/A"}</span>
               </div>
+              {report.secondaryValue && (
+                <div className="mt-1 text-xs text-muted-foreground">{report.secondaryValue}</div>
+              )}
               {report.observationMethodLabel && (
                 <div className="mt-1 text-xs text-muted-foreground">{report.observationMethodLabel}</div>
               )}
@@ -302,8 +305,11 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
                   <div className="text-lg font-bold">{selectedReport.label || "Unknown"}</div>
                 </div>
                 <div className="p-3 bg-muted/40 rounded-lg">
-                  <div className="text-xs text-muted-foreground uppercase">Count</div>
-                  <div className="text-lg font-bold font-mono">{selectedReport.observedCount ?? "N/A"}</div>
+                  <div className="text-xs text-muted-foreground uppercase">Primary Value</div>
+                  <div className="text-lg font-bold">{selectedReport.summaryValue ?? selectedReport.observedCount ?? "N/A"}</div>
+                  {selectedReport.secondaryValue && (
+                    <div className="mt-1 text-xs text-muted-foreground">{selectedReport.secondaryValue}</div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between">

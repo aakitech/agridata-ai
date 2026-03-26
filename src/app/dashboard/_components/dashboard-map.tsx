@@ -42,6 +42,7 @@ interface MapPoint {
   pest: string | null;
   severity: SeverityType;
   count: number | null;
+  summaryValue?: string | null;
   date: Date;
   officerName: string;
   /** Stable bucket key for one-marker-per-location */
@@ -53,6 +54,7 @@ interface MapPoint {
     pest: string | null;
     severity: SeverityType;
     count: number | null;
+    summaryValue?: string | null;
     date: Date;
     officerName: string;
   }>;
@@ -204,8 +206,8 @@ function HistorySection({ history }: { history: MapPoint["recentHistory"] }) {
                 </span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <span className="font-medium tabular-nums">
-                  {report.count ?? "N/A"}
+                <span className="font-medium">
+                  {report.summaryValue ?? report.count ?? "N/A"}
                 </span>
                  {report.severity && (
                   <Badge
@@ -313,14 +315,14 @@ export function DashboardMap({ points }: DashboardMapProps) {
                       )}
                     </div>
 
-                     {/* 2. Count + Last reported (current state) */}
+                     {/* 2. Primary value + Last reported (current state) */}
                      <div className="grid grid-cols-2 gap-2 text-xs py-1 border-y border-muted-foreground/15">
                       <div>
                         <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-wide">
-                          Count
+                          Primary value
                         </p>
                         <p className="font-semibold text-foreground">
-                          {point.count ?? "N/A"}
+                          {point.summaryValue ?? point.count ?? "N/A"}
                         </p>
                       </div>
                       <div>

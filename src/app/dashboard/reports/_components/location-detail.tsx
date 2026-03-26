@@ -164,6 +164,11 @@ export function LocationDetail({ location }: LocationDetailProps) {
             )}
             <span className="text-sm text-muted-foreground">by {latest.officer}</span>
           </div>
+          {latest.secondaryValue && (
+            <div className="mt-1 text-sm text-muted-foreground">
+              {latest.secondaryValue}
+            </div>
+          )}
           <div className="mt-3 grid grid-cols-1 md:grid-cols-6 gap-2">
             <div className="rounded-md border bg-background p-2">
               <div className="text-[10px] uppercase text-muted-foreground">Weather Date (Local)</div>
@@ -266,6 +271,9 @@ export function LocationDetail({ location }: LocationDetailProps) {
                       <span className="font-semibold">{report.summaryValue ?? report.count ?? "N/A"}</span>
                       <span>{report.pest || "Unknown"}</span>
                     </div>
+                    {report.secondaryValue && (
+                      <div className="mt-1 text-xs text-muted-foreground">{report.secondaryValue}</div>
+                    )}
                     {report.observationMethod && (
                       <div className="mt-1 text-xs text-muted-foreground">{report.observationMethod}</div>
                     )}
@@ -287,6 +295,9 @@ export function LocationDetail({ location }: LocationDetailProps) {
                       <div className="p-3 bg-muted/40 rounded-lg">
                         <div className="text-xs text-muted-foreground uppercase">Primary Value</div>
                         <div className="text-lg font-bold font-mono">{report.summaryValue ?? report.count ?? "N/A"}</div>
+                        {report.secondaryValue && (
+                          <div className="mt-1 text-xs text-muted-foreground">{report.secondaryValue}</div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center justify-between">

@@ -19,6 +19,7 @@ export interface MapPoint {
   severity: "HIGH" | "WARNING" | "NORMAL" | null;
   count: number | null;
   summaryValue?: string | null;
+  secondaryValue?: string | null;
   date: Date;
   officerName: string;
   /** Stable bucket key for React keys and one-marker-per-location (e.g. "29.1234,-19.5678") */
@@ -33,6 +34,7 @@ export interface MapPoint {
     severity: "HIGH" | "WARNING" | "NORMAL" | null;
     count: number | null;
     summaryValue?: string | null;
+    secondaryValue?: string | null;
     date: Date;
     officerName: string;
   }>;
@@ -190,7 +192,12 @@ export class AnalyticsService {
   }
 
   private getReportSummaryValue(
-    report: { observedCount: number | null; dataPayload?: unknown }
+    report: {
+      observedCount: number | null;
+      pestKey?: string | null;
+      label?: string | null;
+      dataPayload?: unknown;
+    }
   ): string | null {
     if (report.observedCount !== null && report.observedCount !== undefined) {
       return String(report.observedCount);
@@ -199,6 +206,23 @@ export class AnalyticsService {
     const payload = this.getReportPayload(report);
     const raw = payload?.raw;
     if (raw && typeof raw === "object") {
+      const rawRecord = raw as Record<string, unknown>;
+      const pestKey = report.pestKey ?? null;
+
+      if (pestKey === "locusts") {
+        const eventScale = rawRecord.event_scale;
+        if (typeof eventScale === "string" && eventScale.trim() !== "") {
+          return `Estimated size: ${eventScale}`;
+        }
+      }
+
+      if (pestKey === "quelea_birds") {
+        const flockSizeBand = rawRecord.flock_size_band;
+        if (typeof flockSizeBand === "string" && flockSizeBand.trim() !== "") {
+          return `Estimated flock size: ${flockSizeBand.replace(/_/g, "-")}`;
+        }
+      }
+
       const rawValues = Object.values(raw as Record<string, unknown>);
       const firstUseful = rawValues.find(
         (value) =>
@@ -221,6 +245,48 @@ export class AnalyticsService {
         const [key, value] = derivedEntry;
         return `${key}: ${String(value)}`;
       }
+    }
+
+    return null;
+  }
+
+  private getReportSecondaryValue(
+    report: { pestKey?: string | null; dataPayload?: unknown }
+  ): string | null {
+    const payload = this.getReportPayload(report);
+    const raw =
+      payload?.raw && typeof payload.raw === "object"
+        ? (payload.raw as Record<string, unknown>)
+        : null;
+
+    if (!raw) return null;
+
+    if (report.pestKey === "locusts") {
+      const details: string[] = [];
+
+      if (typeof raw.movement_direction === "string" && raw.movement_direction.trim() !== "") {
+        details.push(`Heading ${raw.movement_direction}`);
+      }
+
+      if (typeof raw.behavior === "string" && raw.behavior.trim() !== "") {
+        details.push(raw.behavior);
+      }
+
+      return details.length > 0 ? details.join(" • ") : null;
+    }
+
+    if (report.pestKey === "quelea_birds") {
+      const details: string[] = [];
+
+      if (typeof raw.behavior === "string" && raw.behavior.trim() !== "") {
+        details.push(raw.behavior);
+      }
+
+      if (typeof raw.crop_stage === "string" && raw.crop_stage.trim() !== "") {
+        details.push(`Crop stage: ${raw.crop_stage}`);
+      }
+
+      return details.length > 0 ? details.join(" • ") : null;
     }
 
     return null;
@@ -312,7 +378,7 @@ export class AnalyticsService {
   ) {
     const whereClause = this.getCombinedFilter(filterOrgId, range);
 
-    return this.database.query.reports.findMany({
+    const recentReports = await this.database.query.reports.findMany({
       where: whereClause,
       with: {
         organization: true,
@@ -321,6 +387,13 @@ export class AnalyticsService {
       orderBy: (reports, { desc }) => [desc(reports.createdAt)],
       limit: limit,
     });
+
+    return recentReports.map((report) => ({
+      ...report,
+      displayLabel: this.getReportPestLabel(report),
+      summaryValue: this.getReportSummaryValue(report),
+      secondaryValue: this.getReportSecondaryValue(report),
+    }));
   }
 
   async getMapPoints(
@@ -400,6 +473,7 @@ export class AnalyticsService {
           severity: r.severity,
           count: r.observedCount,
           summaryValue: this.getReportSummaryValue(r),
+          secondaryValue: this.getReportSecondaryValue(r),
           date: r.createdAt,
           officerName: r.user?.fullName || r.user?.phoneNumber || "Unknown",
         }));
@@ -413,6 +487,7 @@ export class AnalyticsService {
         severity: latest.severity,
         count: latest.observedCount,
         summaryValue: this.getReportSummaryValue(latest),
+        secondaryValue: this.getReportSecondaryValue(latest),
         date: latest.createdAt,
         officerName: latest.user?.fullName || latest.user?.phoneNumber || "Unknown",
         locationKey,
@@ -509,6 +584,7 @@ export class AnalyticsService {
         displayLabel: this.getReportPestLabel(report),
         observationMethodLabel: this.getReportObservationMethod(report),
         summaryValue: this.getReportSummaryValue(report),
+        secondaryValue: this.getReportSecondaryValue(report),
       })),
       pagination: {
         total,
@@ -665,6 +741,7 @@ export class AnalyticsService {
           severity: latest.severity,
           count: latest.observedCount,
           summaryValue: this.getReportSummaryValue(latest),
+          secondaryValue: this.getReportSecondaryValue(latest),
           pest: this.getReportPestLabel(latest),
           observationMethod: this.getReportObservationMethod(latest),
           officer: latest.user?.fullName || latest.user?.phoneNumber || "Unknown",
@@ -677,6 +754,7 @@ export class AnalyticsService {
           severity: r.severity,
           count: r.observedCount,
           summaryValue: this.getReportSummaryValue(r),
+          secondaryValue: this.getReportSecondaryValue(r),
           pest: this.getReportPestLabel(r),
           observationMethod: this.getReportObservationMethod(r),
           officer: r.user?.fullName || r.user?.phoneNumber || "Unknown",
@@ -704,6 +782,7 @@ export interface ReportWithDetails {
   observationMethodLabel: string | null;
   observedCount: number | null;
   summaryValue: string | null;
+  secondaryValue?: string | null;
   mediaUrl: string | null;
   location: string | null;
   user: { fullName: string | null; phoneNumber: string | null } | null;
@@ -721,6 +800,7 @@ export interface LocationWithReports {
     severity: "NORMAL" | "WARNING" | "HIGH" | null;
     count: number | null;
     summaryValue?: string | null;
+    secondaryValue?: string | null;
     pest: string;
     observationMethod?: string | null;
     officer: string;
@@ -733,6 +813,7 @@ export interface LocationWithReports {
     severity: "NORMAL" | "WARNING" | "HIGH" | null;
     count: number | null;
     summaryValue?: string | null;
+    secondaryValue?: string | null;
     pest: string;
     observationMethod?: string | null;
     officer: string;

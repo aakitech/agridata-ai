@@ -586,9 +586,13 @@ export class MpbcPestConfigProcessor {
     const isTrapFlow = report.observationMethod === "PHEROMONE_TRAP";
     const baseInfo = isTrapFlow
       ? `${pestName} count: ${count}`
-      : `${pestName} observation: ${count}`;
+      : this.buildObservationSummary(report) ?? `${pestName} observation recorded.`;
 
-    if (report.severitySource === "DEFAULT_FALLBACK") {
+    if (report.pestKey === "locusts") {
+      return `⚠️ POTENTIAL RISK\n\n${baseInfo}\n\nAlert thresholds are not yet configured.\nThis assessment is based on general guidance.`;
+    }
+
+    if (report.severitySource === "DEFAULT_FALLBACK" || report.pestKey === "locusts") {
       switch (report.severity) {
         case "HIGH":
           return `🚨 POTENTIAL HIGH RISK\n\n${baseInfo}\n\nAlert thresholds are not yet configured.\nThis assessment is based on general guidance.`;
@@ -613,6 +617,53 @@ export class MpbcPestConfigProcessor {
           ? `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`
           : `✅ Report received.\n\n${baseInfo}\nStatus: Recorded\n\nThank you for your submission.`;
     }
+  }
+
+  private buildObservationSummary(report: typeof reports.$inferSelect) {
+    if (report.pestKey === "locusts") {
+      const raw = this.getRawPayload(report);
+      const lines = ["Locust observation recorded"];
+
+      const eventScale = this.asReadableValue(raw.event_scale);
+      if (eventScale) {
+        lines.push(`Estimated size: ${eventScale}`);
+      }
+
+      const movementDirection = this.asReadableValue(raw.movement_direction);
+      if (movementDirection) {
+        lines.push(`Direction: ${movementDirection}`);
+      }
+
+      const behavior = this.asReadableValue(raw.behavior);
+      if (behavior) {
+        lines.push(`Activity: ${behavior}`);
+      }
+
+      return lines.join("\n");
+    }
+
+    return null;
+  }
+
+  private getRawPayload(report: typeof reports.$inferSelect) {
+    const payload =
+      report.dataPayload && typeof report.dataPayload === "object"
+        ? (report.dataPayload as {
+            raw?: Record<string, unknown>;
+          })
+        : null;
+
+    return payload?.raw ?? {};
+  }
+
+  private asReadableValue(value: unknown) {
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    return value
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   }
 
   private stripSystemKeys(data: SessionData) {
