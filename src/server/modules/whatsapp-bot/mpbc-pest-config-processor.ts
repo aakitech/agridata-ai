@@ -160,7 +160,11 @@ export class MpbcPestConfigProcessor {
       }
 
       data[field.key] = validation.value;
-      const nextStep = this.buildNextFieldOrSharedStep(context.observationConfig, field.key);
+      const nextStep = this.buildNextFieldOrSharedStep(
+        context.observationConfig,
+        field.key,
+        data
+      );
       await this.updateSession(nextStep.id, data);
       return { message: nextStep.question, done: false, currentStep: nextStep };
     }
@@ -259,11 +263,11 @@ export class MpbcPestConfigProcessor {
   private buildNextStepAfterMethod(
     pest: ActivePest,
     observationConfig: ActiveObservationConfig,
-    _data: SessionData
+    data: SessionData
   ): WorkflowStep {
-    const firstField = [...observationConfig.fields].sort(
-      (a, b) => a.displayOrder - b.displayOrder
-    )[0];
+    const firstField = [...observationConfig.fields]
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .find((field) => this.isFieldVisible(field, data));
 
     if (firstField) {
       return this.toWorkflowFieldStep(firstField);
@@ -281,13 +285,16 @@ export class MpbcPestConfigProcessor {
 
   private buildNextFieldOrSharedStep(
     observationConfig: ActiveObservationConfig,
-    currentFieldKey: string
+    currentFieldKey: string,
+    data: SessionData
   ): WorkflowStep {
     const orderedFields = [...observationConfig.fields].sort(
       (a, b) => a.displayOrder - b.displayOrder
     );
     const currentIndex = orderedFields.findIndex((item) => item.key === currentFieldKey);
-    const nextField = orderedFields[currentIndex + 1];
+    const nextField = orderedFields
+      .slice(currentIndex + 1)
+      .find((field) => this.isFieldVisible(field, data));
 
     if (nextField) {
       return this.toWorkflowFieldStep(nextField);
@@ -592,6 +599,39 @@ export class MpbcPestConfigProcessor {
       return `⚠️ POTENTIAL RISK\n\n${baseInfo}\n\nAlert thresholds are not yet configured.\nThis assessment is based on general guidance.`;
     }
 
+    if (report.pestKey === "quelea_birds") {
+      switch (report.severity) {
+        case "HIGH":
+          return `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🔴\n\nThis indicates a high-risk Quelea bird event.\nPlease notify your supervisor and protect nearby vulnerable crops immediately.`;
+        case "WARNING":
+          return `⚠️ Report received.\n\n${baseInfo}\nStatus: Warning 🟠\n\nThis indicates elevated Quelea bird risk.\nPlease continue close monitoring and prepare to protect vulnerable crops.`;
+        default:
+          return `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`;
+      }
+    }
+
+    if (report.pestKey === "rodents") {
+      switch (report.severity) {
+        case "HIGH":
+          return `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🔴\n\nThis indicates high rodent activity.\nPlease notify your supervisor and strengthen control measures in the affected area.`;
+        case "WARNING":
+          return `⚠️ Report received.\n\n${baseInfo}\nStatus: Warning 🟠\n\nThis indicates elevated rodent activity.\nPlease continue close monitoring and prepare follow-up control measures.`;
+        default:
+          return `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`;
+      }
+    }
+
+    if (report.pestKey === "whiteflies") {
+      switch (report.severity) {
+        case "HIGH":
+          return `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🔴\n\nThis indicates severe whitefly infestation pressure.\nPlease notify your supervisor and assess immediate crop protection action.`;
+        case "WARNING":
+          return `⚠️ Report received.\n\n${baseInfo}\nStatus: Warning 🟠\n\nThis indicates elevated whitefly infestation pressure.\nPlease continue close monitoring and watch for rapid spread.`;
+        default:
+          return `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`;
+      }
+    }
+
     if (report.severitySource === "DEFAULT_FALLBACK" || report.pestKey === "locusts") {
       switch (report.severity) {
         case "HIGH":
@@ -642,6 +682,75 @@ export class MpbcPestConfigProcessor {
       return lines.join("\n");
     }
 
+    if (report.pestKey === "quelea_birds") {
+      const raw = this.getRawPayload(report);
+      const lines = ["Quelea bird observation recorded"];
+
+      const flockSizeBand = this.asReadableValue(raw.flock_size_band);
+      if (flockSizeBand) {
+        lines.push(`Estimated flock size: ${flockSizeBand}`);
+      }
+
+      const behavior = this.asReadableValue(raw.behavior);
+      if (behavior) {
+        lines.push(`Activity: ${behavior}`);
+      }
+
+      const cropStage = this.asReadableValue(raw.crop_stage);
+      if (cropStage) {
+        lines.push(`Crop stage: ${cropStage}`);
+      }
+
+      return lines.join("\n");
+    }
+
+    if (report.pestKey === "rodents") {
+      const raw = this.getRawPayload(report);
+      const lines = ["Rodent observation recorded"];
+
+      const activityLevel = this.asReadableValue(raw.activity_level);
+      if (activityLevel) {
+        lines.push(`Activity level: ${activityLevel}`);
+      }
+
+      const trend = this.asReadableValue(raw.trend);
+      if (trend) {
+        lines.push(`Trend: ${trend}`);
+      }
+
+      const damageType =
+        raw.damage_type === "Other"
+          ? this.asReadableValue(raw.damage_type_other)
+          : this.asReadableValue(raw.damage_type);
+      if (damageType) {
+        lines.push(`Sign observed: ${damageType}`);
+      }
+
+      return lines.join("\n");
+    }
+
+    if (report.pestKey === "whiteflies") {
+      const raw = this.getRawPayload(report);
+      const lines = ["Whitefly observation recorded"];
+
+      const plantsAffected = this.asReadableValue(raw.plants_affected);
+      if (plantsAffected) {
+        lines.push(`Plants affected: ${plantsAffected}`);
+      }
+
+      const plantsSampled = this.asReadableValue(raw.plants_sampled);
+      if (plantsSampled) {
+        lines.push(`Plants sampled: ${plantsSampled}`);
+      }
+
+      const cropType = this.asReadableValue(raw.crop_type);
+      if (cropType) {
+        lines.push(`Crop type: ${cropType}`);
+      }
+
+      return lines.join("\n");
+    }
+
     return null;
   }
 
@@ -664,6 +773,30 @@ export class MpbcPestConfigProcessor {
     return value
       .replace(/_/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private isFieldVisible(
+    field: ActiveObservationConfig["fields"][number],
+    data: SessionData
+  ) {
+    const rules =
+      field.validationRules && typeof field.validationRules === "object"
+        ? (field.validationRules as {
+            showWhenField?: string;
+            showWhenEquals?: string;
+          })
+        : null;
+
+    if (!rules?.showWhenField) {
+      return true;
+    }
+
+    const currentValue = data[rules.showWhenField];
+    if (rules.showWhenEquals !== undefined) {
+      return currentValue === rules.showWhenEquals;
+    }
+
+    return currentValue !== null && currentValue !== undefined && currentValue !== "";
   }
 
   private stripSystemKeys(data: SessionData) {
