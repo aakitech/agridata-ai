@@ -212,14 +212,14 @@ export class AnalyticsService {
       if (pestKey === "locusts") {
         const eventScale = rawRecord.event_scale;
         if (typeof eventScale === "string" && eventScale.trim() !== "") {
-          return `Estimated size: ${eventScale}`;
+          return `Estimated size: ${this.stripOptionCue(eventScale)}`;
         }
       }
 
       if (pestKey === "quelea_birds") {
         const flockSizeBand = rawRecord.flock_size_band;
         if (typeof flockSizeBand === "string" && flockSizeBand.trim() !== "") {
-          return `Estimated flock size: ${flockSizeBand.replace(/_/g, "-")}`;
+          return `Estimated flock size: ${this.stripOptionCue(flockSizeBand).replace(/_/g, "-")}`;
         }
       }
 
@@ -269,7 +269,7 @@ export class AnalyticsService {
       }
 
       if (typeof raw.behavior === "string" && raw.behavior.trim() !== "") {
-        details.push(raw.behavior);
+        details.push(this.stripOptionCue(raw.behavior));
       }
 
       return details.length > 0 ? details.join(" • ") : null;
@@ -279,17 +279,21 @@ export class AnalyticsService {
       const details: string[] = [];
 
       if (typeof raw.behavior === "string" && raw.behavior.trim() !== "") {
-        details.push(raw.behavior);
+        details.push(this.stripOptionCue(raw.behavior));
       }
 
       if (typeof raw.crop_stage === "string" && raw.crop_stage.trim() !== "") {
-        details.push(`Crop stage: ${raw.crop_stage}`);
+        details.push(`Crop stage: ${this.stripOptionCue(raw.crop_stage)}`);
       }
 
       return details.length > 0 ? details.join(" • ") : null;
     }
 
     return null;
+  }
+
+  private stripOptionCue(value: string) {
+    return value.replace(/\s*\([^)]*\)\s*$/, "").trim();
   }
 
   async getStats(filterOrgId?: string, range?: "7d" | "30d") {

@@ -116,7 +116,12 @@ const phaseOnePests: SeedPest[] = [
           fieldType: "select",
           required: true,
           displayOrder: 1,
-          options: ["1-10", "10-100", "100-1000", "More than 1000"],
+          options: [
+            "1-10 (individuals, easy to count)",
+            "10-100 (small group, visible cluster)",
+            "100-1000 (large swarm covering part of field)",
+            "More than 1000 (dense swarm, hard to see ground clearly)",
+          ],
         },
         {
           key: "movement_direction",
@@ -151,13 +156,21 @@ const phaseOnePests: SeedPest[] = [
           ruleOrder: 1,
           severity: "HIGH",
           conditionKind: "CATEGORICAL",
-          conditionExpression: { field: "event_scale", operator: "=", value: "More than 1000" },
+          conditionExpression: {
+            field: "event_scale",
+            operator: "=",
+            value: "More than 1000 (dense swarm, hard to see ground clearly)",
+          },
         },
         {
           ruleOrder: 2,
           severity: "WARNING",
           conditionKind: "CATEGORICAL",
-          conditionExpression: { field: "event_scale", operator: "=", value: "100-1000" },
+          conditionExpression: {
+            field: "event_scale",
+            operator: "=",
+            value: "100-1000 (large swarm covering part of field)",
+          },
         },
         {
           ruleOrder: 99,
@@ -187,7 +200,12 @@ const phaseOnePests: SeedPest[] = [
           fieldType: "select",
           required: true,
           displayOrder: 1,
-          options: ["Under 500", "500 - 5000", "5000 - 20000", "More than 20000"],
+          options: [
+            "Under 500 (scattered birds, countable groups)",
+            "500 - 5000 (large flock covering trees/field section)",
+            "5000 - 20000 (very large flock, continuous movement)",
+            "More than 20000 (dense cloud, sky appears darkened)",
+          ],
         },
         {
           key: "behavior",
@@ -213,13 +231,21 @@ const phaseOnePests: SeedPest[] = [
           ruleOrder: 1,
           severity: "HIGH",
           conditionKind: "CATEGORICAL",
-          conditionExpression: { field: "flock_size_band", operator: "=", value: "More than 20000" },
+          conditionExpression: {
+            field: "flock_size_band",
+            operator: "=",
+            value: "More than 20000 (dense cloud, sky appears darkened)",
+          },
         },
         {
           ruleOrder: 2,
           severity: "WARNING",
           conditionKind: "CATEGORICAL",
-          conditionExpression: { field: "flock_size_band", operator: "=", value: "5000 - 20000" },
+          conditionExpression: {
+            field: "flock_size_band",
+            operator: "=",
+            value: "5000 - 20000 (very large flock, continuous movement)",
+          },
         },
         {
           ruleOrder: 99,
@@ -249,7 +275,11 @@ const phaseOnePests: SeedPest[] = [
           fieldType: "select",
           required: true,
           displayOrder: 1,
-          options: ["Low", "Moderate", "High"],
+          options: [
+            "Low (few signs, isolated)",
+            "Moderate (regular signs across field)",
+            "High (widespread damage, multiple signs in many areas)",
+          ],
         },
         {
           key: "trend",
@@ -295,13 +325,21 @@ const phaseOnePests: SeedPest[] = [
           ruleOrder: 1,
           severity: "HIGH",
           conditionKind: "CATEGORICAL",
-          conditionExpression: { field: "activity_level", operator: "=", value: "High" },
+          conditionExpression: {
+            field: "activity_level",
+            operator: "=",
+            value: "High (widespread damage, multiple signs in many areas)",
+          },
         },
         {
           ruleOrder: 2,
           severity: "WARNING",
           conditionKind: "CATEGORICAL",
-          conditionExpression: { field: "activity_level", operator: "=", value: "Moderate" },
+          conditionExpression: {
+            field: "activity_level",
+            operator: "=",
+            value: "Moderate (regular signs across field)",
+          },
         },
         {
           ruleOrder: 99,

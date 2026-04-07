@@ -771,6 +771,7 @@ export class MpbcPestConfigProcessor {
     }
 
     return value
+      .replace(/\s*\([^)]*\)\s*$/, "")
       .replace(/_/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase());
   }
