@@ -185,6 +185,11 @@ export function GroupedView({
                     </span>
                   )}
                 </div>
+                {location.latestReport.observationMethod && (
+                  <div className="mt-1 text-[11px] text-muted-foreground">
+                    {location.latestReport.observationMethod}
+                  </div>
+                )}
               </button>
             ))}
           </div>

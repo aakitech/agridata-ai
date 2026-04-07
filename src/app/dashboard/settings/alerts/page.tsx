@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
-import { Loader2 } from "lucide-react";
-import { AlertThresholdsTable } from "./_components/alert-thresholds-table";
+import { PestConfigsManager } from "./_components/pest-configs-manager";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Badge } from "~/components/ui/badge";
 
@@ -15,22 +14,19 @@ export default function AlertsSettingsPage() {
   
   // Fetch organizations (for super admin)
   const { data: orgs } = api.organizations.getAll.useQuery();
-
-  // Fetch thresholds
-  const { data: thresholds, isLoading, refetch } = api.alerts.getOrgThresholds.useQuery({
-    orgId: filterOrgId,
-  });
+  const selectedOrgId =
+    me?.role === "super_admin" ? filterOrgId : me?.organization?.id;
 
   return (
     <div className="space-y-8 p-1 sm:p-2 animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Alert Settings</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Pest Configurations</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Define when a pest count becomes Normal, Warning, or High Alert for your organization.
+            Configure MPBC pests, observation methods, fields, severity rules, and alert behavior for your organization.
           </p>
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-            These thresholds are used to flag reports on the dashboard and map.
+            This replaces the old threshold-only model with method-aware multi-pest configuration.
           </p>
         </div>
 
@@ -63,17 +59,12 @@ export default function AlertsSettingsPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Loading thresholds...</span>
+      {me?.role === "super_admin" && !selectedOrgId ? (
+        <div className="rounded-lg border border-dashed p-8 text-sm text-muted-foreground">
+          Select an organization to manage its pest configurations.
         </div>
       ) : (
-        <AlertThresholdsTable
-          thresholds={thresholds ?? []}
-          onUpdate={refetch}
-          orgId={filterOrgId}
-        />
+        <PestConfigsManager orgId={selectedOrgId} />
       )}
     </div>
   );

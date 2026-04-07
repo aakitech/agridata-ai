@@ -63,7 +63,9 @@ interface ActivityProps {
     description: string | null;
     severity: "NORMAL" | "WARNING" | "HIGH" | null;
     label: string | null;
+    displayLabel?: string;
     observedCount: number | null;
+    summaryValue?: string | null;
     mediaUrl: string | null;
     location: string | null;
     user: { fullName: string | null; phoneNumber: string | null } | null;
@@ -117,7 +119,9 @@ export function RecentActivity({ reports }: ActivityProps) {
                         </Badge>
                      )}
                      <div className="text-sm text-foreground">
-                        Reported <span className="font-semibold font-mono">{report.observedCount ?? "?"}</span> <span>{report.label || "Pest"}</span>
+                        Reported <span>{report.displayLabel || report.label || "Pest"}</span>
+                        {" • "}
+                        <span className="font-semibold">{report.summaryValue ?? report.observedCount ?? "N/A"}</span>
                      </div>
                   </div>
 
@@ -174,13 +178,13 @@ export function RecentActivity({ reports }: ActivityProps) {
                             <div className="text-xs text-muted-foreground uppercase tracking-wide">Pest Detected</div>
                             <div className="text-lg font-bold flex items-center gap-2">
                                 <Bug className="h-5 w-5 text-primary" />
-                                {report.label || "Unknown"}
+                                {report.displayLabel || report.label || "Unknown"}
                             </div>
                         </div>
                         <div className="p-3 bg-muted/40 rounded-lg space-y-1">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wide">Observed Count</div>
-                            <div className="text-lg font-bold font-mono">
-                                {report.observedCount ?? "N/A"}
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">Primary Value</div>
+                            <div className="text-lg font-bold">
+                                {report.summaryValue ?? report.observedCount ?? "N/A"}
                             </div>
                         </div>
                     </div>

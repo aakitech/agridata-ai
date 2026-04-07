@@ -41,6 +41,12 @@ const ReportMap = dynamic(
 
 type Report = {
   id: string;
+  label?: string | null;
+  pestKey?: string | null;
+  observationMethod?: string | null;
+  observedCount?: number | null;
+  alertTriggered?: boolean | null;
+  dataPayload?: unknown;
   mediaUrl: string | null;
   location: string | null;
   description: string | null;
@@ -172,6 +178,30 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
   const weather = normalizeReportWeatherUI(report.weather);
   const weatherStatus = getWeatherStatusUI(weather?.status);
   const reportLocalDate = formatIsoLocalDate(report.createdAt);
+  const reportPayload =
+    report.dataPayload && typeof report.dataPayload === "object"
+      ? (report.dataPayload as Record<string, unknown>)
+      : null;
+  const reportMeta =
+    reportPayload?.meta && typeof reportPayload.meta === "object"
+      ? (reportPayload.meta as Record<string, unknown>)
+      : null;
+  const pestLabel =
+    report.label ||
+    report.pestKey ||
+    (typeof reportMeta?.pestLabel === "string" ? reportMeta.pestLabel : null) ||
+    "Unknown";
+  const primaryValue =
+    report.observedCount ??
+    (reportPayload?.raw && typeof reportPayload.raw === "object"
+      ? Object.values(reportPayload.raw as Record<string, unknown>).find(
+          (value) =>
+            value !== null &&
+            value !== undefined &&
+            value !== "" &&
+            (typeof value === "string" || typeof value === "number" || typeof value === "boolean")
+        )
+      : null);
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
@@ -191,6 +221,33 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
         </div>
         <div className="text-xs sm:text-sm text-muted-foreground">ID: {report.id}</div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Observation Summary</CardTitle>
+          <CardDescription>Structured metadata captured from the reporting flow</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-lg border p-3">
+            <Label className="text-xs text-muted-foreground">Pest</Label>
+            <div className="font-semibold">{pestLabel}</div>
+          </div>
+          <div className="rounded-lg border p-3">
+            <Label className="text-xs text-muted-foreground">Observation Method</Label>
+            <div className="font-semibold">{report.observationMethod || "Not recorded"}</div>
+          </div>
+          <div className="rounded-lg border p-3">
+            <Label className="text-xs text-muted-foreground">Primary Value</Label>
+            <div className="font-semibold">{primaryValue != null ? String(primaryValue) : "N/A"}</div>
+          </div>
+          <div className="rounded-lg border p-3 sm:col-span-3">
+            <Label className="text-xs text-muted-foreground">Alert Outcome</Label>
+            <div className="font-semibold">
+              {report.alertTriggered ? "Alert triggered" : "No alert triggered"}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Evidence Section */}
       <Card>

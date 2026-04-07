@@ -137,10 +137,16 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
               <div className="mt-2 flex items-center justify-between text-sm">
                 <div className="flex items-center gap-1">
                   <Bug className="h-4 w-4 text-muted-foreground" />
-                  <span>{report.label || "Unknown"}</span>
+                  <span>{report.displayLabel || report.label || "Unknown"}</span>
                 </div>
-                <span className="font-mono font-semibold">{report.observedCount ?? "N/A"}</span>
+                <span className="font-mono font-semibold">{report.summaryValue ?? report.observedCount ?? "N/A"}</span>
               </div>
+              {report.secondaryValue && (
+                <div className="mt-1 text-xs text-muted-foreground">{report.secondaryValue}</div>
+              )}
+              {report.observationMethodLabel && (
+                <div className="mt-1 text-xs text-muted-foreground">{report.observationMethodLabel}</div>
+              )}
               <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3" />
                 <ReportLocationDisplay location={report.location} />
@@ -155,8 +161,9 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
               <TableRow>
                 <TableHead className="w-[180px]">Date</TableHead>
                 <TableHead>Officer</TableHead>
-                <TableHead>Count</TableHead>
+                <TableHead>Primary Value</TableHead>
                 <TableHead>Pest</TableHead>
+                <TableHead className="hidden lg:table-cell">Method</TableHead>
                 <TableHead>
                   <div className="inline-flex items-center gap-1">
                     <span>Severity</span>
@@ -203,13 +210,18 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="font-mono font-semibold">{report.observedCount ?? "N/A"}</span>
+                    <span className="font-mono font-semibold">{report.summaryValue ?? report.observedCount ?? "N/A"}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Bug className="h-4 w-4 text-muted-foreground" />
-                      <span>{report.label || "Unknown"}</span>
+                      <span>{report.displayLabel || report.label || "Unknown"}</span>
                     </div>
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <span className="text-xs text-muted-foreground">
+                      {report.observationMethodLabel || "—"}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <Tooltip>
@@ -293,8 +305,11 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
                   <div className="text-lg font-bold">{selectedReport.label || "Unknown"}</div>
                 </div>
                 <div className="p-3 bg-muted/40 rounded-lg">
-                  <div className="text-xs text-muted-foreground uppercase">Count</div>
-                  <div className="text-lg font-bold font-mono">{selectedReport.observedCount ?? "N/A"}</div>
+                  <div className="text-xs text-muted-foreground uppercase">Primary Value</div>
+                  <div className="text-lg font-bold">{selectedReport.summaryValue ?? selectedReport.observedCount ?? "N/A"}</div>
+                  {selectedReport.secondaryValue && (
+                    <div className="mt-1 text-xs text-muted-foreground">{selectedReport.secondaryValue}</div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between">

@@ -2,9 +2,17 @@ import { type NextRequest, NextResponse } from "next/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { env } from "~/env";
 import { db } from "~/server/db";
-import { appUsers, botSessions, organizations, reports, reportWeather } from "~/server/db/schema";
+import {
+  appUsers,
+  botSessions,
+  organizations,
+  pestConfigurations,
+  reports,
+  reportWeather,
+} from "~/server/db/schema";
 import { WorkflowProcessor } from "~/server/modules/whatsapp-bot/workflow-processor";
 import { type WorkflowConfig } from "~/server/modules/whatsapp-bot/workflow-types";
+import { MpbcPestConfigProcessor } from "~/server/modules/whatsapp-bot/mpbc-pest-config-processor";
 
 type SimRequest = {
   from: string;
@@ -86,7 +94,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!org.activeWorkflow || !org.workflowConfig) {
+  const hasActivePestConfigs = await db.query.pestConfigurations.findFirst({
+    where: and(
+      eq(pestConfigurations.orgId, org.id),
+      eq(pestConfigurations.active, true)
+    ),
+  });
+
+  if (!hasActivePestConfigs && (!org.activeWorkflow || !org.workflowConfig)) {
     return NextResponse.json(
       { error: `Organization ${org.id} has no active workflow` },
       { status: 400 }
@@ -123,12 +138,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to initialize session" }, { status: 500 });
   }
 
-  const processor = new WorkflowProcessor(
-    org.workflowConfig as WorkflowConfig,
-    user.id,
-    org.id,
-    user.fullName || phoneNumber
-  );
+  const processor = hasActivePestConfigs
+    ? new MpbcPestConfigProcessor(user.id, org.id, user.fullName || phoneNumber)
+    : new WorkflowProcessor(
+        org.workflowConfig as WorkflowConfig,
+        user.id,
+        org.id,
+        user.fullName || phoneNumber
+      );
 
   const incomingMsg = {
     From: senderId,

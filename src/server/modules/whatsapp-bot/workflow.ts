@@ -1,10 +1,16 @@
 import { db } from "~/server/db";
-import { botSessions, appUsers, reports, organizations } from "~/server/db/schema";
-import { eq, sql } from "drizzle-orm";
+import {
+  botSessions,
+  appUsers,
+  organizations,
+  pestConfigurations,
+} from "~/server/db/schema";
+import { and, eq, sql } from "drizzle-orm";
 import { env } from "~/env";
 import twilio from "twilio";
 import { WorkflowProcessor } from "./workflow-processor";
 import { type WorkflowConfig } from "./workflow-types";
+import { MpbcPestConfigProcessor } from "./mpbc-pest-config-processor";
 
 // Initialize Twilio Client
 const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
@@ -98,19 +104,33 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
   
   if (!session) throw new Error("Failed to create session");
 
+  const hasActivePestConfigs = await db.query.pestConfigurations.findFirst({
+    where: and(
+      eq(pestConfigurations.orgId, org.id),
+      eq(pestConfigurations.active, true)
+    ),
+  });
+
   // 4. Determine Workflow
   const workflowConfig = org.workflowConfig as WorkflowConfig | null;
   const workflowId = org.activeWorkflow;
 
-  if (!workflowId || !workflowConfig) {
-      await sendText(phoneNumber, "No active data collection workflow assigned to your organization.");
-      return;
-  }
-
   // 5. Initialize Processor
   // Use Name if available, otherwise fallback to phone number
   const officerName = user.fullName || phoneNumber;
-  const processor = new WorkflowProcessor(workflowConfig, user.id, org.id, officerName);
+  const processor = hasActivePestConfigs
+    ? new MpbcPestConfigProcessor(user.id, org.id, officerName)
+    : workflowId && workflowConfig
+      ? new WorkflowProcessor(workflowConfig, user.id, org.id, officerName)
+      : null;
+
+  if (!processor) {
+    await sendText(
+      phoneNumber,
+      "No active data collection workflow assigned to your organization."
+    );
+    return;
+  }
 
   try {
     const result = await processor.processMessage(session, msg);

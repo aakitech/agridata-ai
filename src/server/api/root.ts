@@ -7,6 +7,7 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 import { invitesRouter } from "~/server/api/routers/invites";
 import { enhancementsRouter } from "~/server/api/routers/enhancements";
 import { alertsRouter } from "~/server/api/routers/alerts";
+import { pestConfigsRouter } from "~/server/api/routers/pest-configs";
 
 /**
  * This is the primary router for your server.
@@ -22,6 +23,7 @@ export const appRouter = createTRPCRouter({
   invites: invitesRouter,
   enhancements: enhancementsRouter,
   alerts: alertsRouter,
+  pestConfigs: pestConfigsRouter,
 });
 
 // export type definition of API
