@@ -621,6 +621,40 @@ export class MpbcPestConfigProcessor {
       }
     }
 
+    if (report.pestKey === "fall_armyworm") {
+      switch (report.severity) {
+        case "HIGH":
+          return `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🔴\n\nThis exceeds the Fall Armyworm outbreak threshold.\nPlease notify your supervisor and begin field scouting in surrounding areas.`;
+        case "WARNING":
+          return `⚠️ Report received.\n\n${baseInfo}\nStatus: Warning 🟠\n\nPlease monitor traps closely and watch for increasing Fall Armyworm activity.`;
+        default:
+          return `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`;
+      }
+    }
+
+    if (report.pestKey === "fall_armyworm") {
+      switch (report.severity) {
+        case "HIGH":
+          return `ðŸš¨ HIGH ALERT\n\n${baseInfo}\nStatus: High risk ðŸ”´\n\nThis exceeds the Fall Armyworm outbreak threshold.\nPlease notify your supervisor and begin field scouting in surrounding areas.`;
+        case "WARNING":
+          return `âš ï¸ Report received.\n\n${baseInfo}\nStatus: Warning ðŸŸ \n\nPlease monitor traps closely and watch for increasing Fall Armyworm activity.`;
+        default:
+          return `âœ… Report received.\n\n${baseInfo}\nStatus: Low risk ðŸŸ¢\n\nNo immediate action needed.\nContinue routine monitoring.`;
+      }
+    }
+
+    if (report.pestKey === "fall_armyworm") {
+      const raw = this.getRawPayload(report);
+      const lines = ["Fall Armyworm observation recorded"];
+
+      const adultInsectCount = this.asReadableValue(raw.adult_insect_count);
+      if (adultInsectCount) {
+        lines.push(`Adult insects caught: ${adultInsectCount}`);
+      }
+
+      return lines.join("\n");
+    }
+
     if (report.pestKey === "whiteflies") {
       switch (report.severity) {
         case "HIGH":

@@ -60,11 +60,11 @@ The current in-scope pest set remains:
 - Locusts
 - Quelea Birds
 - Rodents
-- Whiteflies
+- Fall Armyworm
 
 Future pests already hinted at in feedback, but not in scope for this implementation phase:
 
-- Fall Armyworm as a distinct future pest if MPBC formally adopts it
+- Whiteflies
 - Armoured Cricket
 - Aphids or Mealybugs
 
@@ -301,7 +301,37 @@ Recommended modeling direction:
 - replace weak numeric sign counts with standardized activity level where needed
 - add trend field: `increasing`, `stable`, `decreasing`
 
-### 12.5 Whiteflies
+### 12.5 Fall Armyworm
+Recommended modeling direction:
+
+- default method: `PHEROMONE_TRAP`
+- treat Fall Armyworm as a distinct pest from African Armyworm
+- capture raw trap observations rather than officer-interpreted severity labels
+- current officer feedback indicates the counted target is adult insects
+- reporting unit should be `number per trap`
+- do not merge Fall Armyworm into the African Armyworm baseline even if both use trap-based monitoring
+
+Current officer-confirmed direction:
+
+- Method used: `PHEROMONE_TRAP`
+- What officers count: adult insects
+- Unit used: number per trap
+- Normal: `0-5`
+- Warning: `6-20`
+- High: `Above 20`
+- Immediate alert trigger: `HIGH_ONLY`
+
+Phase 1 modeling implication:
+
+- Use one trap-based numeric count field for adult insects per trap
+- Compute severity from trap thresholds:
+  - `0-5 => NORMAL`
+  - `6-20 => WARNING`
+  - `>20 => HIGH`
+- Configure alert policy as `HIGH_ONLY`
+- Keep the flow short: count, optional photo, GPS location, pest-specific confirmation
+
+### 12.6 Whiteflies
 Recommended modeling direction:
 
 - model separately from rodents
@@ -335,6 +365,7 @@ Examples:
 
 - African Armyworm trap: `How many moths were caught in the trap?`
 - African Armyworm field: `How many inspected plants were affected?`
+- Fall Armyworm trap: `How many adult insects were caught in the trap?`
 - Quelea event: `What was the estimated flock size?`
 - Rodent sign-based: `What level of rodent activity was observed?`
 
@@ -407,8 +438,8 @@ This is why raw observation normalization matters now.
 
 ## 16. Migration Strategy
 ### 16.1 Phase 1: Terminology Alignment
-- Replace MPBC `Fall Armyworm` references with `African Armyworm` where the baseline workflow actually refers to African Armyworm
-- Keep `Fall Armyworm` only if and when it becomes a formally distinct pest configuration
+- Replace MPBC `Fall Armyworm` references with `African Armyworm` only where the baseline workflow actually refers to African Armyworm
+- Keep `Fall Armyworm` as a formally distinct pest configuration in the current in-scope phase 1 set
 
 ### 16.2 Phase 2: Configuration Foundation
 - Introduce `ObservationMethod`
