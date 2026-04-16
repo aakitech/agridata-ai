@@ -68,7 +68,7 @@ const phaseOnePests: SeedPest[] = [
         {
           key: "moth_count",
           label: "Moth count",
-          prompt: "How many moths were caught in the trap?",
+          prompt: "How many moths were caught in the trap? Enter 0 if none were observed.",
           fieldType: "number",
           required: true,
           displayOrder: 1,
@@ -106,7 +106,7 @@ const phaseOnePests: SeedPest[] = [
     observationConfig: {
       method: "EVENT_OBSERVATION",
       displayOrder: 1,
-      summaryFieldKeys: ["event_scale", "movement_direction", "behavior"],
+      summaryFieldKeys: ["event_scale", "movement_direction", "behavior", "crop_vegetation_type"],
       guidanceText: "Capture what officers observe about the locust event, not an interpreted risk label.",
       fields: [
         {
@@ -117,6 +117,7 @@ const phaseOnePests: SeedPest[] = [
           required: true,
           displayOrder: 1,
           options: [
+            "0",
             "1-10 (individuals, easy to count)",
             "10-100 (small group, visible cluster)",
             "100-1000 (large swarm covering part of field)",
@@ -149,6 +150,36 @@ const phaseOnePests: SeedPest[] = [
           required: true,
           displayOrder: 3,
           options: ["Feeding", "Resting", "Flying"],
+        },
+        {
+          key: "crop_vegetation_type",
+          label: "Crop / vegetation type",
+          prompt: "What type of crop / vegetation is affected?",
+          fieldType: "select",
+          required: true,
+          displayOrder: 4,
+          options: [
+            "Wheat",
+            "Rice",
+            "Maize",
+            "Sorghum",
+            "Millet",
+            "Beans",
+            "Grass / grazing vegetation",
+            "Other",
+          ],
+        },
+        {
+          key: "crop_vegetation_type_other",
+          label: "Other crop / vegetation type",
+          prompt: "Please describe the other crop / vegetation type affected.",
+          fieldType: "text",
+          required: true,
+          displayOrder: 5,
+          validationRules: {
+            showWhenField: "crop_vegetation_type",
+            showWhenEquals: "Other",
+          },
         },
       ],
       severityRules: [
@@ -190,8 +221,8 @@ const phaseOnePests: SeedPest[] = [
     observationConfig: {
       method: "EVENT_OBSERVATION",
       displayOrder: 1,
-      summaryFieldKeys: ["flock_size_band", "behavior", "crop_stage"],
-      guidanceText: "Capture observed flock size, bird behavior, crop type, and crop stage.",
+      summaryFieldKeys: ["flock_size_band", "behavior", "crop_vegetation_type", "crop_stage"],
+      guidanceText: "Capture observed flock size, bird behavior, crop or vegetation type, and crop stage.",
       fields: [
         {
           key: "flock_size_band",
@@ -201,10 +232,12 @@ const phaseOnePests: SeedPest[] = [
           required: true,
           displayOrder: 1,
           options: [
-            "Under 500 (scattered birds, countable groups)",
-            "500 - 5000 (large flock covering trees/field section)",
-            "5000 - 20000 (very large flock, continuous movement)",
-            "More than 20000 (dense cloud, sky appears darkened)",
+            "0",
+            "1 to 500",
+            "501 to 1,000",
+            "1,001 to 5,000",
+            "5,001 to 10,000",
+            "10,000+",
           ],
         },
         {
@@ -214,7 +247,37 @@ const phaseOnePests: SeedPest[] = [
           fieldType: "select",
           required: true,
           displayOrder: 2,
-          options: ["Feeding", "Roosting", "Flying"],
+          options: ["Feeding on crop", "Flying over", "Roosting", "Perching", "Other"],
+        },
+        {
+          key: "crop_vegetation_type",
+          label: "Crop / vegetation type",
+          prompt: "What type of crop / vegetation is affected?",
+          fieldType: "select",
+          required: true,
+          displayOrder: 3,
+          options: [
+            "Wheat",
+            "Rice",
+            "Maize",
+            "Sorghum",
+            "Millet",
+            "Beans",
+            "Grass / grazing vegetation",
+            "Other",
+          ],
+        },
+        {
+          key: "crop_vegetation_type_other",
+          label: "Other crop / vegetation type",
+          prompt: "Please describe the other crop / vegetation type affected.",
+          fieldType: "text",
+          required: true,
+          displayOrder: 4,
+          validationRules: {
+            showWhenField: "crop_vegetation_type",
+            showWhenEquals: "Other",
+          },
         },
         {
           key: "crop_stage",
@@ -222,8 +285,16 @@ const phaseOnePests: SeedPest[] = [
           prompt: "What is the crop growth stage?",
           fieldType: "select",
           required: true,
-          displayOrder: 3,
-          options: ["Seedling", "Vegetative", "Flowering", "Mature"],
+          displayOrder: 5,
+          options: [
+            "Seedling",
+            "Vegetative",
+            "Flowering",
+            "Grain filling",
+            "Hard dough",
+            "Mature / ready for harvest",
+            "Not sure",
+          ],
         },
       ],
       severityRules: [
@@ -234,7 +305,7 @@ const phaseOnePests: SeedPest[] = [
           conditionExpression: {
             field: "flock_size_band",
             operator: "=",
-            value: "More than 20000 (dense cloud, sky appears darkened)",
+            value: "10,000+",
           },
         },
         {
@@ -244,7 +315,7 @@ const phaseOnePests: SeedPest[] = [
           conditionExpression: {
             field: "flock_size_band",
             operator: "=",
-            value: "5000 - 20000 (very large flock, continuous movement)",
+            value: "5,001 to 10,000",
           },
         },
         {
@@ -366,7 +437,7 @@ const phaseOnePests: SeedPest[] = [
         {
           key: "adult_insect_count",
           label: "Adult insect count",
-          prompt: "How many adult insects were caught in the trap?",
+          prompt: "How many adult insects were caught in the trap? Enter 0 if none were observed.",
           fieldType: "number",
           required: true,
           displayOrder: 1,

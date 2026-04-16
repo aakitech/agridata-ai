@@ -272,6 +272,14 @@ export class AnalyticsService {
         details.push(this.stripOptionCue(raw.behavior));
       }
 
+      const cropVegetationType =
+        raw.crop_vegetation_type === "Other"
+          ? raw.crop_vegetation_type_other
+          : raw.crop_vegetation_type;
+      if (typeof cropVegetationType === "string" && cropVegetationType.trim() !== "") {
+        details.push(`Crop / vegetation: ${this.stripOptionCue(cropVegetationType)}`);
+      }
+
       return details.length > 0 ? details.join(" • ") : null;
     }
 
@@ -280,6 +288,14 @@ export class AnalyticsService {
 
       if (typeof raw.behavior === "string" && raw.behavior.trim() !== "") {
         details.push(this.stripOptionCue(raw.behavior));
+      }
+
+      const cropVegetationType =
+        raw.crop_vegetation_type === "Other"
+          ? raw.crop_vegetation_type_other
+          : raw.crop_vegetation_type;
+      if (typeof cropVegetationType === "string" && cropVegetationType.trim() !== "") {
+        details.push(`Crop / vegetation: ${this.stripOptionCue(cropVegetationType)}`);
       }
 
       if (typeof raw.crop_stage === "string" && raw.crop_stage.trim() !== "") {

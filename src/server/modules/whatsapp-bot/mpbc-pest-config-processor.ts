@@ -713,6 +713,14 @@ export class MpbcPestConfigProcessor {
         lines.push(`Activity: ${behavior}`);
       }
 
+      const cropVegetationType =
+        raw.crop_vegetation_type === "Other"
+          ? this.asReadableValue(raw.crop_vegetation_type_other)
+          : this.asReadableValue(raw.crop_vegetation_type);
+      if (cropVegetationType) {
+        lines.push(`Crop / vegetation: ${cropVegetationType}`);
+      }
+
       return lines.join("\n");
     }
 
@@ -728,6 +736,14 @@ export class MpbcPestConfigProcessor {
       const behavior = this.asReadableValue(raw.behavior);
       if (behavior) {
         lines.push(`Activity: ${behavior}`);
+      }
+
+      const cropVegetationType =
+        raw.crop_vegetation_type === "Other"
+          ? this.asReadableValue(raw.crop_vegetation_type_other)
+          : this.asReadableValue(raw.crop_vegetation_type);
+      if (cropVegetationType) {
+        lines.push(`Crop / vegetation: ${cropVegetationType}`);
       }
 
       const cropStage = this.asReadableValue(raw.crop_stage);
