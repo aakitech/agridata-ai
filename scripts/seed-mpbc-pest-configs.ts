@@ -1,5 +1,8 @@
+import fs from "node:fs";
+import path from "node:path";
 import { eq } from "drizzle-orm";
-import { db } from "../src/server/db";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import {
   organizations,
   pestConfigurations,
@@ -468,8 +471,44 @@ const phaseOnePests: SeedPest[] = [
   },
 ];
 
+function loadLocalEnvFile() {
+  const envPath = path.join(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) return;
+
+  const envConfig = fs.readFileSync(envPath, "utf-8");
+  for (const line of envConfig.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const [key, ...valueParts] = trimmed.split("=");
+    if (!key || valueParts.length === 0) continue;
+    if (process.env[key.trim()] !== undefined) continue;
+
+    const rawValue = valueParts.join("=").trim();
+    process.env[key.trim()] = rawValue.replace(/^["'](.*)["']$/, "$1");
+  }
+}
+
 async function main() {
   console.log("Seeding MPBC pest configurations...");
+
+  loadLocalEnvFile();
+
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is required to seed MPBC pest configurations.");
+  }
+
+  const connection = postgres(databaseUrl);
+  const db = drizzle(connection, {
+    schema: {
+      organizations,
+      pestConfigurations,
+      pestObservationConfigs,
+      pestObservationFields,
+      pestSeverityRules,
+    },
+  });
 
   const mpbcOrg = await db.query.organizations.findFirst({
     where: eq(organizations.slug, "mpbc"),
@@ -481,11 +520,14 @@ async function main() {
   }
 
   await db.transaction(async (tx) => {
+    console.log("Clearing existing MPBC pest configurations...");
     await tx
       .delete(pestConfigurations)
       .where(eq(pestConfigurations.orgId, mpbcOrg.id));
+    console.log("Existing MPBC pest configurations cleared.");
 
     for (const pest of phaseOnePests) {
+      console.log(`Seeding pest config: ${pest.label} (${pest.key})`);
       const [pestConfig] = await tx
         .insert(pestConfigurations)
         .values({
@@ -543,10 +585,13 @@ async function main() {
           }))
         );
       }
+
+      console.log(`Finished pest config: ${pest.label}`);
     }
   });
 
   console.log(`Seeded ${phaseOnePests.length} MPBC pest configurations.`);
+  await connection.end();
   process.exit(0);
 }
 
