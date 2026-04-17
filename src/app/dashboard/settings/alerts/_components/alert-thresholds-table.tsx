@@ -26,6 +26,7 @@ import {
   DialogFooter,
 } from "~/components/ui/dialog";
 import { Badge } from "~/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 
 interface Threshold {
   id: string;
@@ -40,6 +41,10 @@ interface AlertThresholdsTableProps {
   thresholds: Threshold[];
   onUpdate: () => void;
   orgId?: string;
+  pestOptions: Array<{
+    key: string;
+    label: string;
+  }>;
 }
 
 function SeverityPreview({ normalMax, warningMax }: { normalMax: number; warningMax: number }) {
@@ -62,6 +67,7 @@ export function AlertThresholdsTable({
   thresholds: initialThresholds,
   onUpdate,
   orgId,
+  pestOptions,
 }: AlertThresholdsTableProps) {
   const [thresholds, setThresholds] = useState<Threshold[]>(initialThresholds);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -101,11 +107,9 @@ export function AlertThresholdsTable({
     },
   });
 
-  const normalizePestName = (name: string) => {
-    // Trim whitespace and capitalize first letter
-    const trimmed = name.trim();
-    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-  };
+  const availablePestOptions = pestOptions.filter(
+    (option) => !thresholds.some((threshold) => threshold.pestKey === option.key)
+  );
 
   const validateThreshold = (normalMax: number, warningMax: number): string => {
     if (isNaN(normalMax) || isNaN(warningMax)) {
@@ -121,7 +125,7 @@ export function AlertThresholdsTable({
   };
 
   const handleSave = (threshold: Threshold | null) => {
-    const pestKey = threshold ? threshold.pestKey : normalizePestName(newPestKey);
+    const pestKey = threshold ? threshold.pestKey : newPestKey;
     const normalMax = threshold
       ? editingValues?.normalMax ?? threshold.normalMax
       : parseInt(newNormalMax, 10);
@@ -130,7 +134,7 @@ export function AlertThresholdsTable({
       : parseInt(newWarningMax, 10);
 
     if (!pestKey) {
-      const error = "Pest name is required";
+      const error = "Select a pest first";
       setValidationError(error);
       toast.error(error);
       return;
@@ -196,13 +200,24 @@ export function AlertThresholdsTable({
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-pest">Pest Name</Label>
-                  <Input
-                    id="new-pest"
-                    placeholder="e.g., Moth"
-                    value={newPestKey}
-                    onChange={(e) => setNewPestKey(e.target.value)}
-                  />
+                  <Label>Pest</Label>
+                  <Select value={newPestKey} onValueChange={setNewPestKey}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select pest" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availablePestOptions.map((option) => (
+                        <SelectItem key={option.key} value={option.key}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {availablePestOptions.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      All configured pests already have threshold records.
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -250,7 +265,7 @@ export function AlertThresholdsTable({
                 </Button>
                 <Button
                   onClick={() => handleSave(null)}
-                  disabled={upsertMutation.isPending}
+                  disabled={upsertMutation.isPending || availablePestOptions.length === 0}
                   className="w-full sm:w-auto"
                 >
                   {upsertMutation.isPending ? "Adding..." : "Add Threshold"}
