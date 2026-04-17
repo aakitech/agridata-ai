@@ -46,6 +46,11 @@ steps:
     env:
       DATABASE_URL: $(DATABASE_URL)
 
+  - script: pnpm seed:mpbc-pest-configs
+    displayName: 'Seed MPBC Pest Configs'
+    env:
+      DATABASE_URL: $(DATABASE_URL)
+
   - script: |
       npm install -g vercel
       # We pull 'production' env here to get the live DB and API keys
