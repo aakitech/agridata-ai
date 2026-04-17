@@ -24,6 +24,40 @@ import { toast } from "sonner";
 import { Plus, Pencil, RefreshCw } from "lucide-react";
 
 type PestConfigRecord = RouterOutputs["pestConfigs"]["list"][number];
+type ObservationConfigRecord = PestConfigRecord["observationConfigs"][number];
+type ObservationFieldRecord = ObservationConfigRecord["fields"][number];
+type SeverityRuleRecord = ObservationConfigRecord["severityRules"][number];
+type EditableObservationConfig = {
+  method: ObservationConfigRecord["method"];
+  active: boolean;
+  displayOrder: number;
+  countFieldKey?: string | null;
+  summaryFieldKeys?: string[] | null;
+  guidanceText?: string | null;
+  derivedDefinitions?: Record<string, unknown> | null;
+  confirmationNormalTemplate?: string | null;
+  confirmationWarningTemplate?: string | null;
+  confirmationHighTemplate?: string | null;
+  fields: Array<{
+    key: string;
+    label: string;
+    prompt: string;
+    helpText?: string | null;
+    fieldType: ObservationFieldRecord["fieldType"];
+    required: boolean;
+    displayOrder: number;
+    defaultValue?: string | number | boolean | null;
+    options?: string[] | null;
+    validationRules?: Record<string, unknown> | null;
+    captureMode: ObservationFieldRecord["captureMode"];
+  }>;
+  severityRules: Array<{
+    ruleOrder: number;
+    severity: SeverityRuleRecord["severity"];
+    conditionKind: SeverityRuleRecord["conditionKind"];
+    conditionExpression: Record<string, unknown>;
+  }>;
+};
 
 const emptyObservationConfig = [
   {
@@ -66,6 +100,20 @@ function toJson(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
+function parseObservationConfigs(
+  observationConfigsJson: string
+): { value: EditableObservationConfig[] | null; error: string | null } {
+  try {
+    const parsed = JSON.parse(observationConfigsJson) as unknown;
+    if (!Array.isArray(parsed)) {
+      return { value: null, error: "Observation config JSON must be an array." };
+    }
+    return { value: parsed as EditableObservationConfig[], error: null };
+  } catch {
+    return { value: null, error: "Observation config JSON is not valid." };
+  }
+}
+
 export function PestConfigsManager({ orgId }: { orgId?: string }) {
   const utils = api.useUtils();
   const { data, isLoading, refetch } = api.pestConfigs.list.useQuery(
@@ -102,6 +150,22 @@ export function PestConfigsManager({ orgId }: { orgId?: string }) {
     () => data?.reduce((acc, item) => acc + item.observationConfigs.length, 0) ?? 0,
     [data]
   );
+  const parsedObservationConfigs = useMemo(
+    () => parseObservationConfigs(observationConfigsJson),
+    [observationConfigsJson]
+  );
+
+  function updateObservationConfigs(
+    updater: (configs: EditableObservationConfig[]) => EditableObservationConfig[]
+  ) {
+    if (!parsedObservationConfigs.value) {
+      toast.error("Fix the observation config JSON before editing thresholds.");
+      return;
+    }
+
+    const next = updater(parsedObservationConfigs.value);
+    setObservationConfigsJson(toJson(next));
+  }
 
   function openCreate() {
     setEditing(null);
@@ -271,78 +335,235 @@ export function PestConfigsManager({ orgId }: { orgId?: string }) {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[90vh] w-[calc(100%-1rem)] max-w-4xl flex-col overflow-hidden p-0 sm:w-full">
+          <DialogHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
             <DialogTitle>{editing ? "Edit Pest Configuration" : "Add Pest Configuration"}</DialogTitle>
             <DialogDescription>
               Phase-1 editor for pest config records. Top-level settings are form-based. Observation methods, fields, and rules are edited as structured JSON.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="pest-label">Label</Label>
-              <Input id="pest-label" value={label} onChange={(e) => setLabel(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pest-key">Key</Label>
-              <Input id="pest-key" value={key} onChange={(e) => setKey(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="display-order">Display Order</Label>
-              <Input
-                id="display-order"
-                type="number"
-                value={displayOrder}
-                onChange={(e) => setDisplayOrder(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Default Observation Method</Label>
-              <Select value={defaultObservationMethod} onValueChange={(value) => setDefaultObservationMethod(value as typeof defaultObservationMethod)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PHEROMONE_TRAP">PHEROMONE_TRAP</SelectItem>
-                  <SelectItem value="FIELD_OBSERVATION">FIELD_OBSERVATION</SelectItem>
-                  <SelectItem value="EVENT_OBSERVATION">EVENT_OBSERVATION</SelectItem>
-                  <SelectItem value="SIGN_BASED">SIGN_BASED</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Alert Trigger</Label>
-              <Select value={alertTrigger} onValueChange={(value) => setAlertTrigger(value as typeof alertTrigger)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="WARNING_AND_HIGH">WARNING_AND_HIGH</SelectItem>
-                  <SelectItem value="HIGH_ONLY">HIGH_ONLY</SelectItem>
-                  <SelectItem value="NONE">NONE</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border px-3 py-2">
-              <div>
-                <Label>Active</Label>
-                <div className="text-xs text-muted-foreground">Controls whether officers can select this pest</div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="pest-label">Label</Label>
+                <Input id="pest-label" value={label} onChange={(e) => setLabel(e.target.value)} />
               </div>
-              <Switch checked={active} onCheckedChange={setActive} />
+              <div className="space-y-2">
+                <Label htmlFor="pest-key">Key</Label>
+                <Input id="pest-key" value={key} onChange={(e) => setKey(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="display-order">Display Order</Label>
+                <Input
+                  id="display-order"
+                  type="number"
+                  value={displayOrder}
+                  onChange={(e) => setDisplayOrder(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Default Observation Method</Label>
+                <Select value={defaultObservationMethod} onValueChange={(value) => setDefaultObservationMethod(value as typeof defaultObservationMethod)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PHEROMONE_TRAP">PHEROMONE_TRAP</SelectItem>
+                    <SelectItem value="FIELD_OBSERVATION">FIELD_OBSERVATION</SelectItem>
+                    <SelectItem value="EVENT_OBSERVATION">EVENT_OBSERVATION</SelectItem>
+                    <SelectItem value="SIGN_BASED">SIGN_BASED</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Alert Trigger</Label>
+                <Select value={alertTrigger} onValueChange={(value) => setAlertTrigger(value as typeof alertTrigger)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="WARNING_AND_HIGH">WARNING_AND_HIGH</SelectItem>
+                    <SelectItem value="HIGH_ONLY">HIGH_ONLY</SelectItem>
+                    <SelectItem value="NONE">NONE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                <div>
+                  <Label>Active</Label>
+                  <div className="text-xs text-muted-foreground">Controls whether officers can select this pest</div>
+                </div>
+                <Switch checked={active} onCheckedChange={setActive} />
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-2">
+              <Label>Threshold Editor</Label>
+              {parsedObservationConfigs.error ? (
+                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                  {parsedObservationConfigs.error}
+                </div>
+              ) : parsedObservationConfigs.value && parsedObservationConfigs.value.length > 0 ? (
+                <div className="space-y-3">
+                  {parsedObservationConfigs.value.map((config, configIndex) => {
+                    const numericRules = config.severityRules.filter(
+                      (rule) => rule.conditionKind === "NUMERIC"
+                    );
+                    const highRule = numericRules.find((rule) => rule.severity === "HIGH");
+                    const warningRule = numericRules.find((rule) => rule.severity === "WARNING");
+                    const thresholdFieldKey =
+                      (typeof highRule?.conditionExpression?.field === "string"
+                        ? highRule.conditionExpression.field
+                        : null) ??
+                      (typeof warningRule?.conditionExpression?.field === "string"
+                        ? warningRule.conditionExpression.field
+                        : null) ??
+                      config.countFieldKey ??
+                      null;
+                    const thresholdField = config.fields.find((field) => field.key === thresholdFieldKey);
+                    const supportsQuickEdit =
+                      numericRules.length > 0 &&
+                      thresholdFieldKey !== null &&
+                      (highRule || warningRule);
+
+                    return (
+                      <div key={`${config.method}-${configIndex}`} className="rounded-lg border p-4">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <div className="font-medium">{config.method}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {thresholdField
+                                ? `Threshold field: ${thresholdField.label}`
+                                : "No numeric threshold field detected"}
+                            </div>
+                          </div>
+                          <Badge variant={config.active ? "secondary" : "outline"}>
+                            {config.active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+
+                        {supportsQuickEdit ? (
+                          <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor={`warning-threshold-${configIndex}`}>Warning Threshold</Label>
+                              <Input
+                                id={`warning-threshold-${configIndex}`}
+                                type="number"
+                                value={String(
+                                  typeof warningRule?.conditionExpression?.value === "number"
+                                    ? warningRule.conditionExpression.value
+                                    : warningRule?.conditionExpression?.value ?? ""
+                                )}
+                                onChange={(e) => {
+                                  const nextValue = e.target.value === "" ? "" : Number(e.target.value);
+                                  updateObservationConfigs((configs) =>
+                                    configs.map((item, index) => {
+                                      if (index !== configIndex) return item;
+                                      return {
+                                        ...item,
+                                        severityRules: item.severityRules.map((rule) =>
+                                          rule.severity === "WARNING" && rule.conditionKind === "NUMERIC"
+                                            ? {
+                                                ...rule,
+                                                conditionExpression: {
+                                                  ...rule.conditionExpression,
+                                                  field:
+                                                    typeof rule.conditionExpression.field === "string"
+                                                      ? rule.conditionExpression.field
+                                                      : thresholdFieldKey,
+                                                  operator:
+                                                    typeof rule.conditionExpression.operator === "string"
+                                                      ? rule.conditionExpression.operator
+                                                      : ">",
+                                                  value: nextValue,
+                                                },
+                                              }
+                                            : rule
+                                        ),
+                                      };
+                                    })
+                                  );
+                                }}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Reports above this value will be marked as warning.
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`high-threshold-${configIndex}`}>High Threshold</Label>
+                              <Input
+                                id={`high-threshold-${configIndex}`}
+                                type="number"
+                                value={String(
+                                  typeof highRule?.conditionExpression?.value === "number"
+                                    ? highRule.conditionExpression.value
+                                    : highRule?.conditionExpression?.value ?? ""
+                                )}
+                                onChange={(e) => {
+                                  const nextValue = e.target.value === "" ? "" : Number(e.target.value);
+                                  updateObservationConfigs((configs) =>
+                                    configs.map((item, index) => {
+                                      if (index !== configIndex) return item;
+                                      return {
+                                        ...item,
+                                        severityRules: item.severityRules.map((rule) =>
+                                          rule.severity === "HIGH" && rule.conditionKind === "NUMERIC"
+                                            ? {
+                                                ...rule,
+                                                conditionExpression: {
+                                                  ...rule.conditionExpression,
+                                                  field:
+                                                    typeof rule.conditionExpression.field === "string"
+                                                      ? rule.conditionExpression.field
+                                                      : thresholdFieldKey,
+                                                  operator:
+                                                    typeof rule.conditionExpression.operator === "string"
+                                                      ? rule.conditionExpression.operator
+                                                      : ">",
+                                                  value: nextValue,
+                                                },
+                                              }
+                                            : rule
+                                        ),
+                                      };
+                                    })
+                                  );
+                                }}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Reports above this value will be marked as high.
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-xs text-muted-foreground">
+                            Quick threshold editing is available for numeric severity rules. Use the JSON editor
+                            below for categorical or more advanced rule setups.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                  Add an observation config to edit thresholds.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 space-y-2">
+              <Label htmlFor="observation-config-json">Observation Config JSON</Label>
+              <Textarea
+                id="observation-config-json"
+                value={observationConfigsJson}
+                onChange={(e) => setObservationConfigsJson(e.target.value)}
+                className="min-h-[240px] font-mono text-xs sm:min-h-[320px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Include observation methods, fields, derived definitions, and severity rules. This internal editor is intentionally compact for phase 1.
+              </p>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="observation-config-json">Observation Config JSON</Label>
-            <Textarea
-              id="observation-config-json"
-              value={observationConfigsJson}
-              onChange={(e) => setObservationConfigsJson(e.target.value)}
-              className="min-h-[320px] font-mono text-xs"
-            />
-            <p className="text-xs text-muted-foreground">
-              Include observation methods, fields, derived definitions, and severity rules. This internal editor is intentionally compact for phase 1.
-            </p>
-          </div>
-
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t px-4 py-4 sm:px-6">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saveMutation.isPending}>
               Cancel
             </Button>
