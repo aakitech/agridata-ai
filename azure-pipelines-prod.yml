@@ -46,7 +46,7 @@ steps:
     env:
       DATABASE_URL: $(DATABASE_URL)
 
-  - script: pnpm seed:mpbc-pest-configs
+  - script: npx tsx scripts/seed-mpbc-pest-configs.ts
     displayName: 'Seed MPBC Pest Configs'
     env:
       DATABASE_URL: $(DATABASE_URL)
