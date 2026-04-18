@@ -250,7 +250,7 @@ const phaseOnePests: SeedPest[] = [
           fieldType: "select",
           required: true,
           displayOrder: 2,
-          options: ["Feeding on crop", "Flying over", "Roosting", "Perching", "Other"],
+          options: ["Feeding on crop", "Flying over", "Roosting", "Perching"],
         },
         {
           key: "crop_vegetation_type",

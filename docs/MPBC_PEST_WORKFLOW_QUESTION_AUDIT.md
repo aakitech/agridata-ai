@@ -150,7 +150,8 @@ Primary source: [whatsapp-bot-seed-workflows.ts](/Users/mohara/Documents/aakitec
 
 - The current MPBC flow is not a single questionnaire. It branches by pest after the first selection.
 - There is support for a second branching question, `How are you observing {pest} today?`, but none of the currently seeded MPBC pests has more than one active method, so that question is not currently shown.
-- Rodents, Locusts, and Quelea Birds now include conditional follow-up text questions when the officer selects `Other`.
+- Rodents and Locusts include conditional follow-up text questions when the officer selects `Other`.
+- Quelea Birds now use a fixed behavior list without an `Other` option, which keeps the activity field structured and avoids low-value summaries such as `Activity: Other`.
 - The legacy flow is still present and uses different wording from the newer config-driven flow.
 - The older code and README are inconsistent on pest naming in places:
   `README.md` describes Fall Armyworm, while the seeded legacy workflow currently says African Armyworm.
