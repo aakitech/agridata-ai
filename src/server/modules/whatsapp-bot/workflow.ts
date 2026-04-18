@@ -74,25 +74,33 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
     return;
   }
 
-  // 2. Handle Commands
-  const text = msg.Body?.trim().toUpperCase();
-  if (text === "RESET") {
-    await db.update(botSessions)
-      .set({ 
-        currentStep: null, 
-        dataCollected: null, 
-        status: "RESET",
-        workflowId: null 
-      })
-      .where(eq(botSessions.userId, user.id));
-    await sendText(phoneNumber, "Conversation reset. What can I help you with today?");
-    return;
-  }
-
-  // 3. Get or Create Session
+  // 2. Get Existing Session
   let session = await db.query.botSessions.findFirst({
     where: eq(botSessions.userId, user.id),
   });
+
+  // 3. Handle Commands
+  const text = msg.Body?.trim().toUpperCase();
+  if (text === "RESET" || text === "CANCEL") {
+    const hasActiveSession = Boolean(session?.currentStep);
+
+    if (hasActiveSession) {
+      await resetSession(user.id);
+      const message =
+        text === "CANCEL"
+          ? "Current report cancelled. Nothing was submitted. Send any message when you're ready to begin again."
+          : "Conversation reset. Nothing was submitted. Send any message when you're ready to begin again.";
+      await sendText(phoneNumber, message);
+      return;
+    }
+
+    const inactiveMessage =
+      text === "CANCEL"
+        ? "There is no active report to cancel."
+        : "There is no active report to reset.";
+    await sendText(phoneNumber, inactiveMessage);
+    return;
+  }
 
   if (!session) {
     const [newSession] = await db
@@ -133,7 +141,11 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
   }
 
   try {
+    const isStartingFlow = !session.currentStep;
     const result = await processor.processMessage(session, msg);
+    const message = isStartingFlow
+      ? addSessionCommandHint(result.message)
+      : result.message;
     
     // Check if we need to send an interactive message
     const currentStep = result.currentStep;
@@ -142,7 +154,7 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
       // Send list message
       await sendListMessage(
         phoneNumber,
-        result.message,
+        message,
         "Select Option",
         [{
           title: "Options",
@@ -157,17 +169,32 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
       // Send quick reply buttons
       await sendQuickReply(
         phoneNumber,
-        result.message,
+        message,
         currentStep.quickReplies
       );
     } else {
       // Send regular text message
-      await sendText(phoneNumber, result.message);
+      await sendText(phoneNumber, message);
     }
   } catch (error) {
     console.error("Error in workflow processor:", error);
-    await sendText(phoneNumber, "An error occurred during data collection. Please try typing 'RESET' to start over.");
+    await sendText(phoneNumber, "An error occurred during data collection. Please try typing 'cancel' to stop or 'RESET' to start over.");
   }
+}
+
+async function resetSession(userId: string) {
+  await db.update(botSessions)
+    .set({
+      currentStep: null,
+      dataCollected: null,
+      status: "RESET",
+      workflowId: null,
+    })
+    .where(eq(botSessions.userId, userId));
+}
+
+function addSessionCommandHint(message: string) {
+  return `${message}\n\nReply cancel anytime to stop this report.`;
 }
 
 async function sendText(to: string, body: string) {
