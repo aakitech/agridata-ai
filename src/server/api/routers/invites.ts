@@ -239,6 +239,24 @@ export const invitesRouter = createTRPCRouter({
             throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
         }
 
+        const existingAppUser = await ctx.db.query.appUsers.findFirst({
+            where: eq(appUsers.email, input.email),
+        });
+
+        if (!existingAppUser) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "No pending profile found for this email.",
+            });
+        }
+
+        if (ctx.appUser.role === "org_admin" && existingAppUser.orgId !== ctx.appUser.orgId) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Org admins can only resend invites for their own organization.",
+            });
+        }
+
         if (!env.SUPABASE_SERVICE_ROLE_KEY) {
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Missing service role key" });
         }
@@ -248,9 +266,6 @@ export const invitesRouter = createTRPCRouter({
             env.SUPABASE_SERVICE_ROLE_KEY
         );
 
-        // Ideally we check if user belongs to admin's org before resending
-        // checking limits etc. For now we trust Supabase to handle rate limits/idempotency.
-        
         // Redirect directly to the client-side accept-invite page to handle hash fragments
         const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invite`;
 

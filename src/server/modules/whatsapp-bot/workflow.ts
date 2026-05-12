@@ -127,7 +127,7 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
   // Use Name if available, otherwise fallback to phone number
   const officerName = user.fullName || phoneNumber;
   const processor = hasActivePestConfigs
-    ? new MpbcPestConfigProcessor(user.id, org.id, officerName)
+    ? new MpbcPestConfigProcessor(user.id, org.id, officerName, org.name)
     : workflowId && workflowConfig
       ? new WorkflowProcessor(workflowConfig, user.id, org.id, officerName)
       : null;
@@ -197,14 +197,20 @@ function addSessionCommandHint(message: string) {
   return `${message}\n\nReply cancel anytime to stop this report.`;
 }
 
+function formatWhatsAppAddress(value: string) {
+  const trimmed = value.trim();
+  return trimmed.startsWith("whatsapp:") ? trimmed : `whatsapp:${trimmed}`;
+}
+
 async function sendText(to: string, body: string) {
   console.log(`📤 Message to ${to}: ${body}`);
   // Ensure we have the whatsapp: prefix
-  const destination = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
+  const destination = formatWhatsAppAddress(to);
+  const sender = formatWhatsAppAddress(env.TWILIO_PHONE_NUMBER);
   
   try {
     await client.messages.create({
-      from: `whatsapp:${env.TWILIO_PHONE_NUMBER}`,
+      from: sender,
       to: destination,
       body,
     });

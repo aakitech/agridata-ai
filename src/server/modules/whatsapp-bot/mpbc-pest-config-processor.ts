@@ -43,7 +43,8 @@ export class MpbcPestConfigProcessor {
   constructor(
     private userId: string,
     private orgId: string,
-    private officerName: string
+    private officerName: string,
+    private organizationName = "AgriData AI"
   ) {}
 
   async processMessage(
@@ -198,7 +199,7 @@ export class MpbcPestConfigProcessor {
       data.location = validation.value;
       const finalReport = await this.completeReport(data);
       if (!finalReport) {
-        throw new Error("Failed to save MPBC report");
+        throw new Error("Failed to save report");
       }
       return {
         message: this.getConfirmationMessage(finalReport),
@@ -206,11 +207,13 @@ export class MpbcPestConfigProcessor {
       };
     }
 
-    throw new Error(`Unsupported MPBC session step: ${currentStepId}`);
+    throw new Error(`Unsupported pest configuration session step: ${currentStepId}`);
   }
 
   private formatMessage(text: string): string {
-    return text.replace(/{{OfficerName}}/g, this.officerName);
+    return text
+      .replace(/{{OfficerName}}/g, this.officerName)
+      .replace(/{{OrganizationName}}/g, this.organizationName);
   }
 
   private async getActivePests() {
@@ -234,7 +237,7 @@ export class MpbcPestConfigProcessor {
       id: "pest_selection",
       type: "list",
       question:
-        "Hello {{OfficerName}}\n\nThis is the MPBC Pest Monitoring system.\nPlease select the pest you are reporting:",
+        "Hello {{OfficerName}}\n\nThis is the {{OrganizationName}} reporting system.\nPlease select the pest you are reporting:",
       listOptions: pests.map((pest) => ({
         id: pest.key,
         title: pest.label,
@@ -503,7 +506,7 @@ export class MpbcPestConfigProcessor {
       .values({
         userId: this.userId,
         orgId: this.orgId,
-        workflowId: "mpbc_multi_pest",
+        workflowId: "multi_pest_config",
         pestConfigurationId: assessment.pestConfigurationId,
         pestKey: assessment.pestKey,
         observationMethod: assessment.observationMethod,
@@ -527,7 +530,7 @@ export class MpbcPestConfigProcessor {
       .returning();
 
     if (!report) {
-      throw new Error("Failed to insert MPBC report");
+      throw new Error("Failed to insert report");
     }
 
     if (report?.location && env.WEATHER_ENRICHMENT_ENABLED) {
@@ -879,7 +882,7 @@ export class MpbcPestConfigProcessor {
       .set({
         currentStep: stepId,
         dataCollected: data,
-        workflowId: "mpbc_multi_pest",
+        workflowId: "multi_pest_config",
         lastActive: new Date(),
       })
       .where(eq(botSessions.userId, this.userId));
