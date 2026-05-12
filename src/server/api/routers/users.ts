@@ -3,6 +3,8 @@ import { createTRPCRouter, protectedProcedure, authProcedure } from "~/server/ap
 import { TRPCError } from "@trpc/server";
 import { appUsers, organizations, reports, botSessions, triageEnhancements } from "~/server/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
+import { env } from "~/env";
 
 export const usersRouter = createTRPCRouter({
   getMe: protectedProcedure.query(async ({ ctx }) => {
@@ -202,6 +204,24 @@ export const usersRouter = createTRPCRouter({
         });
       }
 
+      const userToDelete = await ctx.db.query.appUsers.findFirst({
+        where: eq(appUsers.id, input.id),
+      });
+
+      if (!userToDelete) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found.",
+        });
+      }
+
+      if (userToDelete.id === ctx.appUser.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You cannot delete your own account.",
+        });
+      }
+
       // Check for related data
       const reportCount = await ctx.db
         .select({ count: sql<number>`count(*)` })
@@ -226,6 +246,29 @@ export const usersRouter = createTRPCRouter({
           code: "PRECONDITION_FAILED",
           message: `Cannot delete user: Found ${reportCount} reports, ${sessionCount} sessions, ${enhancementCount} triage actions. Please archive the user instead.`,
         });
+      }
+
+      if (userToDelete.authId) {
+        if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Missing Supabase service role key. Cannot delete dashboard auth user safely.",
+          });
+        }
+
+        const supabaseAdmin = createClient(
+          env.NEXT_PUBLIC_SUPABASE_URL,
+          env.SUPABASE_SERVICE_ROLE_KEY
+        );
+
+        const { error } = await supabaseAdmin.auth.admin.deleteUser(userToDelete.authId);
+
+        if (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Failed to delete Supabase auth user: ${error.message}`,
+          });
+        }
       }
 
       await ctx.db.delete(appUsers).where(eq(appUsers.id, input.id));

@@ -296,8 +296,17 @@ export default function UsersPage() {
 
 function ResendButton({ email }: { email: string }) {
     const utils = api.useUtils();
+    const [createdLink, setCreatedLink] = useState("");
+    const [showLinkDialog, setShowLinkDialog] = useState(false);
     const resend = api.invites.resend.useMutation({
-        onSuccess: () => {
+        onSuccess: (data) => {
+            if (data.inviteLink) {
+                setCreatedLink(data.inviteLink);
+                setShowLinkDialog(true);
+                toast.success("Setup link generated");
+                return;
+            }
+
             toast.success(`Invite resent to ${email}`);
         },
         onError: (err) => {
@@ -306,6 +315,7 @@ function ResendButton({ email }: { email: string }) {
     });
 
     return (
+      <>
         <Button 
             variant="ghost" 
             size="sm" 
@@ -315,5 +325,25 @@ function ResendButton({ email }: { email: string }) {
         >
             {resend.isPending ? "Sending..." : "Resend Invite"}
         </Button>
+        <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Setup Link Generated</DialogTitle>
+              <div className="text-sm text-gray-500">
+                This user already exists in Supabase, so a password setup link was generated. Send this link to the user manually.
+              </div>
+            </DialogHeader>
+            <div className="flex items-center space-x-2 pb-4">
+              <Input value={createdLink} readOnly />
+              <Button size="sm" onClick={() => {
+                  navigator.clipboard.writeText(createdLink);
+                  toast.success("Link copied!");
+              }}>
+                Copy
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     )
 }

@@ -21,6 +21,13 @@ export const invitesRouter = createTRPCRouter({
       // 1. Authorization & Scoping
       let targetOrgId = input.orgId;
 
+      if (input.role === "super_admin") {
+         throw new TRPCError({
+             code: "FORBIDDEN",
+             message: "Super admin accounts must be managed separately."
+         });
+      }
+
       if (ctx.appUser.role === "org_admin") {
          if (input.orgId !== ctx.appUser.orgId) {
              throw new TRPCError({
@@ -29,10 +36,10 @@ export const invitesRouter = createTRPCRouter({
              });
          }
          
-         if (input.role === "super_admin") {
+         if (input.role !== "officer") {
              throw new TRPCError({
                  code: "FORBIDDEN",
-                 message: "Only super admins can assign super_admin role."
+                 message: "Org admins can only invite officers."
              });
          }
          
@@ -152,7 +159,7 @@ export const invitesRouter = createTRPCRouter({
 
       console.log(`[Invites] Inviting ${input.email} to org ${targetOrgId} as ${input.role}`);
       
-      const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invite`;
+      const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/callback?next=/accept-invite`;
       
       let userId: string;
       let inviteLink: string | undefined;
@@ -257,6 +264,27 @@ export const invitesRouter = createTRPCRouter({
             });
         }
 
+        if (ctx.appUser.role === "org_admin" && existingAppUser.role !== "officer") {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Org admins can only resend officer invites.",
+            });
+        }
+
+        if (existingAppUser.role === "super_admin") {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Super admin accounts must be managed separately.",
+            });
+        }
+
+        if (existingAppUser.status !== "PENDING") {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Only pending invitations can be resent.",
+            });
+        }
+
         if (!env.SUPABASE_SERVICE_ROLE_KEY) {
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Missing service role key" });
         }
@@ -267,17 +295,56 @@ export const invitesRouter = createTRPCRouter({
         );
 
         // Redirect directly to the client-side accept-invite page to handle hash fragments
-        const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invite`;
+        const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/callback?next=/accept-invite`;
 
+        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+        if (listError) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: listError.message });
+        }
+
+        const authUser = users?.find((user) => user.email === input.email);
+
+        if (authUser?.email_confirmed_at) {
+            const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: "recovery",
+                email: input.email,
+                options: { redirectTo: redirectUrl },
+            });
+
+            if (linkError) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: linkError.message });
+            }
+
+            return {
+                success: true,
+                inviteLink: linkData.properties.action_link,
+                delivery: "manual_link" as const,
+            };
+        }
+        
         const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
             input.email,
             { redirectTo: redirectUrl }
-        ); // inviteUserByEmail is often used for resending invites too if user is unconfirmed
+        );
 
         if (error) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+            const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: "invite",
+                email: input.email,
+                options: { redirectTo: redirectUrl },
+            });
+
+            if (linkError) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+            }
+
+            return {
+                success: true,
+                inviteLink: linkData.properties.action_link,
+                delivery: "manual_link" as const,
+            };
         }
         
-        return { success: true };
+        return { success: true, delivery: "email" as const };
     }),
 });

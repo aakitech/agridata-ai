@@ -32,6 +32,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // redirect the user to an error page with some instructions
-  redirect("/error");
+  // Hash-token invite links arrive as /auth/callback#access_token=...
+  // URL fragments are not sent to the server, so this route cannot read them.
+  // Redirecting to `next` lets the browser carry the fragment to /accept-invite,
+  // where the client can establish the Supabase session.
+  redirect(next);
 }
