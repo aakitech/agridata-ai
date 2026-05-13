@@ -210,6 +210,17 @@ Follow-up from Felix:
 - Kutsaga has its own count ranges and symptoms for the pest set.
 - Kutsaga can share photos of the pests and the damage they cause.
 - Kutsaga is comfortable with AgriData AI proposing a simple farmer-friendly WhatsApp flow for review and refinement.
+- Kutsaga shared rating scales for Aphids, Mealybug, Budworm, and False wireworm.
+- Aphids and Mealybug should rely mainly on counts because they are sap-sucking insects and visible damage is not always obvious. Heavy infestations may show black sooty mould.
+
+Draft severity mapping pending Kutsaga confirmation:
+
+| Pest | Normal | Warning | High |
+| --- | --- | --- | --- |
+| Aphids | 0-1 | 2 | 3-4 |
+| Mealybug | 0-1 | 2 | 3-4 |
+| Budworm | 0-1 | 2-3 | 4-5 |
+| False wireworm | 0-1 | 2 | 3-4 |
 
 Questionnaire artifact:
 

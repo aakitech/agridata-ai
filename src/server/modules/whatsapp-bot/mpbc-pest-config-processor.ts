@@ -680,6 +680,17 @@ export class MpbcPestConfigProcessor {
       }
     }
 
+    if (["aphids", "mealybug", "budworm", "falsewire_worm"].includes(report.pestKey ?? "")) {
+      switch (report.severity) {
+        case "HIGH":
+          return `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🚨\n\nThis exceeds the ${pestName} outbreak threshold.\nPlease notify your supervisor and begin field scouting in surrounding areas.`;
+        case "WARNING":
+          return `⚠️ Report received.\n\n${baseInfo}\nStatus: Warning 🟠\n\nThis indicates elevated ${pestName} infestation pressure.\nPlease continue close monitoring and watch for rapid spread.`;
+        default:
+          return `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`;
+      }
+    }
+
     switch (report.severity) {
       case "HIGH":
         return isTrapFlow
@@ -697,6 +708,10 @@ export class MpbcPestConfigProcessor {
   }
 
   private buildObservationSummary(report: typeof reports.$inferSelect) {
+    if (["aphids", "mealybug", "budworm", "falsewire_worm"].includes(report.pestKey ?? "")) {
+      return this.buildKutsagaObservationSummary(report);
+    }
+
     if (report.pestKey === "locusts") {
       const raw = this.getRawPayload(report);
       const lines = ["Locust observation recorded"];
@@ -807,6 +822,48 @@ export class MpbcPestConfigProcessor {
     return null;
   }
 
+  private buildKutsagaObservationSummary(report: typeof reports.$inferSelect) {
+    const raw = this.getRawPayload(report);
+    const pestName = report.label ?? "Pest";
+
+    switch (report.pestKey) {
+      case "aphids":
+        return `${pestName} count: ${String(raw.aphid_rating ?? "Not recorded")}`;
+      case "mealybug":
+        return `${pestName} count: ${String(raw.mealybug_rating ?? "Not recorded")}`;
+      case "budworm":
+        return `${pestName} damage: ${String(raw.budworm_damage_rating ?? "Not recorded")}`;
+      case "falsewire_worm":
+        return `${pestName} damage: ${String(raw.stem_damage_rating ?? "Not recorded")}`;
+      default:
+        return `${pestName} observation recorded`;
+    }
+  }
+
+  private buildGenericObservationSummary(report: typeof reports.$inferSelect) {
+    const raw = this.getRawPayload(report);
+    const lines = [`${report.label ?? "Pest"} observation recorded`];
+    const ignoredKeys = new Set([
+      "location",
+      "photo",
+      "photos",
+      "pest_key",
+      "pest_name",
+      "observation_method",
+    ]);
+
+    for (const [key, value] of Object.entries(raw)) {
+      if (ignoredKeys.has(key) || key.startsWith("__")) continue;
+      if (value === null || value === undefined || value === "") continue;
+      if (typeof value === "object") continue;
+
+      lines.push(`${this.formatFieldLabel(key)}: ${String(value)}`);
+      if (lines.length >= 4) break;
+    }
+
+    return lines.join("\n");
+  }
+
   private getRawPayload(report: typeof reports.$inferSelect) {
     const payload =
       report.dataPayload && typeof report.dataPayload === "object"
@@ -825,6 +882,12 @@ export class MpbcPestConfigProcessor {
 
     return value
       .replace(/\s*\([^)]*\)\s*$/, "")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private formatFieldLabel(key: string) {
+    return key
       .replace(/_/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase());
   }

@@ -150,6 +150,75 @@ Confirmed:
 - Kutsaga can share pest and damage photos.
 - Kutsaga approves a simple farmer-friendly draft flow for refinement.
 
+### Pest Rating Scales From Felix
+
+Felix later shared pest/damage photos and the following rating scales.
+
+Aphids:
+
+```text
+0: no aphids
+1: 1-10 aphids
+2: 11-100 aphids
+3: 101-1000 aphids
+4: 1000+ aphids
+```
+
+Budworm:
+
+```text
+0: no damage
+1: >25% of leaves around the bud damaged
+2: 25%-50% of leaves around the bud damaged
+3: 51%-75% of leaves around the bud damaged
+4: 76%-100% of leaves around the bud damaged
+5: bud completely damaged
+```
+
+Note: the `1: >25%` label may mean less than 25% based on the rest of the scale. This should be confirmed with Kutsaga.
+
+Mealybug:
+
+```text
+0: no mealybugs
+1: 1-10 mealybugs
+2: 11-50 mealybugs
+3: 51-100 mealybugs
+4: 100+ mealybugs
+```
+
+False wireworm:
+
+```text
+0: 0% stem damage
+1: 25% stem damage
+2: 50% stem damage
+3: 75% stem damage
+4: 100% stem damage (damage right around the stem)
+```
+
+Felix also clarified that aphids and mealybugs are sap-sucking insects, so their damage is not always visually obvious. For these pests, the flow should rely mainly on counts. In heavy infestations, farmers may see black sooty mould on leaves.
+
+### Draft Severity Mapping
+
+These are implementation draft thresholds pending Felix confirmation:
+
+| Pest | Normal | Warning | High |
+| --- | --- | --- | --- |
+| Aphids | 0-1 | 2 | 3-4 |
+| Mealybug | 0-1 | 2 | 3-4 |
+| Budworm | 0-1 | 2-3 | 4-5 |
+| False wireworm | 0-1 | 2 | 3-4 |
+
+Implementation note:
+
+- The WhatsApp flow captures the exact Kutsaga rating label.
+- Severity is computed from that rating label using pest severity rules.
+- These thresholds should be refined if Kutsaga interprets risk differently.
+- Farmer-facing options should not repeat the numeric rating code because WhatsApp already numbers choices. For example, show `1 — 10 aphids`, not `1. 1-10 aphids`.
+- Farmer-facing wording should use simple English. For example, use `How many aphids can you see on the leaves?` instead of `Estimate aphids seen on the leaves.`
+- Yes/no questions should use numbered choices (`Yes`, `No`) instead of free text wherever possible.
+
 ## Current Draft WhatsApp Flow
 
 The draft Track A flow is:
@@ -173,6 +242,7 @@ Draft pest-specific field categories:
 - GPS location.
 
 Current seeded v1 fields are intentionally simple because Kutsaga still needs to provide exact count ranges and symptoms.
+The seed now uses Felix's rating scales for the four confirmed pests. The remaining uncertainty is severity interpretation, not the rating scale itself.
 
 ## Implementation Work Completed
 
