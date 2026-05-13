@@ -171,7 +171,7 @@ Known so far:
 
 - Kutsaga Research Board is a new institutional partner we may onboard.
 - There is currently no Kutsaga-specific code or data reference in the repository.
-- Kutsaga appears to be tobacco-focused, but this should be confirmed directly with stakeholders before implementation.
+- Kutsaga confirmed that the first pilot should focus on tobacco.
 - Kutsaga's immediate need is a real-time, structured agricultural data collection system, not a forecasting product alone.
 - The relationship shifted from "use existing historical data to forecast" toward "build high-quality real-time data infrastructure that can later support forecasting and early warning."
 - Track A is the farmer WhatsApp data collection pilot.
@@ -195,13 +195,21 @@ Track A pilot assumptions:
 - The existing dashboard is acceptable for the first pass; expand only when Kutsaga explicitly asks for new views.
 - Pilot success metrics still need stakeholder discussion.
 - Consent and data-use wording should be added because farmers will send location and possibly images.
+- Kutsaga confirmed that farmers are not very technical, so the WhatsApp flow should stay short and farmer-friendly.
 
-Initial pest set shared by Kutsaga:
+Initial pest set confirmed by Kutsaga:
 
 - Aphids
 - Mealybug
 - Budworm
 - Falsewire worm
+
+Follow-up from Felix:
+
+- Data collection for these pests is almost non-existent today.
+- Kutsaga has its own count ranges and symptoms for the pest set.
+- Kutsaga can share photos of the pests and the damage they cause.
+- Kutsaga is comfortable with AgriData AI proposing a simple farmer-friendly WhatsApp flow for review and refinement.
 
 Questionnaire artifact:
 
@@ -210,13 +218,30 @@ Questionnaire artifact:
 - It should be treated as source material for domain language and possible future survey modules, not as the literal first WhatsApp reporting flow.
 - The first WhatsApp flow should be much shorter than the questionnaire and should focus on real-time incident/observation reporting.
 
+Draft Track A flow:
+
+1. Farmer selects the pest observed.
+2. Farmer answers 2-4 short pest-specific questions.
+3. Farmer optionally uploads a photo.
+4. Farmer shares their location.
+5. Farmer submits the report.
+
+Draft fields:
+
+- Approximate count or severity range.
+- Where the pest was observed.
+- Visible symptoms or crop damage.
+- Any action already taken by the farmer.
+- Optional photo.
+- GPS location.
+
 Information to capture:
 
 - Official organization name and preferred short name.
 - Primary contacts and roles.
 - Intended pilot/live start date.
-- Confirmed crop scope, especially whether Track A is tobacco-only.
-- Confirmed pests, diseases, or surveillance categories in scope for the first WhatsApp pilot.
+- Whether Track A should remain tobacco-only beyond the first pilot.
+- Whether any diseases should be added later, or whether the first pilot remains pest-only.
 - Whether aphids are included in Track A reporting, Track B forecasting only, or both.
 - Geographic operating area.
 - Number of org admins.
@@ -229,6 +254,9 @@ Information to capture:
 - Data ownership, visibility, and export requirements.
 - Support and escalation process.
 - Consent/privacy wording required before farmers submit location or images.
+- Kutsaga count ranges for Aphids, Mealybug, Budworm, and Falsewire worm.
+- Kutsaga symptom lists for Aphids, Mealybug, Budworm, and Falsewire worm.
+- Kutsaga reference photos for pests and pest damage.
 
 Draft Kutsaga onboarding assumptions:
 

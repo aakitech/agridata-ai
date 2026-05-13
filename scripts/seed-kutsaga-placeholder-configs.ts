@@ -32,7 +32,7 @@ type Pest = {
   highValue: string;
 };
 
-const placeholderPests: Pest[] = [
+const kutsagaTobaccoPilotPests: Pest[] = [
   {
     key: "aphids",
     label: "Aphids",
@@ -166,7 +166,7 @@ async function main() {
 
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
-    throw new Error("DATABASE_URL is required to seed Kutsaga placeholder configs.");
+    throw new Error("DATABASE_URL is required to seed Kutsaga tobacco pilot configs.");
   }
 
   const connection = postgres(databaseUrl);
@@ -205,7 +205,7 @@ async function main() {
       .delete(pestConfigurations)
       .where(eq(pestConfigurations.orgId, org!.id));
 
-    for (const pest of placeholderPests) {
+    for (const pest of kutsagaTobaccoPilotPests) {
       const [pestConfig] = await tx
         .insert(pestConfigurations)
         .values({
@@ -227,7 +227,7 @@ async function main() {
           active: true,
           displayOrder: 1,
           summaryFieldKeys: pest.summaryFieldKeys,
-          guidanceText: "Placeholder Kutsaga farmer pilot flow. Replace after stakeholder review.",
+          guidanceText: "Draft Kutsaga tobacco farmer pilot flow v1. Refine after Kutsaga confirms count ranges, symptoms, and reference photos.",
         })
         .returning();
 
@@ -280,12 +280,12 @@ async function main() {
     }
   });
 
-  console.log(`Seeded ${placeholderPests.length} placeholder Kutsaga pest configurations.`);
+  console.log(`Seeded ${kutsagaTobaccoPilotPests.length} draft Kutsaga tobacco pilot pest configurations.`);
   console.log(`Organization: ${org.name} (${org.id})`);
   await connection.end();
 }
 
 main().catch((error) => {
-  console.error("Failed to seed Kutsaga placeholder configs:", error);
+  console.error("Failed to seed Kutsaga tobacco pilot configs:", error);
   process.exit(1);
 });
