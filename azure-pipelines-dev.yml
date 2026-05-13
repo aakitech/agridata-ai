@@ -33,6 +33,11 @@ stages:
       env:
         DATABASE_URL: $(DATABASE_URL)
 
+    - script: npx tsx scripts/seed-kutsaga-placeholder-configs.ts
+      displayName: 'Seed Kutsaga Pilot Pest Configs'
+      env:
+        DATABASE_URL: $(DATABASE_URL)
+
     - script: |
         npm install -g vercel
         # vercel pull: Downloads your QA secrets from the Vercel dashboard locally
