@@ -23,6 +23,12 @@ const INLINE_WEATHER_TIMEOUT_MS = Math.max(
   0,
   env.WEATHER_INLINE_ENRICHMENT_TIMEOUT_MS
 );
+const KUTSAGA_PEST_KEYS = new Set([
+  "aphids",
+  "mealybug",
+  "budworm",
+  "falsewire_worm",
+]);
 
 type IncomingMessage = {
   From: string;
@@ -680,7 +686,7 @@ export class MpbcPestConfigProcessor {
       }
     }
 
-    if (["aphids", "mealybug", "budworm", "falsewire_worm"].includes(report.pestKey ?? "")) {
+    if (KUTSAGA_PEST_KEYS.has(report.pestKey ?? "")) {
       switch (report.severity) {
         case "HIGH":
           return `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🚨\n\nThis exceeds the ${pestName} outbreak threshold.\nPlease notify your supervisor and begin field scouting in surrounding areas.`;
@@ -708,7 +714,7 @@ export class MpbcPestConfigProcessor {
   }
 
   private buildObservationSummary(report: typeof reports.$inferSelect) {
-    if (["aphids", "mealybug", "budworm", "falsewire_worm"].includes(report.pestKey ?? "")) {
+    if (KUTSAGA_PEST_KEYS.has(report.pestKey ?? "")) {
       return this.buildKutsagaObservationSummary(report);
     }
 
@@ -819,7 +825,7 @@ export class MpbcPestConfigProcessor {
       return lines.join("\n");
     }
 
-    return null;
+    return this.buildGenericObservationSummary(report);
   }
 
   private buildKutsagaObservationSummary(report: typeof reports.$inferSelect) {

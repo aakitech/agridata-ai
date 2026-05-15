@@ -248,11 +248,13 @@ export const usersRouter = createTRPCRouter({
         });
       }
 
+      await ctx.db.delete(appUsers).where(eq(appUsers.id, input.id));
+
       if (userToDelete.authId) {
         if (!env.SUPABASE_SERVICE_ROLE_KEY) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Missing Supabase service role key. Cannot delete dashboard auth user safely.",
+            message: "Local user was deleted, but Supabase service role key is missing. Remove the auth user manually.",
           });
         }
 
@@ -266,12 +268,11 @@ export const usersRouter = createTRPCRouter({
         if (error) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `Failed to delete Supabase auth user: ${error.message}`,
+            message: `Local user was deleted, but failed to delete Supabase auth user: ${error.message}`,
           });
         }
       }
 
-      await ctx.db.delete(appUsers).where(eq(appUsers.id, input.id));
       return { success: true };
     }),
 });

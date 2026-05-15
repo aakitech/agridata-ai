@@ -10,12 +10,13 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/";
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/";
 
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      redirect(next);
+      redirect(safeNext);
     }
   }
 
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!error) {
-      redirect(next);
+      redirect(safeNext);
     }
   }
 
@@ -36,5 +37,5 @@ export async function GET(request: NextRequest) {
   // URL fragments are not sent to the server, so this route cannot read them.
   // Redirecting to `next` lets the browser carry the fragment to /accept-invite,
   // where the client can establish the Supabase session.
-  redirect(next);
+  redirect(safeNext);
 }

@@ -6,6 +6,57 @@ import { createClient } from "@supabase/supabase-js";
 import { env } from "~/env";
 import { eq } from "drizzle-orm";
 
+type SupabaseAdminClient = {
+  auth: {
+    admin: {
+      listUsers: (params?: {
+        page?: number;
+        perPage?: number;
+      }) => Promise<{
+        data: {
+          users: Array<{
+            id: string;
+            email?: string;
+            email_confirmed_at?: string | null;
+          }>;
+        };
+        error: { message: string } | null;
+      }>;
+    };
+  };
+};
+
+async function findAuthUserByEmail(
+  supabaseAdmin: SupabaseAdminClient,
+  email: string
+) {
+  const normalizedEmail = email.toLowerCase();
+  const perPage = 1000;
+
+  for (let page = 1; page <= 100; page += 1) {
+    const {
+      data: { users },
+      error,
+    } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+
+    if (error) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+    }
+
+    const authUser = users?.find(
+      (user) => user.email?.toLowerCase() === normalizedEmail
+    );
+
+    if (authUser) return authUser;
+    if (!users || users.length < perPage) return null;
+  }
+
+  throw new TRPCError({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "Could not find auth user after checking all Supabase user pages.",
+  });
+}
+
 export const invitesRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
@@ -22,10 +73,10 @@ export const invitesRouter = createTRPCRouter({
       let targetOrgId = input.orgId;
 
       if (input.role === "super_admin") {
-         throw new TRPCError({
-             code: "FORBIDDEN",
-             message: "Super admin accounts must be managed separately."
-         });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Super admin accounts must be managed separately.",
+        });
       }
 
       if (ctx.appUser.role === "org_admin") {
@@ -165,8 +216,7 @@ export const invitesRouter = createTRPCRouter({
       let inviteLink: string | undefined;
 
       // 3. Pre-check if user exists and is confirmed
-      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = users?.find(u => u.email === input.email);
+      const existingUser = await findAuthUserByEmail(supabaseAdmin, input.email);
 
       if (existingUser && existingUser.email_confirmed_at) {
          throw new TRPCError({
@@ -297,12 +347,7 @@ export const invitesRouter = createTRPCRouter({
         // Redirect directly to the client-side accept-invite page to handle hash fragments
         const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/callback?next=/accept-invite`;
 
-        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-        if (listError) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: listError.message });
-        }
-
-        const authUser = users?.find((user) => user.email === input.email);
+        const authUser = await findAuthUserByEmail(supabaseAdmin, input.email);
 
         if (authUser?.email_confirmed_at) {
             const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
