@@ -3,6 +3,8 @@ import { createTRPCRouter, protectedProcedure, authProcedure } from "~/server/ap
 import { TRPCError } from "@trpc/server";
 import { appUsers, organizations, reports, botSessions, triageEnhancements } from "~/server/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
+import { env } from "~/env";
 
 export const usersRouter = createTRPCRouter({
   getMe: protectedProcedure.query(async ({ ctx }) => {
@@ -202,6 +204,24 @@ export const usersRouter = createTRPCRouter({
         });
       }
 
+      const userToDelete = await ctx.db.query.appUsers.findFirst({
+        where: eq(appUsers.id, input.id),
+      });
+
+      if (!userToDelete) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found.",
+        });
+      }
+
+      if (userToDelete.id === ctx.appUser.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You cannot delete your own account.",
+        });
+      }
+
       // Check for related data
       const reportCount = await ctx.db
         .select({ count: sql<number>`count(*)` })
@@ -229,6 +249,30 @@ export const usersRouter = createTRPCRouter({
       }
 
       await ctx.db.delete(appUsers).where(eq(appUsers.id, input.id));
+
+      if (userToDelete.authId) {
+        if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Local user was deleted, but Supabase service role key is missing. Remove the auth user manually.",
+          });
+        }
+
+        const supabaseAdmin = createClient(
+          env.NEXT_PUBLIC_SUPABASE_URL,
+          env.SUPABASE_SERVICE_ROLE_KEY
+        );
+
+        const { error } = await supabaseAdmin.auth.admin.deleteUser(userToDelete.authId);
+
+        if (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Local user was deleted, but failed to delete Supabase auth user: ${error.message}`,
+          });
+        }
+      }
+
       return { success: true };
     }),
 });

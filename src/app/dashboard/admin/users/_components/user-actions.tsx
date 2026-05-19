@@ -251,7 +251,7 @@ function DeleteUserDialog({
                  </DialogHeader>
                  
                  <div className="py-4 text-sm text-muted-foreground bg-destructive/10 p-3 rounded-md border border-destructive/20 text-destructive-foreground">
-                    Warning: Deletion will only succeed if the user has no reports, sessions, or other dependent data.
+                    Warning: Deletion will only succeed if the user has no reports, sessions, or other dependent data. Dashboard users will also be removed from Supabase Auth.
                  </div>
  
                  <DialogFooter>

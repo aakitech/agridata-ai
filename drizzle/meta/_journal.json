@@ -50,6 +50,27 @@
       "when": 1771632000000,
       "tag": "0008_weather_v2_relative_humidity",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771718400000,
+      "tag": "0009_mpbc_multi_pest_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1771804800000,
+      "tag": "0010_add_organization_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771891200000,
+      "tag": "0011_update_multi_pest_workflow_ids",
+      "breakpoints": true
     }
   ]
 }
