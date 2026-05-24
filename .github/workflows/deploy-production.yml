@@ -22,6 +22,7 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      SKIP_ENV_VALIDATION: "true"
 
     steps:
       - name: Checkout
@@ -40,6 +41,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Verify required secrets
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL" || (echo "Missing production environment secret: DATABASE_URL" && exit 1)
+          test -n "$VERCEL_TOKEN" || (echo "Missing production environment secret: VERCEL_TOKEN" && exit 1)
+          test -n "$VERCEL_ORG_ID" || (echo "Missing production environment secret: VERCEL_ORG_ID" && exit 1)
+          test -n "$VERCEL_PROJECT_ID" || (echo "Missing production environment secret: VERCEL_PROJECT_ID" && exit 1)
 
       - name: Diagnose migration state
         run: npx tsx scripts/diagnose-migration-state.ts

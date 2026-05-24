@@ -22,6 +22,12 @@ jobs:
       WEATHER_ENRICHMENT_BATCH_SIZE: "50"
 
     steps:
+      - name: Verify required secrets
+        run: |
+          set -euo pipefail
+          test -n "$WEATHER_CRON_BASE_URL" || (echo "Missing production environment secret: WEATHER_CRON_BASE_URL" && exit 1)
+          test -n "$WEATHER_ENRICHMENT_CRON_SECRET" || (echo "Missing production environment secret: WEATHER_ENRICHMENT_CRON_SECRET" && exit 1)
+
       - name: Call weather enrichment endpoint
         run: |
           set -euo pipefail
