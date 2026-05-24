@@ -50,6 +50,10 @@ jobs:
           test -n "$VERCEL_ORG_ID" || (echo "Missing preview environment secret: VERCEL_ORG_ID" && exit 1)
           test -n "$VERCEL_PROJECT_ID" || (echo "Missing preview environment secret: VERCEL_PROJECT_ID" && exit 1)
 
+      - name: Show sanitized database target
+        run: |
+          node -e "const url = new URL(process.env.DATABASE_URL); console.log(`Database host: ${url.hostname}`); console.log(`Database port: ${url.port || '(default)'}`); console.log(`Database user: ${decodeURIComponent(url.username)}`); console.log(`Database name: ${url.pathname.replace('/', '')}`);"
+
       - name: Run QA DB migrations
         run: pnpm db:migrate
 
