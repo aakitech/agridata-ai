@@ -51,6 +51,21 @@ Recommended production values:
 9. Disable the Azure weather scheduler pipelines.
 10. Disable Azure deploy pipelines after GitHub production deploys are stable.
 
+## Production Promotion
+
+Production promotion is handled by the `Promote Develop to Main` workflow.
+
+Expected flow:
+
+1. `develop` deploys successfully to QA through `Deploy Preview`.
+2. A user runs `Actions` -> `Promote Develop to Main` -> `Run workflow`.
+3. GitHub pauses on the `production-promotion` environment approval gate.
+4. After approval, the workflow verifies the latest `Deploy Preview` succeeded for the current `develop` commit.
+5. The workflow merges `develop` into `main`.
+6. The `Deploy Production` workflow starts from the `main` push.
+
+Create a GitHub environment named `production-promotion` and add required reviewers there if a click-to-approve gate is needed before merging to `main`.
+
 ## Cost Guardrails
 
 - Weather enrichment runs about 4,320 times per month at a 10-minute cadence.
