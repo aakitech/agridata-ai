@@ -126,7 +126,7 @@ export default function DashboardPage() {
                 </Select>
               </div>
 
-              {/* Generate Report Button (MPBC only) */}
+              {/* Generate Report Button */}
               {me && (
                 <GenerateReportButton
                   orgId={
