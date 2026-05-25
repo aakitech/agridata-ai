@@ -94,7 +94,7 @@ export class MpbcReportPdfRenderer {
       align: "center",
     });
     doc.moveDown(0.6);
-    doc.font("Helvetica").fontSize(14).text("MPBC – African Armyworm Surveillance", {
+    doc.font("Helvetica").fontSize(14).text(`${reportData.organization.name} Pest Surveillance`, {
       width: contentWidth,
       align: "center",
     });
@@ -120,7 +120,7 @@ export class MpbcReportPdfRenderer {
 
     const metrics = [
       { label: "Total Reports Submitted", value: reportData.summaryMetrics.totalReports, emphasize: false },
-      { label: "Active Officers", value: reportData.summaryMetrics.activeOfficers, emphasize: false },
+      { label: "Active Reporters", value: reportData.summaryMetrics.activeOfficers, emphasize: false },
       { label: "Reporting Locations", value: reportData.summaryMetrics.uniqueLocations, emphasize: false },
       { label: "High Alert Reports", value: reportData.summaryMetrics.highAlertCount, emphasize: reportData.summaryMetrics.highAlertCount > 0 },
     ] as const;
@@ -381,7 +381,7 @@ export class MpbcReportPdfRenderer {
 
     // Footer note (page 2)
     doc.font("Helvetica").fillColor("#666").fontSize(8).text(
-      "Severity levels are based on MPBC-configured thresholds at the time of data submission.",
+      "Severity levels are based on organization-configured thresholds at the time of data submission.",
       left,
       pageHeight - 45,
       { width: contentWidth, align: "center" }
@@ -463,7 +463,7 @@ export class MpbcReportPdfRenderer {
     }
 
     doc.font("Helvetica").fillColor("#666").fontSize(8).text(
-      "Severity levels are based on MPBC-configured thresholds at the time of data submission.",
+      "Severity levels are based on organization-configured thresholds at the time of data submission.",
       left,
       pageHeight - 45,
       { width: contentWidth, align: "center" }

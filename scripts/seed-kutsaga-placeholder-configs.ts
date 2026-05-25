@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
@@ -269,39 +269,78 @@ async function main() {
       : await tx.query.pestConfigurations.findMany({
           where: eq(pestConfigurations.orgId, org!.id),
         });
-    const existingKeys = new Set(existingConfigs.map((config) => config.key));
+    const existingByKey = new Map(existingConfigs.map((config) => [config.key, config]));
 
     for (const pest of kutsagaTobaccoPilotPests) {
-      if (existingKeys.has(pest.key)) {
-        console.log(`Skipping existing Kutsaga pest config: ${pest.label} (${pest.key})`);
-        skippedCount += 1;
-        continue;
+      const existingPestConfig = existingByKey.get(pest.key);
+
+      const [pestConfig] = existingPestConfig
+        ? await tx
+            .update(pestConfigurations)
+            .set({
+              label: pest.label,
+              active: true,
+              displayOrder: pest.displayOrder,
+              defaultObservationMethod: "FIELD_OBSERVATION",
+              alertTrigger: "WARNING_AND_HIGH",
+              updatedAt: new Date(),
+            })
+            .where(eq(pestConfigurations.id, existingPestConfig.id))
+            .returning()
+        : await tx
+            .insert(pestConfigurations)
+            .values({
+              orgId: org!.id,
+              key: pest.key,
+              label: pest.label,
+              active: true,
+              displayOrder: pest.displayOrder,
+              defaultObservationMethod: "FIELD_OBSERVATION",
+              alertTrigger: "WARNING_AND_HIGH",
+            })
+            .returning();
+
+      let observationConfig = await tx.query.pestObservationConfigs.findFirst({
+        where: and(
+          eq(pestObservationConfigs.pestConfigurationId, pestConfig!.id),
+          eq(pestObservationConfigs.method, "FIELD_OBSERVATION")
+        ),
+      });
+
+      if (observationConfig) {
+        const [updatedObservationConfig] = await tx
+          .update(pestObservationConfigs)
+          .set({
+            active: true,
+            displayOrder: 1,
+            summaryFieldKeys: pest.summaryFieldKeys,
+            guidanceText: "Draft Kutsaga tobacco farmer pilot flow v1. Refine after Kutsaga confirms count ranges, symptoms, and reference photos.",
+            updatedAt: new Date(),
+          })
+          .where(eq(pestObservationConfigs.id, observationConfig.id))
+          .returning();
+        observationConfig = updatedObservationConfig!;
+
+        await tx
+          .delete(pestObservationFields)
+          .where(eq(pestObservationFields.observationConfigId, observationConfig.id));
+        await tx
+          .delete(pestSeverityRules)
+          .where(eq(pestSeverityRules.observationConfigId, observationConfig.id));
+      } else {
+        const [createdObservationConfig] = await tx
+          .insert(pestObservationConfigs)
+          .values({
+            pestConfigurationId: pestConfig!.id,
+            method: "FIELD_OBSERVATION",
+            active: true,
+            displayOrder: 1,
+            summaryFieldKeys: pest.summaryFieldKeys,
+            guidanceText: "Draft Kutsaga tobacco farmer pilot flow v1. Refine after Kutsaga confirms count ranges, symptoms, and reference photos.",
+          })
+          .returning();
+        observationConfig = createdObservationConfig!;
       }
-
-      const [pestConfig] = await tx
-        .insert(pestConfigurations)
-        .values({
-          orgId: org!.id,
-          key: pest.key,
-          label: pest.label,
-          active: true,
-          displayOrder: pest.displayOrder,
-          defaultObservationMethod: "FIELD_OBSERVATION",
-          alertTrigger: "WARNING_AND_HIGH",
-        })
-        .returning();
-
-      const [observationConfig] = await tx
-        .insert(pestObservationConfigs)
-        .values({
-          pestConfigurationId: pestConfig!.id,
-          method: "FIELD_OBSERVATION",
-          active: true,
-          displayOrder: 1,
-          summaryFieldKeys: pest.summaryFieldKeys,
-          guidanceText: "Draft Kutsaga tobacco farmer pilot flow v1. Refine after Kutsaga confirms count ranges, symptoms, and reference photos.",
-        })
-        .returning();
 
       await tx.insert(pestObservationFields).values(
         pest.fields.map((field) => ({
@@ -350,14 +389,19 @@ async function main() {
         },
       ]);
 
-      seededCount += 1;
+      if (existingPestConfig) {
+        skippedCount += 1;
+        console.log(`Updated existing Kutsaga pest config: ${pest.label} (${pest.key})`);
+      } else {
+        seededCount += 1;
+      }
     }
   });
 
   console.log(`Seeded ${seededCount} draft Kutsaga tobacco pilot pest configurations.`);
-  console.log(`Skipped ${skippedCount} existing Kutsaga pest configurations.`);
+  console.log(`Updated ${skippedCount} existing Kutsaga pest configurations.`);
   if (!refreshExisting && skippedCount > 0) {
-    console.log("Existing configs were not changed. Use --refresh or SEED_MODE=refresh to intentionally recreate them.");
+    console.log("Existing config IDs were preserved while observation fields and severity rules were refreshed.");
   }
   console.log(`Organization: ${org.name} (${org.id})`);
   await connection.end();

@@ -36,10 +36,10 @@ export function GenerateReportButton({
   const dateRangeText = `${format(startDate, "MMM dd")} - ${format(endDate, "MMM dd, yyyy")}`;
   const rangeLabel = range === "30d" ? "30 Days" : "7 Days";
 
-  // Only show button for org_admin or super_admin, and only for MPBC
+  // Only show button for org_admin or super_admin when there is a target org.
   const shouldShow =
     (userRole === "org_admin" || userRole === "super_admin") &&
-    orgSlug === "mpbc";
+    Boolean(orgId && orgSlug);
 
   const generateReport = api.reports.generateMpbcWeeklyReport.useMutation({
     onMutate: () => {
