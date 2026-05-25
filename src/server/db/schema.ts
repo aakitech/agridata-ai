@@ -61,6 +61,14 @@ export const userRoleEnum = pgEnum("user_role", [
   "officer",
 ]);
 
+export const organizationStatusEnum = pgEnum("organization_status", [
+  "DRAFT",
+  "CONFIGURING",
+  "READY_FOR_TEST",
+  "ACTIVE",
+  "SUSPENDED",
+]);
+
 export const severityEnum = pgEnum("severity", ["NORMAL", "WARNING", "HIGH"]);
 
 export const severitySourceEnum = pgEnum("severity_source", [
@@ -117,9 +125,13 @@ export const organizations = createTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  status: organizationStatusEnum("status").default("DRAFT").notNull(),
   activeWorkflow: text("active_workflow"),
   workflowConfig: jsonb("workflow_config"),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });

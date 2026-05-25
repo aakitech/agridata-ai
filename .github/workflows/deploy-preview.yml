@@ -1,0 +1,81 @@
+name: Deploy Preview
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    name: Deploy QA preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: preview
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      SKIP_ENV_VALIDATION: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify required secrets
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL" || (echo "Missing preview environment secret: DATABASE_URL" && exit 1)
+          test -n "$VERCEL_TOKEN" || (echo "Missing preview environment secret: VERCEL_TOKEN" && exit 1)
+          test -n "$VERCEL_ORG_ID" || (echo "Missing preview environment secret: VERCEL_ORG_ID" && exit 1)
+          test -n "$VERCEL_PROJECT_ID" || (echo "Missing preview environment secret: VERCEL_PROJECT_ID" && exit 1)
+
+      - name: Show sanitized database target
+        run: |
+          node -e "const url = new URL(process.env.DATABASE_URL); console.log(`Database host: ${url.hostname}`); console.log(`Database port: ${url.port || '(default)'}`); console.log(`Database user: ${decodeURIComponent(url.username)}`); console.log(`Database name: ${url.pathname.replace('/', '')}`);"
+
+      - name: Run QA DB migrations
+        run: pnpm db:migrate
+
+      - name: Seed Kutsaga pilot pest configs
+        run: npx tsx scripts/seed-kutsaga-placeholder-configs.ts
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Vercel pull and build
+        run: |
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          vercel build --token="$VERCEL_TOKEN"
+
+      - name: Deploy preview and update QA alias
+        run: |
+          set -euo pipefail
+          DEPLOY_URL=$(vercel deploy --prebuilt --meta githubCommitRef=develop --token="$VERCEL_TOKEN" | tail -n 1)
+          if [ -z "$DEPLOY_URL" ]; then
+            echo "DEPLOY_URL is empty. Failing before alias step."
+            exit 1
+          fi
+          echo "Successfully deployed unique build to: $DEPLOY_URL"
+          vercel alias set "$DEPLOY_URL" agridata-ai-qa.aakitech.com --token="$VERCEL_TOKEN"
+          echo "QA site updated at https://agridata-ai-qa.aakitech.com"

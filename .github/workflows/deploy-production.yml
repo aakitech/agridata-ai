@@ -1,0 +1,83 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    name: Deploy production
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: production
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      SKIP_ENV_VALIDATION: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify required secrets
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL" || (echo "Missing production environment secret: DATABASE_URL" && exit 1)
+          test -n "$VERCEL_TOKEN" || (echo "Missing production environment secret: VERCEL_TOKEN" && exit 1)
+          test -n "$VERCEL_ORG_ID" || (echo "Missing production environment secret: VERCEL_ORG_ID" && exit 1)
+          test -n "$VERCEL_PROJECT_ID" || (echo "Missing production environment secret: VERCEL_PROJECT_ID" && exit 1)
+
+      - name: Show sanitized database target
+        run: |
+          node -e "const url = new URL(process.env.DATABASE_URL); console.log(`Database host: ${url.hostname}`); console.log(`Database port: ${url.port || '(default)'}`); console.log(`Database user: ${decodeURIComponent(url.username)}`); console.log(`Database name: ${url.pathname.replace('/', '')}`);"
+
+      - name: Diagnose migration state
+        run: npx tsx scripts/diagnose-migration-state.ts
+        continue-on-error: true
+
+      - name: Fix bot_state type
+        run: npx tsx scripts/fix-bot-state-direct.ts
+
+      - name: Mark migrations complete
+        run: npx tsx scripts/mark-migrations-complete.ts
+
+      - name: Run production migrations
+        run: pnpm db:migrate
+
+      - name: Seed MPBC pest configs
+        run: npx tsx scripts/seed-mpbc-pest-configs.ts
+
+      - name: Seed Kutsaga pilot pest configs
+        run: npx tsx scripts/seed-kutsaga-placeholder-configs.ts
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Build and deploy to production
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

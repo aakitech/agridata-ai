@@ -139,7 +139,12 @@ export async function POST(req: NextRequest) {
   }
 
   const processor = hasActivePestConfigs
-    ? new MpbcPestConfigProcessor(user.id, org.id, user.fullName || phoneNumber)
+    ? new MpbcPestConfigProcessor(
+        user.id,
+        org.id,
+        user.fullName || phoneNumber,
+        org.name
+      )
     : new WorkflowProcessor(
         org.workflowConfig as WorkflowConfig,
         user.id,

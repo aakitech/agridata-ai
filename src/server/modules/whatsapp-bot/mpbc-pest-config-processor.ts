@@ -23,6 +23,12 @@ const INLINE_WEATHER_TIMEOUT_MS = Math.max(
   0,
   env.WEATHER_INLINE_ENRICHMENT_TIMEOUT_MS
 );
+const KUTSAGA_PEST_KEYS = new Set([
+  "aphids",
+  "mealybug",
+  "budworm",
+  "falsewire_worm",
+]);
 
 type IncomingMessage = {
   From: string;
@@ -43,7 +49,8 @@ export class MpbcPestConfigProcessor {
   constructor(
     private userId: string,
     private orgId: string,
-    private officerName: string
+    private officerName: string,
+    private organizationName = "AgriData AI"
   ) {}
 
   async processMessage(
@@ -198,7 +205,7 @@ export class MpbcPestConfigProcessor {
       data.location = validation.value;
       const finalReport = await this.completeReport(data);
       if (!finalReport) {
-        throw new Error("Failed to save MPBC report");
+        throw new Error("Failed to save report");
       }
       return {
         message: this.getConfirmationMessage(finalReport),
@@ -206,11 +213,13 @@ export class MpbcPestConfigProcessor {
       };
     }
 
-    throw new Error(`Unsupported MPBC session step: ${currentStepId}`);
+    throw new Error(`Unsupported pest configuration session step: ${currentStepId}`);
   }
 
   private formatMessage(text: string): string {
-    return text.replace(/{{OfficerName}}/g, this.officerName);
+    return text
+      .replace(/{{OfficerName}}/g, this.officerName)
+      .replace(/{{OrganizationName}}/g, this.organizationName);
   }
 
   private async getActivePests() {
@@ -234,7 +243,7 @@ export class MpbcPestConfigProcessor {
       id: "pest_selection",
       type: "list",
       question:
-        "Hello {{OfficerName}}\n\nThis is the MPBC Pest Monitoring system.\nPlease select the pest you are reporting:",
+        "Hello {{OfficerName}}\n\nThis is the {{OrganizationName}} reporting system.\nPlease select the pest you are reporting:",
       listOptions: pests.map((pest) => ({
         id: pest.key,
         title: pest.label,
@@ -503,7 +512,7 @@ export class MpbcPestConfigProcessor {
       .values({
         userId: this.userId,
         orgId: this.orgId,
-        workflowId: "mpbc_multi_pest",
+        workflowId: "multi_pest_config",
         pestConfigurationId: assessment.pestConfigurationId,
         pestKey: assessment.pestKey,
         observationMethod: assessment.observationMethod,
@@ -527,7 +536,7 @@ export class MpbcPestConfigProcessor {
       .returning();
 
     if (!report) {
-      throw new Error("Failed to insert MPBC report");
+      throw new Error("Failed to insert report");
     }
 
     if (report?.location && env.WEATHER_ENRICHMENT_ENABLED) {
@@ -677,6 +686,17 @@ export class MpbcPestConfigProcessor {
       }
     }
 
+    if (KUTSAGA_PEST_KEYS.has(report.pestKey ?? "")) {
+      switch (report.severity) {
+        case "HIGH":
+          return `🚨 HIGH ALERT\n\n${baseInfo}\nStatus: High risk 🚨\n\nThis exceeds the ${pestName} outbreak threshold.\nPlease notify your supervisor and begin field scouting in surrounding areas.`;
+        case "WARNING":
+          return `⚠️ Report received.\n\n${baseInfo}\nStatus: Warning 🟠\n\nThis indicates elevated ${pestName} infestation pressure.\nPlease continue close monitoring and watch for rapid spread.`;
+        default:
+          return `✅ Report received.\n\n${baseInfo}\nStatus: Low risk 🟢\n\nNo immediate action needed.\nContinue routine monitoring.`;
+      }
+    }
+
     switch (report.severity) {
       case "HIGH":
         return isTrapFlow
@@ -694,6 +714,10 @@ export class MpbcPestConfigProcessor {
   }
 
   private buildObservationSummary(report: typeof reports.$inferSelect) {
+    if (KUTSAGA_PEST_KEYS.has(report.pestKey ?? "")) {
+      return this.buildKutsagaObservationSummary(report);
+    }
+
     if (report.pestKey === "locusts") {
       const raw = this.getRawPayload(report);
       const lines = ["Locust observation recorded"];
@@ -801,7 +825,49 @@ export class MpbcPestConfigProcessor {
       return lines.join("\n");
     }
 
-    return null;
+    return this.buildGenericObservationSummary(report);
+  }
+
+  private buildKutsagaObservationSummary(report: typeof reports.$inferSelect) {
+    const raw = this.getRawPayload(report);
+    const pestName = report.label ?? "Pest";
+
+    switch (report.pestKey) {
+      case "aphids":
+        return `${pestName} count: ${String(raw.aphid_rating ?? "Not recorded")}`;
+      case "mealybug":
+        return `${pestName} count: ${String(raw.mealybug_rating ?? "Not recorded")}`;
+      case "budworm":
+        return `${pestName} damage: ${String(raw.budworm_damage_rating ?? "Not recorded")}`;
+      case "falsewire_worm":
+        return `${pestName} damage: ${String(raw.stem_damage_rating ?? "Not recorded")}`;
+      default:
+        return `${pestName} observation recorded`;
+    }
+  }
+
+  private buildGenericObservationSummary(report: typeof reports.$inferSelect) {
+    const raw = this.getRawPayload(report);
+    const lines = [`${report.label ?? "Pest"} observation recorded`];
+    const ignoredKeys = new Set([
+      "location",
+      "photo",
+      "photos",
+      "pest_key",
+      "pest_name",
+      "observation_method",
+    ]);
+
+    for (const [key, value] of Object.entries(raw)) {
+      if (ignoredKeys.has(key) || key.startsWith("__")) continue;
+      if (value === null || value === undefined || value === "") continue;
+      if (typeof value === "object") continue;
+
+      lines.push(`${this.formatFieldLabel(key)}: ${String(value)}`);
+      if (lines.length >= 4) break;
+    }
+
+    return lines.join("\n");
   }
 
   private getRawPayload(report: typeof reports.$inferSelect) {
@@ -822,6 +888,12 @@ export class MpbcPestConfigProcessor {
 
     return value
       .replace(/\s*\([^)]*\)\s*$/, "")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private formatFieldLabel(key: string) {
+    return key
       .replace(/_/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase());
   }
@@ -879,7 +951,7 @@ export class MpbcPestConfigProcessor {
       .set({
         currentStep: stepId,
         dataCollected: data,
-        workflowId: "mpbc_multi_pest",
+        workflowId: "multi_pest_config",
         lastActive: new Date(),
       })
       .where(eq(botSessions.userId, this.userId));

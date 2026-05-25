@@ -223,16 +223,30 @@ export class AnalyticsService {
         }
       }
 
-      const rawValues = Object.values(raw as Record<string, unknown>);
-      const firstUseful = rawValues.find(
-        (value) =>
+      const configuredSummaryValue = this.getConfiguredReportSummaryValue(pestKey, rawRecord);
+      if (configuredSummaryValue) {
+        return configuredSummaryValue;
+      }
+
+      const ignoredRawKeys = new Set([
+        "location",
+        "photo",
+        "photos",
+        "pest_key",
+        "pest_name",
+        "observation_method",
+      ]);
+      const firstUseful = Object.entries(rawRecord).find(
+        ([key, value]) =>
+          !ignoredRawKeys.has(key) &&
+          !key.startsWith("__") &&
           value !== null &&
           value !== undefined &&
           value !== "" &&
           (typeof value === "string" || typeof value === "number" || typeof value === "boolean")
       );
       if (firstUseful !== undefined) {
-        return String(firstUseful);
+        return String(firstUseful[1]);
       }
     }
 
@@ -310,6 +324,21 @@ export class AnalyticsService {
 
   private stripOptionCue(value: string) {
     return value.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  }
+
+  private getConfiguredReportSummaryValue(
+    pestKey: string | null,
+    raw: Record<string, unknown>
+  ) {
+    const valueByPestKey: Record<string, unknown> = {
+      aphids: raw.aphid_rating,
+      mealybug: raw.mealybug_rating,
+      budworm: raw.budworm_damage_rating,
+      falsewire_worm: raw.stem_damage_rating,
+    };
+
+    const value = pestKey ? valueByPestKey[pestKey] : null;
+    return typeof value === "string" && value.trim() !== "" ? value : null;
   }
 
   async getStats(filterOrgId?: string, range?: "7d" | "30d") {

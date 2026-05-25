@@ -6,6 +6,57 @@ import { createClient } from "@supabase/supabase-js";
 import { env } from "~/env";
 import { eq } from "drizzle-orm";
 
+type SupabaseAdminClient = {
+  auth: {
+    admin: {
+      listUsers: (params?: {
+        page?: number;
+        perPage?: number;
+      }) => Promise<{
+        data: {
+          users: Array<{
+            id: string;
+            email?: string;
+            email_confirmed_at?: string | null;
+          }>;
+        };
+        error: { message: string } | null;
+      }>;
+    };
+  };
+};
+
+async function findAuthUserByEmail(
+  supabaseAdmin: SupabaseAdminClient,
+  email: string
+) {
+  const normalizedEmail = email.toLowerCase();
+  const perPage = 1000;
+
+  for (let page = 1; page <= 100; page += 1) {
+    const {
+      data: { users },
+      error,
+    } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+
+    if (error) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+    }
+
+    const authUser = users?.find(
+      (user) => user.email?.toLowerCase() === normalizedEmail
+    );
+
+    if (authUser) return authUser;
+    if (!users || users.length < perPage) return null;
+  }
+
+  throw new TRPCError({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "Could not find auth user after checking all Supabase user pages.",
+  });
+}
+
 export const invitesRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
@@ -21,6 +72,13 @@ export const invitesRouter = createTRPCRouter({
       // 1. Authorization & Scoping
       let targetOrgId = input.orgId;
 
+      if (input.role === "super_admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Super admin accounts must be managed separately.",
+        });
+      }
+
       if (ctx.appUser.role === "org_admin") {
          if (input.orgId !== ctx.appUser.orgId) {
              throw new TRPCError({
@@ -29,10 +87,10 @@ export const invitesRouter = createTRPCRouter({
              });
          }
          
-         if (input.role === "super_admin") {
+         if (input.role !== "officer") {
              throw new TRPCError({
                  code: "FORBIDDEN",
-                 message: "Only super admins can assign super_admin role."
+                 message: "Org admins can only invite officers."
              });
          }
          
@@ -152,14 +210,13 @@ export const invitesRouter = createTRPCRouter({
 
       console.log(`[Invites] Inviting ${input.email} to org ${targetOrgId} as ${input.role}`);
       
-      const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invite`;
+      const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/callback?next=/accept-invite`;
       
       let userId: string;
       let inviteLink: string | undefined;
 
       // 3. Pre-check if user exists and is confirmed
-      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = users?.find(u => u.email === input.email);
+      const existingUser = await findAuthUserByEmail(supabaseAdmin, input.email);
 
       if (existingUser && existingUser.email_confirmed_at) {
          throw new TRPCError({
@@ -239,6 +296,45 @@ export const invitesRouter = createTRPCRouter({
             throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
         }
 
+        const existingAppUser = await ctx.db.query.appUsers.findFirst({
+            where: eq(appUsers.email, input.email),
+        });
+
+        if (!existingAppUser) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "No pending profile found for this email.",
+            });
+        }
+
+        if (ctx.appUser.role === "org_admin" && existingAppUser.orgId !== ctx.appUser.orgId) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Org admins can only resend invites for their own organization.",
+            });
+        }
+
+        if (ctx.appUser.role === "org_admin" && existingAppUser.role !== "officer") {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Org admins can only resend officer invites.",
+            });
+        }
+
+        if (existingAppUser.role === "super_admin") {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Super admin accounts must be managed separately.",
+            });
+        }
+
+        if (existingAppUser.status !== "PENDING") {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Only pending invitations can be resent.",
+            });
+        }
+
         if (!env.SUPABASE_SERVICE_ROLE_KEY) {
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Missing service role key" });
         }
@@ -248,21 +344,52 @@ export const invitesRouter = createTRPCRouter({
             env.SUPABASE_SERVICE_ROLE_KEY
         );
 
-        // Ideally we check if user belongs to admin's org before resending
-        // checking limits etc. For now we trust Supabase to handle rate limits/idempotency.
-        
         // Redirect directly to the client-side accept-invite page to handle hash fragments
-        const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invite`;
+        const redirectUrl = `${env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/callback?next=/accept-invite`;
 
+        const authUser = await findAuthUserByEmail(supabaseAdmin, input.email);
+
+        if (authUser?.email_confirmed_at) {
+            const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: "recovery",
+                email: input.email,
+                options: { redirectTo: redirectUrl },
+            });
+
+            if (linkError) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: linkError.message });
+            }
+
+            return {
+                success: true,
+                inviteLink: linkData.properties.action_link,
+                delivery: "manual_link" as const,
+            };
+        }
+        
         const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
             input.email,
             { redirectTo: redirectUrl }
-        ); // inviteUserByEmail is often used for resending invites too if user is unconfirmed
+        );
 
         if (error) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+            const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: "invite",
+                email: input.email,
+                options: { redirectTo: redirectUrl },
+            });
+
+            if (linkError) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+            }
+
+            return {
+                success: true,
+                inviteLink: linkData.properties.action_link,
+                delivery: "manual_link" as const,
+            };
         }
         
-        return { success: true };
+        return { success: true, delivery: "email" as const };
     }),
 });
