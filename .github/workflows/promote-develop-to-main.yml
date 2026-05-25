@@ -1,0 +1,79 @@
+name: Promote Develop to Main
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: promote-develop-to-main
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote develop to main
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-promotion
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: develop
+
+      - name: Verify latest preview deploy succeeded
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin main develop
+
+          LATEST_RUN=$(gh run list \
+            --workflow "Deploy Preview" \
+            --branch develop \
+            --limit 1 \
+            --json conclusion,headSha,status,url \
+            --jq '.[0]')
+
+          if [ -z "$LATEST_RUN" ] || [ "$LATEST_RUN" = "null" ]; then
+            echo "No Deploy Preview run found for develop."
+            exit 1
+          fi
+
+          STATUS=$(echo "$LATEST_RUN" | jq -r '.status')
+          CONCLUSION=$(echo "$LATEST_RUN" | jq -r '.conclusion')
+          HEAD_SHA=$(echo "$LATEST_RUN" | jq -r '.headSha')
+          RUN_URL=$(echo "$LATEST_RUN" | jq -r '.url')
+          DEVELOP_SHA=$(git rev-parse origin/develop)
+
+          echo "Latest Deploy Preview run: $RUN_URL"
+          echo "Deploy Preview status: $STATUS"
+          echo "Deploy Preview conclusion: $CONCLUSION"
+          echo "Deploy Preview SHA: $HEAD_SHA"
+          echo "Current develop SHA: $DEVELOP_SHA"
+
+          if [ "$STATUS" != "completed" ] || [ "$CONCLUSION" != "success" ]; then
+            echo "Latest Deploy Preview run has not succeeded."
+            exit 1
+          fi
+
+          if [ "$HEAD_SHA" != "$DEVELOP_SHA" ]; then
+            echo "Latest successful Deploy Preview is not for the current develop commit."
+            exit 1
+          fi
+
+      - name: Merge develop into main
+        run: |
+          set -euo pipefail
+
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+          git fetch origin main develop
+          git checkout main
+          git merge --no-edit origin/develop
+          git push origin main
