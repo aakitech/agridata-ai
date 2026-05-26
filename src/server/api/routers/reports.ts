@@ -6,8 +6,6 @@ import { canHardTriage } from "~/lib/permissions";
 import { ReportService } from "~/server/modules/reports/report-service";
 import { MpbcReportPdfRenderer } from "~/server/modules/reports/mpbc-report-pdf-renderer";
 import { getLastCompletedWeek, formatDateRange } from "~/server/modules/reports/report-utils";
-import { organizations } from "~/server/db/schema";
-import { eq } from "drizzle-orm";
 
 export const reportsRouter = createTRPCRouter({
   // Get reports by status
@@ -133,8 +131,8 @@ export const reportsRouter = createTRPCRouter({
       }
     }),
 
-  // Generate MPBC Weekly Report (PDF)
-  // Accessible by: org_admin (MPBC only), super_admin (any org, but must be MPBC)
+  // Generate pest surveillance report (PDF)
+  // Accessible by: org_admin (own org), super_admin (selected org)
   generateMpbcWeeklyReport: protectedProcedure
     .input(
       z
@@ -167,18 +165,6 @@ export const reportsRouter = createTRPCRouter({
         });
       }
 
-      // Verify org is MPBC (by slug "mpbc")
-      const org = await ctx.db.query.organizations.findFirst({
-        where: eq(organizations.id, targetOrgId),
-      });
-
-      if (org?.slug !== "mpbc") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Report generation is only available for MPBC",
-        });
-      }
-
       // Calculate date range (use provided dates or default to last 7 days)
       const { startDate, endDate } =
         input?.startDate && input?.endDate
@@ -207,14 +193,18 @@ export const reportsRouter = createTRPCRouter({
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       );
       const periodType = daysDiff <= 14 ? "Weekly" : "Monthly";
+      const orgFileName =
+        reportData.organization.name
+          .replace(/[^a-z0-9]+/gi, "_")
+          .replace(/^_+|_+$/g, "") || "Organization";
 
       // Return as base64 for tRPC serialization
       // Convert dates to ISO strings for proper serialization
       return {
         pdf: base64Pdf,
-        filename: `MPBC_${periodType}_Pest_Surveillance_Report_${formatDateRange(startDate, endDate)}.pdf`,
+        filename: `${orgFileName}_${periodType}_Pest_Surveillance_Report_${formatDateRange(startDate, endDate)}.pdf`,
         metadata: {
-          organization: reportData.organization?.name ?? "MPBC",
+          organization: reportData.organization?.name ?? "Organization",
           period: {
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
