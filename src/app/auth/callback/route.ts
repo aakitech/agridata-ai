@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     if (!error) {
       redirect(safeNext);
     }
+    redirect(`${safeNext}?error=${encodeURIComponent(error.message)}`);
   }
 
   if (token_hash && type) {
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
     if (!error) {
       redirect(safeNext);
     }
+    redirect(`${safeNext}?error=${encodeURIComponent(error.message)}`);
   }
 
   // Hash-token invite links arrive as /auth/callback#access_token=...

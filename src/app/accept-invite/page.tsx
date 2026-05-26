@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { type EmailOtpType } from "@supabase/supabase-js";
 import { supabase } from "~/lib/supabase/client";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -25,6 +26,16 @@ export default function AcceptInvitePage() {
   useEffect(() => {
     const hash = window.location.hash;
     const hasToken = hash.includes("access_token=");
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlError = searchParams.get("error");
+    const tokenHash = searchParams.get("token_hash");
+    const type = searchParams.get("type") as EmailOtpType | null;
+
+    if (urlError) {
+        setPageError(urlError);
+        setIsCheckingSession(false);
+        return;
+    }
     
     // 1. Listen for session being established (Moved up to catch early events)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -45,6 +56,29 @@ export default function AcceptInvitePage() {
         setPageError(errorMsg);
         setIsCheckingSession(false);
         return;
+    }
+
+    if (tokenHash && type) {
+        supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type,
+        }).then(({ data, error }) => {
+            if (error) {
+                setPageError(error.message || "Email link is invalid or expired");
+                setIsCheckingSession(false);
+                return;
+            }
+            if (data.session) {
+                setUserEmail(data.session.user.email ?? null);
+                setPageError(null);
+                setIsCheckingSession(false);
+            }
+        }).catch((err) => {
+            console.error("Failed to verify invite token", err);
+            setPageError("Email link is invalid or expired");
+            setIsCheckingSession(false);
+        });
+        return () => subscription.unsubscribe();
     }
 
     if (hasToken) {
@@ -196,7 +230,7 @@ export default function AcceptInvitePage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="********"
               />
             </div>
             <div>
@@ -207,7 +241,7 @@ export default function AcceptInvitePage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="********"
               />
             </div>
           </div>
