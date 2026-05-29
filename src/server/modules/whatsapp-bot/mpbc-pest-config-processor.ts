@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db";
 import {
   botSessions,
@@ -59,6 +59,14 @@ export class MpbcPestConfigProcessor {
   ): Promise<{ message: string; done: boolean; currentStep?: WorkflowStep }> {
     const data = (session.dataCollected as SessionData) || {};
     const currentStepId = session.currentStep;
+
+    if (currentStepId === "submitting_report") {
+      return {
+        message:
+          "We already received your final report details and are saving the report. Please wait for the confirmation before sending another message.",
+        done: false,
+      };
+    }
 
     if (!currentStepId) {
       const step = await this.buildPestSelectionStep();
@@ -200,9 +208,18 @@ export class MpbcPestConfigProcessor {
           done: false,
             currentStep: this.buildLocationStep(data),
           };
-        }
+      }
 
       data.location = validation.value;
+      const claimed = await this.claimLocationSubmission(data);
+      if (!claimed) {
+        return {
+          message:
+            "We already received this location and are saving the report. Please wait for the confirmation before sending another message.",
+          done: false,
+        };
+      }
+
       const finalReport = await this.completeReport(data);
       if (!finalReport) {
         throw new Error("Failed to save report");
@@ -594,6 +611,26 @@ export class MpbcPestConfigProcessor {
       .where(eq(botSessions.userId, this.userId));
 
     return report;
+  }
+
+  private async claimLocationSubmission(data: SessionData) {
+    const [session] = await db
+      .update(botSessions)
+      .set({
+        currentStep: "submitting_report",
+        dataCollected: data,
+        workflowId: "multi_pest_config",
+        lastActive: new Date(),
+      })
+      .where(
+        and(
+          eq(botSessions.userId, this.userId),
+          eq(botSessions.currentStep, "location")
+        )
+      )
+      .returning({ userId: botSessions.userId });
+
+    return Boolean(session);
   }
 
   private getConfirmationMessage(report: typeof reports.$inferSelect) {

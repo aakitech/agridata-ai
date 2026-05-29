@@ -13,6 +13,8 @@
     "seed:mpbc-pest-configs": "npx tsx scripts/seed-mpbc-pest-configs.ts",
     "seed:kutsaga-placeholder": "npx tsx scripts/seed-kutsaga-placeholder-configs.ts",
     "seed:kutsaga-placeholder:refresh": "npx tsx scripts/seed-kutsaga-placeholder-configs.ts --refresh",
+    "seed:zsaes-pest-configs": "npx tsx scripts/seed-zsaes-pest-configs.ts",
+    "seed:zsaes-pest-configs:refresh": "npx tsx scripts/seed-zsaes-pest-configs.ts --refresh",
     "seed:mpbc-30day": "npx tsx --env-file=.env scripts/seed-mpbc-30day-test-data.ts",
     "bootstrap-admin": "npx tsx --env-file=.env scripts/bootstrap-admin.ts",
     "diagnose:user": "npx tsx --env-file=.env scripts/diagnose-blocked-users.ts",
