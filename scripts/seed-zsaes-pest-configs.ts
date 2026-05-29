@@ -84,7 +84,7 @@ const commonSugarcaneFields: Field[] = [
   {
     key: "farm_size_ha",
     label: "Farm size",
-    prompt: "What is the farm size in hectares? Reply SKIP if unknown.",
+    prompt: "What is the farm size in hectares? Example: 25.5. Reply SKIP if unknown.",
     fieldType: "number",
     required: false,
     displayOrder: 5,
