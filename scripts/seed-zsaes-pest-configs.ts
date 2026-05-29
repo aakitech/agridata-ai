@@ -459,7 +459,7 @@ async function main() {
     const [created] = await db
       .insert(organizations)
       .values({
-        name: "Zimbabwe Sugar Association Experiment Station",
+        name: "ZSAES",
         slug: "zsaes",
         status: "READY_FOR_TEST",
         activeWorkflow: null,
@@ -471,7 +471,7 @@ async function main() {
     const [updated] = await db
       .update(organizations)
       .set({
-        name: "Zimbabwe Sugar Association Experiment Station",
+        name: "ZSAES",
         status: org.status === "ACTIVE" ? "ACTIVE" : "READY_FOR_TEST",
         activeWorkflow: null,
         workflowConfig: null,

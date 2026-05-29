@@ -58,10 +58,10 @@ Instead, the demo should show a practical first phase:
 
 ## Organization Setup
 
-Create a new organization:
+Create a new organization. Use the short name as the app display name so the dashboard and WhatsApp copy match MPBC-style naming:
 
-- Name: `Zimbabwe Sugar Association Experiment Station`
-- Short name: `ZSAES`
+- Display name: `ZSAES`
+- Full name/context: `Zimbabwe Sugar Association Experiment Station`
 - Slug: `zsaes`
 - Status for demo: `READY_FOR_TEST` or `ACTIVE` once users are added
 
