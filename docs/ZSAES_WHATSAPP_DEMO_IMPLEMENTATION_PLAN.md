@@ -16,9 +16,10 @@ The ZSAES proposal asks for a system that can:
 - Collect, store, analyze, and report pest surveillance data in real time.
 - Support offline field use and synchronize when internet becomes available.
 - Capture field scouting details:
-  - Estate
+  - Estate / area
   - Section
   - Field number
+  - Farm size
   - Variety
   - Crop age
   - Irrigation type
@@ -43,7 +44,9 @@ For the demo, we should position AgriData as:
 
 > A WhatsApp-first pest surveillance and outbreak reporting system for ZSAES, with dashboard visibility for technical teams and management.
 
-The demo should not try to deliver the full mobile app requested in the proposal. Instead, it should show a practical first phase:
+The demo should not try to deliver the full mobile app requested in the proposal. It should also stay pest-only for the first ZSAES demo, because the current WhatsApp workflow and dashboard copy are pest-oriented and we need an internal decision on disease handling before introducing RSD or Smut.
+
+Instead, the demo should show a practical first phase:
 
 1. Field scouts submit structured sugarcane pest observations over WhatsApp.
 2. Reports are stored under the ZSAES organization.
@@ -93,22 +96,23 @@ Please select what you are reporting:
 
 1. Eldana saccharina
 2. Yellow Sugarcane Aphid
-3. RSD
-4. Smut
-5. Other emerging pest
+3. Other emerging pest
 ```
 
 ### Common Field Details
 
 For the demo, each pest workflow should capture the same core sugarcane field context:
 
-1. Estate
+1. Estate / area
 2. Section
 3. Field number
-4. Variety
-5. Crop age
-6. Irrigation type
-7. Ratoon number
+4. Farm size
+5. Variety
+6. Crop age
+7. Irrigation type
+8. Ratoon number
+
+Estate / area and irrigation type should use select options with an `Other` follow-up question. Section, field number, variety, and farm size can remain typed fields until ZSAES gives us official lists.
 
 Current pest configuration supports pest-specific fields, so the first implementation can repeat these common fields inside each ZSAES pest config. Later, we can improve the workflow engine to support shared organization-level context fields before pest-specific questions.
 
@@ -116,21 +120,22 @@ Current pest configuration supports pest-specific fields, so the first implement
 
 The proposal gives Eldana as the clearest protocol example. Demo fields:
 
-1. Estate
+1. Estate / area
 2. Section
 3. Field number
-4. Variety
-5. Crop age
-6. Irrigation type
-7. Ratoon number
-8. Number of stalks inspected
-9. Total number of internodes inspected
-10. Number of stalks bored
-11. Number of internodes bored
-12. Eldana present?
-13. Eldana count per stalk, if available
-14. Optional photo
-15. GPS location
+4. Farm size
+5. Variety
+6. Crop age
+7. Irrigation type
+8. Ratoon number
+9. Number of stalks inspected
+10. Total number of internodes inspected
+11. Number of stalks bored
+12. Number of internodes bored
+13. Eldana present?
+14. Eldana count per stalk, if available
+15. Optional photo
+16. GPS location
 
 Potential derived metrics:
 
@@ -160,38 +165,6 @@ The proposal does not provide a full aphid protocol. Demo fields should be simpl
 4. Visible honeydew or sooty mould?
 5. Optional photo
 6. GPS location
-
-### RSD Flow
-
-RSD is a disease, but the current report category model supports `DISEASE`. The existing WhatsApp pest-config processor is pest-oriented, so for the demo we can model RSD as a configured surveillance item and refine the category behavior later if needed.
-
-Demo fields:
-
-1. Common field details
-2. Symptoms observed?
-3. Number of plants affected, if known
-4. Area affected
-   - Single row
-   - Part of field
-   - Whole field
-5. Optional notes
-6. Optional photo
-7. GPS location
-
-### Smut Flow
-
-Demo fields:
-
-1. Common field details
-2. Smut whips observed?
-3. Number of affected stools/plants, if known
-4. Area affected
-   - Single row
-   - Part of field
-   - Whole field
-5. Optional notes
-6. Optional photo
-7. GPS location
 
 ### Other Emerging Pest Flow
 
@@ -238,10 +211,8 @@ Tasks:
 3. Seed ZSAES pest/surveillance configurations:
    - Eldana saccharina
    - Yellow Sugarcane Aphid
-   - RSD
-   - Smut
    - Other emerging pest
-4. Include common sugarcane field fields in each config.
+4. Include common sugarcane field fields in each config, using select options plus `Other` follow-ups where we have safe placeholder values.
 5. Add simple severity rules for demo purposes.
 6. Add npm script for seeding ZSAES config.
 7. Add the ZSAES seed step to preview/production deployment workflows only after it is reviewed.
@@ -258,7 +229,7 @@ Tasks:
 1. Refine prompts to use ZSAES terminology.
 2. Confirm pest protocol wording with ZSAES.
 3. Confirm threshold values for warning/high severity.
-4. Confirm whether RSD and Smut should be treated as diseases in dashboard/report copy.
+4. Confirm whether RSD and Smut need a separate disease workflow, dashboard copy, or future mobile/PWA module.
 5. Verify PDF/report generation works for non-MPBC organizations.
 6. Prepare a scripted demo path:
    - Add officer
@@ -316,7 +287,8 @@ These are not blockers for a demo, but they matter for a full production pilot:
 
 4. Disease category handling
    - RSD and Smut are diseases, not pests.
-   - The demo can model them as surveillance items, but reporting/dashboard labels may need better disease-aware copy.
+   - They are intentionally excluded from the first pest-only demo.
+   - The team needs to decide whether disease reporting should use a separate workflow, category, dashboard copy, or future mobile/PWA module.
 
 5. Estate/field master data
    - The proposal implies structured estate/section/field data.
@@ -351,9 +323,13 @@ These are not blockers for a demo, but they matter for a full production pilot:
 1. For Eldana, what are the official scouting thresholds for normal, warning, and high?
 2. Should severity be based on stalks bored, internodes bored, Eldana count, or a derived percentage?
 3. What is the official scouting protocol for Yellow Sugarcane Aphid?
-4. What fields should be captured for RSD?
-5. What fields should be captured for Smut?
-6. How should "Other emerging pest" reports be reviewed or categorized?
+4. How should "Other emerging pest" reports be reviewed or categorized?
+
+### Disease Handling
+
+1. How should AgriData support sugarcane diseases such as RSD and Smut?
+2. Should disease reporting use a separate workflow, category, dashboard copy, or future mobile/PWA module?
+3. Should disease reporting be part of a later ZSAES pilot phase after the pest-only demo?
 
 ### Dashboard And Reporting
 
@@ -376,16 +352,17 @@ The ZSAES demo is ready when:
 1. ZSAES exists as its own organization.
 2. At least one ZSAES officer can submit a WhatsApp report.
 3. The flow captures sugarcane field metadata.
-4. Eldana reporting captures the core protocol fields from the proposal.
-5. GPS location is captured.
-6. Optional photo capture works.
-7. The report appears in the dashboard under ZSAES only.
-8. The map shows the report location.
-9. Severity is computed from configured demo thresholds.
-10. A ZSAES admin can log in and view the dashboard.
+4. The WhatsApp menu contains only pest-reporting options for the demo.
+5. Eldana reporting captures the core protocol fields from the proposal.
+6. GPS location is captured.
+7. Optional photo capture works.
+8. The report appears in the dashboard under ZSAES only.
+9. The map shows the report location.
+10. Severity is computed from configured demo thresholds.
+11. A ZSAES admin can log in and view the dashboard.
 
 ## Recommendation
 
-For the demo, build ZSAES using the same config-driven WhatsApp flow pattern as Kutsaga. Do not build a separate mobile app yet.
+For the demo, build ZSAES using the same config-driven WhatsApp flow pattern as Kutsaga. Keep the first demo pest-only and do not build a separate mobile app yet.
 
 The demo should prove that AgriData can digitize ZSAES pest surveillance quickly through WhatsApp and dashboard visibility. After the demo, we can decide whether their offline and role requirements justify a larger mobile/PWA phase.
