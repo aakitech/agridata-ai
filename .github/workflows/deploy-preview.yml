@@ -60,6 +60,9 @@ jobs:
       - name: Seed Kutsaga pilot pest configs
         run: npx tsx scripts/seed-kutsaga-placeholder-configs.ts
 
+      - name: Seed ZSAES pest configs
+        run: pnpm seed:zsaes-pest-configs
+
       - name: Install Vercel CLI
         run: npm install -g vercel
 
