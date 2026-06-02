@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "~/trpc/react";
 import { StatsCards } from "./_components/stats-cards";
 import { TrendChart } from "./_components/trend-chart";
@@ -14,6 +14,9 @@ import { Loader2, AlertCircle, Bell } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import dynamic from "next/dynamic";
 import { withMockWeatherList } from "~/lib/mock-weather";
+import { identifyUser, trackEvent } from "~/lib/observability/analytics";
+import { analyticsEvents, featureFlags } from "~/lib/observability/events";
+import { useFeatureFlag } from "~/lib/observability/feature-flags";
 
 const DashboardMap = dynamic(() => import("./_components/dashboard-map").then(mod => mod.DashboardMap), { 
     ssr: false,
@@ -27,6 +30,34 @@ export default function DashboardPage() {
 
   // Fetch Current User
   const { data: me } = api.users.getMe.useQuery();
+
+  const newDashboardCardsEnabled = useFeatureFlag(featureFlags.newDashboardCards, {
+    userId: me?.id,
+    orgId: me?.organization?.id,
+    orgSlug: me?.organization?.slug,
+    role: me?.role,
+    route: "/dashboard",
+  });
+
+  useEffect(() => {
+    if (!me) return;
+
+    // Identify before tracking so the page-view event is attributed to the user.
+    identifyUser({
+      id: me.id,
+      role: me.role,
+      orgId: me.organization?.id,
+      orgSlug: me.organization?.slug,
+    });
+
+    trackEvent(analyticsEvents.dashboardViewed, {
+      userId: me.id,
+      orgId: me.organization?.id,
+      orgSlug: me.organization?.slug,
+      role: me.role,
+      route: "/dashboard",
+    });
+  }, [me]);
 
   // Fetch Stats - Refresh every 60 seconds (aggregates change less frequently)
   const { data: stats, isLoading: statsLoading } = api.analytics.getStats.useQuery(
@@ -148,7 +179,10 @@ export default function DashboardPage() {
 
       {/* Metrics Row */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div
+          className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+          data-feature-new-dashboard-cards={newDashboardCardsEnabled}
+        >
             <StatsCards stats={stats} />
         </div>
       )}

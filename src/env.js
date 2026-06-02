@@ -25,6 +25,7 @@ export const env = createEnv({
     WEATHER_ENRICHMENT_MAX_RETRIES: z.coerce.number().int().min(1).max(10).default(3),
     WEATHER_ENRICHMENT_BASE_BACKOFF_MINUTES: z.coerce.number().int().min(1).max(120).default(5),
     WEATHER_DEFAULT_TIMEZONE: z.string().default("Africa/Johannesburg"),
+    POSTHOG_PERSONAL_API_KEY: z.string().optional(),
   },
 
   /**
@@ -36,6 +37,9 @@ export const env = createEnv({
     NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
     NEXT_PUBLIC_APP_URL: z.string().url(),
+    NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+    NEXT_PUBLIC_POSTHOG_HOST: z.string().url().default("https://us.i.posthog.com"),
+    NEXT_PUBLIC_POSTHOG_REPLAY_ENABLED: z.coerce.boolean().default(false),
   },
 
   /**
@@ -59,9 +63,13 @@ export const env = createEnv({
     WEATHER_ENRICHMENT_MAX_RETRIES: process.env.WEATHER_ENRICHMENT_MAX_RETRIES,
     WEATHER_ENRICHMENT_BASE_BACKOFF_MINUTES: process.env.WEATHER_ENRICHMENT_BASE_BACKOFF_MINUTES,
     WEATHER_DEFAULT_TIMEZONE: process.env.WEATHER_DEFAULT_TIMEZONE,
+    POSTHOG_PERSONAL_API_KEY: process.env.POSTHOG_PERSONAL_API_KEY,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    NEXT_PUBLIC_POSTHOG_REPLAY_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_REPLAY_ENABLED,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
