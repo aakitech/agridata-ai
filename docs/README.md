@@ -12,7 +12,7 @@ Keep repo docs lean. Use GitHub issues for active implementation discussions, in
 
 ## Archive
 
-- [Archive](archive/README.md): historical specs, audits, changelogs, and implementation plans retained for context but not treated as current source of truth.
+- [Archive](archive/README.md): historical specs, audits, and implementation plans retained for context but not treated as current source of truth.
 
 ## Status Convention
 
@@ -24,4 +24,3 @@ Use one of these status labels near the top of durable docs:
 - `Superseded`: replaced by a newer doc.
 
 Git is the version history. Avoid creating `v1`, `v2`, `final`, or duplicate copies unless the document is a formal external artifact.
-

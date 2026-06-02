@@ -64,6 +64,7 @@ flowchart LR
 
 - [Testing Strategy](testing-strategy.md)
 - [Branching and Release](branching-and-release.md)
+- [Tech Debt and Risks](tech-debt-and-risks.md)
 - [Deployment and release docs](deployment-and-release/)
 
 ## Related Product Docs
@@ -71,4 +72,3 @@ flowchart LR
 - [Product overview](../product/overview.md)
 - [Multi-tenant onboarding roadmap](../product/roadmaps/multi-tenant-onboarding-readiness.md)
 - [Kutsaga Track A roadmap](../product/roadmaps/kutsaga-track-a-whatsapp-pilot.md)
-

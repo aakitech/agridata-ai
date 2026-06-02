@@ -34,5 +34,4 @@ The active documentation areas are:
 - [ADRs](docs/adr/README.md)
 - [Product](docs/product/overview.md)
 
-Historical specs, audits, and changelogs live in [docs/archive](docs/archive/README.md).
-
+Historical specs, audits, and implementation plans live in [docs/archive](docs/archive/README.md).
