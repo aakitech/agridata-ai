@@ -250,7 +250,7 @@ The seed now uses Felix's rating scales for the four confirmed pests. The remain
 
 Created:
 
-- `docs/MULTI_TENANT_ONBOARDING_READINESS_PLAN.md`
+- `docs/product/roadmaps/multi-tenant-onboarding-readiness.md`
 
 Purpose:
 

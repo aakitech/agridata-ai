@@ -247,7 +247,7 @@ else return HIGH
 ## Related Documents
 
 - `MAP_SPECIFICATION_MVP.md` - Original requirements spec
-- `PRODUCTION_READINESS.md` - Deployment checklist
+- `docs/architecture/deployment-and-release/production-readiness.md` - Deployment checklist
 - `REPORTS_PAGE_ROADMAP.md` - Planned Reports page evolution (see below)
 
 ---

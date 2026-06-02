@@ -1,29 +1,38 @@
-# Create T3 App
+# AgriData AI
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+AgriData AI is a multi-tenant agricultural surveillance platform for WhatsApp-based pest and disease reporting, dashboard analytics, triage, reporting, and partner operations.
 
-## What's next? How do I make an app with this?
+## Stack
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+- Next.js App Router
+- React
+- tRPC
+- PostgreSQL on Supabase
+- Drizzle ORM
+- Supabase Auth and Storage
+- Twilio WhatsApp
+- Tailwind CSS and shadcn/ui
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## Common Commands
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+```bash
+pnpm dev
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm db:generate
+pnpm db:migrate
+```
 
-## Learn More
+## Documentation
 
-To learn more about the [T3 Stack](https://create-t3.gg/), take a look at the following resources:
+Start with [docs/README.md](docs/README.md).
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+The active documentation areas are:
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+- [Architecture](docs/architecture/README.md)
+- [ADRs](docs/adr/README.md)
+- [Product](docs/product/overview.md)
 
-## How do I deploy this?
+Historical specs, audits, and changelogs live in [docs/archive](docs/archive/README.md).
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create-t3.gg/en/deployment/netlify) and [Docker](https://create-t3.gg/en/deployment/docker) for more information.

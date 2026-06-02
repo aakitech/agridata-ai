@@ -294,9 +294,9 @@ Create a new `/dashboard/reports` route that provides comprehensive report visib
 
 ## Related Documents
 
-- `FEATURE_MAP_MVP.md` - Map behavior changes (complementary)
+- `docs/archive/changelogs/feature-map-mvp.md` - Map behavior changes (complementary)
 - `MAP_SPECIFICATION_MVP.md` - Original map requirements
-- `PRODUCTION_READINESS.md` - Deployment checklist
+- `docs/architecture/deployment-and-release/production-readiness.md` - Deployment checklist
 
 ---
 
