@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { logout } from "../../login/actions";
 import { Separator } from "~/components/ui/separator";
+import { resetUser } from "~/lib/observability/analytics";
 
 interface UserProfileCardProps {
   user: {
@@ -77,7 +78,7 @@ export function UserProfileCard({ user }: UserProfileCardProps) {
       <Separator />
 
       <div className="p-2">
-        <form action={logout}>
+        <form action={logout} onSubmit={() => resetUser()}>
           <Button 
             variant="ghost" 
             type="submit"

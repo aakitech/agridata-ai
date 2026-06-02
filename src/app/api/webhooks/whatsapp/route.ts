@@ -1,7 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse, after } from "next/server";
 import { handleIncomingMessage } from "~/server/modules/whatsapp-bot/workflow";
 import { env } from "~/env";
 import crypto from 'crypto';
+import { captureError } from "~/lib/observability/errors";
+import { captureWebhookError } from "~/lib/observability/server";
 
 /**
  * Validates Twilio webhook signature to ensure request is from Twilio
@@ -80,11 +82,19 @@ export async function POST(req: NextRequest) {
       if (!signature) {
         console.error("❌ Missing Twilio signature header");
         console.error("   Request headers:", Object.fromEntries(req.headers.entries()));
+        after(captureWebhookError("missing_signature", {
+          route: "/api/webhooks/whatsapp",
+          feature: "whatsapp-webhook",
+        }));
         return new NextResponse("Unauthorized", { status: 401 });
       }
       
       if (!env.TWILIO_AUTH_TOKEN) {
         console.error("❌ Missing TWILIO_AUTH_TOKEN environment variable");
+        after(captureWebhookError("missing_twilio_auth_token", {
+          route: "/api/webhooks/whatsapp",
+          feature: "whatsapp-webhook",
+        }));
         return new NextResponse("Internal Server Error", { status: 500 });
       }
       
@@ -96,6 +106,10 @@ export async function POST(req: NextRequest) {
         console.error("   - Body length:", text.length);
         console.error("   - Body content:", text.substring(0, 200));
         console.error("   - Ensure Twilio webhook URL matches exactly:", url);
+        after(captureWebhookError("invalid_signature", {
+          route: "/api/webhooks/whatsapp",
+          feature: "whatsapp-webhook",
+        }));
         return new NextResponse("Unauthorized", { status: 401 });
       }
     }
@@ -116,6 +130,10 @@ export async function POST(req: NextRequest) {
 
     if (!incomingMsg.From) {
         console.error("❌ Missing From field");
+        after(captureWebhookError("missing_from", {
+          route: "/api/webhooks/whatsapp",
+          feature: "whatsapp-webhook",
+        }));
         return NextResponse.json({ error: "Invalid request: Missing From" }, { status: 400 });
     }
 
@@ -128,6 +146,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("💥 Error handling webhook:", error);
+    after(captureError(error, {
+      route: "/api/webhooks/whatsapp",
+      feature: "whatsapp-webhook",
+    }));
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

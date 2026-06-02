@@ -14,6 +14,8 @@ import { subDays } from "date-fns";
 import type { LocationWithReports } from "~/server/modules/analytics/analytics-service";
 import { LOCATION_CLUSTER_RADIUS_METERS } from "~/lib/geo";
 import { withMockWeatherLocations } from "~/lib/mock-weather";
+import { identifyUser, trackEvent } from "~/lib/observability/analytics";
+import { analyticsEvents } from "~/lib/observability/events";
 
 type ViewMode = "grouped" | "list";
 type TimeRange = "7d" | "30d" | "90d" | "all";
@@ -155,6 +157,26 @@ export default function ReportsPage() {
   const { data: me } = api.users.getMe.useQuery();
   const { data: users } = api.users.getAll.useQuery();
   const { data: orgs } = api.organizations.getAll.useQuery();
+
+  useEffect(() => {
+    if (!me) return;
+
+    // Identify before tracking so events are attributed even on direct landings.
+    identifyUser({
+      id: me.id,
+      role: me.role,
+      orgId: me.organization?.id,
+      orgSlug: me.organization?.slug,
+    });
+
+    trackEvent(analyticsEvents.reportsListViewed, {
+      userId: me.id,
+      orgId: me.organization?.id,
+      orgSlug: me.organization?.slug,
+      role: me.role,
+      route: "/dashboard/reports",
+    });
+  }, [me]);
 
   const officers = useMemo(
     () =>

@@ -3,7 +3,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { createClient } from "~/lib/supabase/server";
+import { analyticsEvents } from "~/lib/observability/events";
+import { captureServerEvent } from "~/lib/observability/server";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -31,6 +34,13 @@ export async function login(formData: FormData) {
   }
 
   console.log(`[Login Success] User: ${data.user?.email}`);
+  // Capture after the response so analytics never adds latency to login.
+  after(
+    captureServerEvent(analyticsEvents.userLoggedIn, {
+      userId: data.user?.id,
+      route: "/login",
+    }),
+  );
   revalidatePath("/", "layout");
   // After login, we can still redirect to dashboard for better UX, 
   // but the landing page is now accessible if they navigate back.
