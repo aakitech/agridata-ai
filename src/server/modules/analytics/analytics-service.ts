@@ -166,10 +166,23 @@ export class AnalyticsService {
   }
 
   private getReportPestLabel(
-    report: { label: string | null; pestKey?: string | null; dataPayload?: unknown }
+    report: {
+      category?: string | null;
+      label: string | null;
+      pestKey?: string | null;
+      dataPayload?: unknown;
+    }
   ): string {
     const payload = this.getReportPayload(report);
     const meta = payload?.meta as Record<string, unknown> | undefined;
+    if (report.category === "DISEASE") {
+      return (
+        report.label ??
+        (typeof meta?.reportTypeLabel === "string" ? meta.reportTypeLabel : null) ??
+        "Disease/Symptom"
+      );
+    }
+
     return (
       report.label ??
       (typeof meta?.pestLabel === "string" ? meta.pestLabel : null) ??
@@ -194,6 +207,7 @@ export class AnalyticsService {
   private getReportSummaryValue(
     report: {
       observedCount: number | null;
+      category?: string | null;
       pestKey?: string | null;
       label?: string | null;
       dataPayload?: unknown;
@@ -208,6 +222,13 @@ export class AnalyticsService {
     if (raw && typeof raw === "object") {
       const rawRecord = raw as Record<string, unknown>;
       const pestKey = report.pestKey ?? null;
+
+      if (report.category === "DISEASE") {
+        const symptoms = rawRecord.visible_symptoms;
+        return typeof symptoms === "string" && symptoms.trim() !== ""
+          ? `Symptoms: ${symptoms}`
+          : "Symptoms: Not recorded";
+      }
 
       if (pestKey === "locusts") {
         const eventScale = rawRecord.event_scale;
@@ -265,7 +286,7 @@ export class AnalyticsService {
   }
 
   private getReportSecondaryValue(
-    report: { pestKey?: string | null; dataPayload?: unknown }
+    report: { category?: string | null; pestKey?: string | null; dataPayload?: unknown }
   ): string | null {
     const payload = this.getReportPayload(report);
     const raw =
@@ -274,6 +295,21 @@ export class AnalyticsService {
         : null;
 
     if (!raw) return null;
+
+    if (report.category === "DISEASE") {
+      const details: string[] = [];
+      if (typeof raw.affected_part === "string" && raw.affected_part.trim() !== "") {
+        details.push(`Affected: ${raw.affected_part}`);
+      }
+      if (typeof raw.spread === "string" && raw.spread.trim() !== "") {
+        details.push(`Spread: ${raw.spread}`);
+      }
+      if (typeof raw.first_noticed === "string" && raw.first_noticed.trim() !== "") {
+        details.push(`First noticed: ${raw.first_noticed}`);
+      }
+
+      return details.length > 0 ? details.join(" • ") : null;
+    }
 
     if (report.pestKey === "locusts") {
       const details: string[] = [];
@@ -825,6 +861,7 @@ export interface ReportWithDetails {
   id: string;
   createdAt: Date;
   description: string | null;
+  category: "PEST" | "DISEASE" | "WEATHER" | null;
   severity: "NORMAL" | "WARNING" | "HIGH" | null;
   label: string | null;
   displayLabel: string;

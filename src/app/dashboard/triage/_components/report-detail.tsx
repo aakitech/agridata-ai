@@ -41,6 +41,7 @@ const ReportMap = dynamic(
 
 type Report = {
   id: string;
+  category: "PEST" | "DISEASE" | "WEATHER" | null;
   label?: string | null;
   pestKey?: string | null;
   observationMethod?: string | null;
@@ -186,15 +187,26 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
     reportPayload?.meta && typeof reportPayload.meta === "object"
       ? (reportPayload.meta as Record<string, unknown>)
       : null;
+  const reportRaw =
+    reportPayload?.raw && typeof reportPayload.raw === "object"
+      ? (reportPayload.raw as Record<string, unknown>)
+      : null;
+  const isDiseaseReport = report.category === "DISEASE";
   const pestLabel =
-    report.label ||
-    report.pestKey ||
-    (typeof reportMeta?.pestLabel === "string" ? reportMeta.pestLabel : null) ||
-    "Unknown";
+    isDiseaseReport
+      ? report.label ||
+        (typeof reportMeta?.reportTypeLabel === "string" ? reportMeta.reportTypeLabel : null) ||
+        "Disease/Symptom"
+      : report.label ||
+        report.pestKey ||
+        (typeof reportMeta?.pestLabel === "string" ? reportMeta.pestLabel : null) ||
+        "Unknown";
   const primaryValue =
-    report.observedCount ??
-    (reportPayload?.raw && typeof reportPayload.raw === "object"
-      ? Object.values(reportPayload.raw as Record<string, unknown>).find(
+    isDiseaseReport
+      ? reportRaw?.visible_symptoms ?? "Not recorded"
+      : report.observedCount ??
+        (reportRaw
+          ? Object.values(reportRaw).find(
           (value) =>
             value !== null &&
             value !== undefined &&
@@ -229,7 +241,9 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-lg border p-3">
-            <Label className="text-xs text-muted-foreground">Pest</Label>
+            <Label className="text-xs text-muted-foreground">
+              {isDiseaseReport ? "Report Type" : "Pest"}
+            </Label>
             <div className="font-semibold">{pestLabel}</div>
           </div>
           <div className="rounded-lg border p-3">
@@ -237,7 +251,9 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
             <div className="font-semibold">{report.observationMethod || "Not recorded"}</div>
           </div>
           <div className="rounded-lg border p-3">
-            <Label className="text-xs text-muted-foreground">Primary Value</Label>
+            <Label className="text-xs text-muted-foreground">
+              {isDiseaseReport ? "Primary Observation" : "Primary Value"}
+            </Label>
             <div className="font-semibold">{primaryValue != null ? String(primaryValue) : "N/A"}</div>
           </div>
           <div className="rounded-lg border p-3 sm:col-span-3">
@@ -248,6 +264,41 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
           </div>
         </CardContent>
       </Card>
+
+      {isDiseaseReport && reportRaw && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Disease/Symptom Context</CardTitle>
+            <CardDescription>Structured details captured from the WhatsApp disease intake</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border p-3">
+              <Label className="text-xs text-muted-foreground">Crop</Label>
+              <div className="font-semibold">{String(reportRaw.crop ?? "Tobacco")}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <Label className="text-xs text-muted-foreground">Affected Part</Label>
+              <div className="font-semibold">{String(reportRaw.affected_part ?? "Not recorded")}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <Label className="text-xs text-muted-foreground">Symptoms</Label>
+              <div className="font-semibold">{String(reportRaw.visible_symptoms ?? "Not recorded")}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <Label className="text-xs text-muted-foreground">Spread</Label>
+              <div className="font-semibold">{String(reportRaw.spread ?? "Not recorded")}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <Label className="text-xs text-muted-foreground">First Noticed</Label>
+              <div className="font-semibold">{String(reportRaw.first_noticed ?? "Not recorded")}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <Label className="text-xs text-muted-foreground">Recent Treatment</Label>
+              <div className="font-semibold">{String(reportRaw.recent_treatment ?? "Not recorded")}</div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Evidence Section */}
       <Card>

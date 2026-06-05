@@ -301,11 +301,17 @@ export function ListView({ reports, pagination, onPageChange }: ListViewProps) {
             <div className="space-y-4 pt-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-muted/40 rounded-lg">
-                  <div className="text-xs text-muted-foreground uppercase">Pest</div>
-                  <div className="text-lg font-bold">{selectedReport.label || "Unknown"}</div>
+                  <div className="text-xs text-muted-foreground uppercase">
+                    {selectedReport.category === "DISEASE" ? "Report Type" : "Pest"}
+                  </div>
+                  <div className="text-lg font-bold">
+                    {selectedReport.displayLabel || selectedReport.label || "Unknown"}
+                  </div>
                 </div>
                 <div className="p-3 bg-muted/40 rounded-lg">
-                  <div className="text-xs text-muted-foreground uppercase">Primary Value</div>
+                  <div className="text-xs text-muted-foreground uppercase">
+                    {selectedReport.category === "DISEASE" ? "Primary Observation" : "Primary Value"}
+                  </div>
                   <div className="text-lg font-bold">{selectedReport.summaryValue ?? selectedReport.observedCount ?? "N/A"}</div>
                   {selectedReport.secondaryValue && (
                     <div className="mt-1 text-xs text-muted-foreground">{selectedReport.secondaryValue}</div>

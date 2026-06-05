@@ -143,7 +143,8 @@ export async function POST(req: NextRequest) {
         user.id,
         org.id,
         user.fullName || phoneNumber,
-        org.name
+        org.name,
+        org.slug
       )
     : new WorkflowProcessor(
         org.workflowConfig as WorkflowConfig,
