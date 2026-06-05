@@ -33,7 +33,9 @@ The existing triage dashboard already supports report review, verification, and 
 
 ```text
 Farmer starts report
--> chooses Pest/Insect, Disease/Symptom, or Other/Not sure
+-> answers whether they saw insects/pests or plant damage/symptoms
+-> Pest/Insect continues through the pest flow
+-> Damage/Symptoms and Other/Not sure enter the symptom intake flow
 -> Disease/Symptom flow confirms tobacco
 -> asks affected plant part
 -> asks visible symptoms
@@ -48,13 +50,13 @@ Farmer starts report
 The first question should be:
 
 ```text
-What are you reporting?
-1. Pest/insect problem
-2. Disease/symptom problem
+What are you seeing?
+1. I saw insects or pests
+2. I see damage or symptoms on the plant
 3. Other / not sure
 ```
 
-For V1, farmers should not be required to know or select a disease name. They should describe what they see.
+For V1, farmers should not be required to know or select a disease name. They should describe what they see. `Other / not sure` should not be a dead end; it should route into the symptom intake flow because that is the most general path for officer review.
 
 Candidate disease questions:
 
@@ -109,7 +111,7 @@ Recommended V1 review outcomes:
 - Reviewed/Verified: officer has enough information to record a likely issue or diagnosis.
 - Escalated: specialist or Research Officer follow-up is needed.
 - Rejected: report is invalid, duplicate, or does not contain enough useful information.
-- Inconclusive / needs more information: useful future state, but may require follow-up messaging support.
+- Inconclusive / needs more information: defer until farmer follow-up messaging exists, because it needs a way to request more information from the farmer.
 
 Reviewed outcomes should update the dashboard status first. Farmer-facing follow-up should be handled by the advisory/follow-up messaging workstream unless approved advisory content and messaging rules are ready.
 
@@ -124,9 +126,10 @@ Disease report submitted
 -> appears in reports dashboard
 -> category shown as Disease/Symptom
 -> status starts as Pending Review / Pending Triage
+-> officers are notified or given a queue item regardless of severity
 -> officer/admin can open report details
 -> symptom fields are shown clearly
--> high severity disease reports trigger dashboard alert/escalation
+-> high severity disease reports are ranked higher and may trigger louder escalation
 ```
 
 The dashboard should avoid pest-only labels for disease reports. Examples:
@@ -136,6 +139,12 @@ The dashboard should avoid pest-only labels for disease reports. Examples:
 - Show captured symptom fields as a structured summary.
 - Keep reviewed outcomes internal until follow-up messaging is implemented.
 
+Notification and severity must remain separate:
+
+- Notification / queue policy: every `category = DISEASE` report should enter the Pending Review queue and notify or surface to officers, regardless of severity.
+- Severity policy: severity should stay differentiated and should be used to rank reports within the review queue and drive louder escalation for urgent cases.
+- High severity should not be assigned to every disease report. If everything is high, officers lose the ability to prioritize true field-wide problems.
+
 Suggested V1 severity mapping can be based on spread:
 
 ```text
@@ -143,10 +152,10 @@ One/few plants -> Normal / Low
 Several plants -> Warning
 Many plants -> High
 Most of the field -> High
-Not sure -> Pending Review, no alert unless another high-risk signal exists
+Not sure -> Normal/Unknown priority until reviewed, unless another high-risk signal exists
 ```
 
-Only high-severity disease reports should trigger dashboard alerts or escalation in V1. Low and medium reports should still enter the review queue without urgent alerting.
+Disease severity is farmer self-reported in V1 and should be treated as an initial estimate, not a verified diagnosis or risk assessment. Low and warning reports still enter the officer review queue. High severity reports should receive stronger visual priority and escalation, but severity should never be the condition for whether officers are told about a disease report.
 
 ## Data Model Recommendation
 
@@ -161,22 +170,28 @@ Recommended V1 storage shape:
 - `mediaUrl` / media relation: uploaded image references
 - `location`: WhatsApp GPS location
 - `severity`: derived from spread/severity response
+- `severitySource`: should identify disease severity as farmer self-reported, such as `SELF_REPORT`, so the dashboard can show that it is not yet verified
 - `diagnosis`, `riskLevel`, `verifiedAt`, `verifiedBy`: populated during officer review
 
 If implementation shows that `category = DISEASE` is not currently supported by the enum or UI, add it as a focused schema/UI change rather than creating a separate disease report table.
+
+If the current `severitySource` enum does not support a self-reported value, add one as part of implementation. The officer's reviewed `riskLevel` should remain the authoritative risk assessment after review.
 
 Do not create a separate disease report entity in V1 unless the existing reports model blocks core behavior.
 
 ## Implementation Tickets To Create
 
-1. Add Kutsaga pest vs disease entry point to WhatsApp flow.
+1. Add Kutsaga intake entry point using plant-friendly wording: insect/pest seen, plant damage/symptoms seen, or other/not sure.
 2. Add generic Kutsaga disease diagnostic question configuration.
 3. Store disease reports in the existing report structure with `category = DISEASE`.
-4. Generalize report/dashboard labels from pest-only to report-type-aware copy.
-5. Show disease symptom fields clearly in report details and triage.
-6. Add high-severity disease alert/escalation behavior based on spread.
-7. Add optional disease image guidance copy.
-8. Defer farmer advisory and WhatsApp follow-up messaging to separate issues.
+4. Route `Other / not sure` into the symptom intake flow so officers can classify the report later.
+5. Generalize report/dashboard labels from pest-only to report-type-aware copy.
+6. Show disease symptom fields clearly in report details and triage.
+7. Add disease review queue/notification behavior for every disease report, independent of severity.
+8. Add self-reported disease severity source support, such as `SELF_REPORT`, and display it clearly in the dashboard.
+9. Add high-severity disease escalation behavior based on spread, separate from the base review notification.
+10. Add optional disease image guidance copy.
+11. Defer farmer advisory, inconclusive follow-up, and WhatsApp follow-up messaging to separate issues.
 
 ## Validation Plan
 
@@ -186,6 +201,8 @@ This issue should be complete when:
 - The recommended data model approach is documented.
 - The V1 disease question list is documented.
 - The alerting/escalation dependency is identified.
+- The plan separates disease review notification from severity ranking/escalation.
+- The plan treats disease severity as farmer self-reported until officer review.
 - Follow-up implementation tickets are split from this investigation.
 - The plan explains why V1 uses officer review instead of bot diagnosis.
 - The plan aligns with Felix's feedback without overpromising AI diagnosis or farmer advisory output.
@@ -197,3 +214,4 @@ This issue should be complete when:
 - Disease reports should reuse the existing reports and triage model unless implementation later proves that a new entity is necessary.
 - Advisory output, Research Officer contact routing, Shona support, and image model training are related follow-up workstreams, not part of this issue's implementation.
 - Kutsaga-approved advisory content is required before the bot gives pesticide, product, or control recommendations.
+- Every disease report should be reviewed or surfaced to officers in V1, but only high-severity reports should receive stronger escalation treatment.
