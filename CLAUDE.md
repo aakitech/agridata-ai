@@ -21,9 +21,10 @@ Each pilot has its own seed scripts and pest configurations. See `scripts/seed-*
 | Person | Role |
 |---|---|
 | Brighton (dev-thandabantu) | CEO / product |
-| Kundai (kundai@aakitech.com) | Lead developer |
+| Kundai (kundai@aakitech.com) | CTO (part-time) |
 | Munashe (munashe@aakitech.com) | Developer |
-| Law (law001-mugah) | Developer |
+| Law (law001-mugah) | Non-technical |
+| Ona | Non-technical |
 
 Work is sprint-based. Ownership is assigned at sprint refinement based on capacity. Most team members are part-time. Do not assume someone is available — check the current sprint.
 
