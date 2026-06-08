@@ -357,10 +357,10 @@ export class MpbcPestConfigProcessor {
       id: "report_type_selection",
       type: "list",
       question:
-        "Hello {{OfficerName}}\n\nThis is the {{OrganizationName}} reporting system.\nWhat are you reporting today?",
+        "Hello {{OfficerName}}\n\nThis is the {{OrganizationName}} reporting system.\nWhat did you see?",
       listOptions: [
-        { id: "pest", title: "Pest/insect problem" },
-        { id: "disease", title: "Disease/symptom problem" },
+        { id: "pest", title: "Insects or pests" },
+        { id: "disease", title: "Plant damage or symptoms" },
         { id: "other", title: "Other / not sure" },
       ],
     };
@@ -823,11 +823,9 @@ export class MpbcPestConfigProcessor {
               : null,
         observedCount: null,
         severity,
-        severitySource: "DEFAULT_FALLBACK",
+        severitySource: "SELF_REPORT",
         alertTriggered,
-        alertTriggerReason: alertTriggered
-          ? "disease_spread_high"
-          : "disease_pending_review",
+        alertTriggerReason: alertTriggered ? "disease_spread_high" : null,
       })
       .returning();
 

@@ -53,6 +53,7 @@ type Report = {
   description: string | null;
   createdAt: Date;
   severity?: "NORMAL" | "WARNING" | "HIGH" | null;
+  severitySource?: "ORG_CONFIG" | "DEFAULT_FALLBACK" | "SELF_REPORT" | null;
   organization?: {
     name: string;
   };
@@ -256,12 +257,47 @@ export function ReportDetail({ report, onComplete, userRole }: ReportDetailProps
             </Label>
             <div className="font-semibold">{primaryValue != null ? String(primaryValue) : "N/A"}</div>
           </div>
-          <div className="rounded-lg border p-3 sm:col-span-3">
-            <Label className="text-xs text-muted-foreground">Alert Outcome</Label>
-            <div className="font-semibold">
-              {report.alertTriggered ? "Alert triggered" : "No alert triggered"}
+          {isDiseaseReport ? (
+            <>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Review Routing</Label>
+                <div className="font-semibold">Sent to officer review queue</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Initial Priority</Label>
+                <div className="font-semibold">
+                  {report.severity === "HIGH"
+                    ? "High"
+                    : report.severity === "WARNING"
+                      ? "Warning"
+                      : "Normal"}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-muted-foreground">Priority Source</Label>
+                <div className="font-semibold">
+                  {report.severitySource === "SELF_REPORT"
+                    ? "Farmer's estimate - not yet verified"
+                    : "Not recorded"}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3 sm:col-span-3">
+                <Label className="text-xs text-muted-foreground">Escalation</Label>
+                <div className="font-semibold">
+                  {report.alertTriggered
+                    ? "Urgent escalation triggered"
+                    : "Standard officer review"}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-lg border p-3 sm:col-span-3">
+              <Label className="text-xs text-muted-foreground">Alert Outcome</Label>
+              <div className="font-semibold">
+                {report.alertTriggered ? "Alert triggered" : "No alert triggered"}
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

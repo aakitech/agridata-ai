@@ -74,6 +74,7 @@ export const severityEnum = pgEnum("severity", ["NORMAL", "WARNING", "HIGH"]);
 export const severitySourceEnum = pgEnum("severity_source", [
   "ORG_CONFIG",
   "DEFAULT_FALLBACK",
+  "SELF_REPORT",
 ]);
 
 export const observationMethodEnum = pgEnum("observation_method", [
@@ -342,7 +343,7 @@ export const reports = createTable(
     // Alert severity (computed at ingestion time)
     severity: severityEnum("severity"),
     observedCount: integer("observed_count"), // Raw count used for severity computation
-    severitySource: severitySourceEnum("severity_source"), // Source of severity computation (ORG_CONFIG or DEFAULT_FALLBACK)
+    severitySource: severitySourceEnum("severity_source"), // Source of the initial severity assessment
     alertTriggered: boolean("alert_triggered"),
     alertTriggerReason: text("alert_trigger_reason"),
 

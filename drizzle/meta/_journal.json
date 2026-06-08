@@ -71,6 +71,13 @@
       "when": 1771891200000,
       "tag": "0011_update_multi_pest_workflow_ids",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780876800000,
+      "tag": "0012_add_self_report_severity_source",
+      "breakpoints": true
     }
   ]
 }
