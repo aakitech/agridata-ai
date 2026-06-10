@@ -1,5 +1,5 @@
 /**
- * Centralized permission system for AgriData AI
+ * Centralized permission system for AgriData Technologies
  *
  * Roles:
  * - super_admin: Full system control and training-impacting decisions

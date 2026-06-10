@@ -1,6 +1,6 @@
 # Multi-Tenant Onboarding Readiness Plan
 
-This document is the planning home for making AgriData AI production-ready for repeatable multi-tenant onboarding: a new organization should be creatable, configurable, invited, and operational without engineering/admin hand-holding.
+This document is the planning home for making AgriData Technologies production-ready for repeatable multi-tenant onboarding: a new organization should be creatable, configurable, invited, and operational without engineering/admin hand-holding.
 
 It also captures the emerging Kutsaga onboarding context. There is no current Kutsaga-specific context in the codebase, so this section starts as an intake/update area and should be filled in as the partnership and operating model become clearer.
 
@@ -209,7 +209,7 @@ Follow-up from Felix:
 - Data collection for these pests is almost non-existent today.
 - Kutsaga has its own count ranges and symptoms for the pest set.
 - Kutsaga can share photos of the pests and the damage they cause.
-- Kutsaga is comfortable with AgriData AI proposing a simple farmer-friendly WhatsApp flow for review and refinement.
+- Kutsaga is comfortable with AgriData Technologies proposing a simple farmer-friendly WhatsApp flow for review and refinement.
 - Kutsaga shared rating scales for Aphids, Mealybug, Budworm, and False wireworm.
 - Aphids and Mealybug should rely mainly on counts because they are sap-sucking insects and visible damage is not always obvious. Heavy infestations may show black sooty mould.
 

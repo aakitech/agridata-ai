@@ -1,6 +1,6 @@
-# AgriData AI
+# AgriData Technologies
 
-AgriData AI is a WhatsApp-first field intelligence platform for agriculture in Southern Africa. Field officers and farmers submit structured pest and disease observations via WhatsApp. Those reports feed a multi-tenant dashboard with maps, triage workflows, severity alerts, and PDF report generation — giving institutions, research boards, and agricultural programs real-time visibility into what is happening on the ground.
+AgriData Technologies is a WhatsApp-first field intelligence platform for agriculture in Southern Africa. Field officers and farmers submit structured pest and disease observations via WhatsApp. Those reports feed a multi-tenant dashboard with maps, triage workflows, severity alerts, and PDF report generation — giving institutions, research boards, and agricultural programs real-time visibility into what is happening on the ground.
 
 ## Active pilots
 

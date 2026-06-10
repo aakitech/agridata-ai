@@ -1,4 +1,4 @@
-# AgriData AI - Production Readiness Plan
+# AgriData Technologies - Production Readiness Plan
 
 This document outlines the steps required to move from the development/sandbox environment to the production environment.
 

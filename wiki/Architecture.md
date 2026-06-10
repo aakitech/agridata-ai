@@ -2,7 +2,7 @@
 
 ## System overview
 
-AgriData AI is a multi-tenant agricultural field intelligence platform. Field officers and farmers submit pest and disease observations via WhatsApp. The system processes those messages through a configurable bot workflow, stores structured reports, enriches them with weather data, evaluates severity against per-org thresholds, and surfaces everything through a dashboard with maps, triage tools, and PDF reports.
+AgriData Technologies is a multi-tenant agricultural field intelligence platform. Field officers and farmers submit pest and disease observations via WhatsApp. The system processes those messages through a configurable bot workflow, stores structured reports, enriches them with weather data, evaluates severity against per-org thresholds, and surfaces everything through a dashboard with maps, triage tools, and PDF reports.
 
 ---
 

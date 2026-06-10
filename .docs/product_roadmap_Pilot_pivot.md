@@ -1,4 +1,4 @@
-# 🚀 AgriData AI: Updated Product Roadmap (Pivot Phase)
+# 🚀 AgriData Technologies: Updated Product Roadmap (Pivot Phase)
 
 **Strategic Goal:** Move from generic "pest reporting" to specific "Workflow Digitization" for ZSAES and MPBC.
 

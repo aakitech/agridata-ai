@@ -34,7 +34,7 @@ export default async function LoginPage({
             Welcome back
           </h2>
           <p className="text-muted-foreground">
-            Sign in to your AgriData AI account
+            Sign in to your AgriData Technologies account
           </p>
         </div>
         

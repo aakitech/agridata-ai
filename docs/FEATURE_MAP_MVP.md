@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document tracks the evolution of the AgriData AI map functionality from a raw data dump to an operational decision-making tool. The goal was to reduce visual clutter, prioritize recent and actionable information, and support institutional users (e.g. MPBC) in identifying where attention or intervention is needed *now*.
+This document tracks the evolution of the AgriData Technologies map functionality from a raw data dump to an operational decision-making tool. The goal was to reduce visual clutter, prioritize recent and actionable information, and support institutional users (e.g. MPBC) in identifying where attention or intervention is needed *now*.
 
 **Primary User Question:** *"Where do we need to pay attention right now?"*
 
@@ -266,5 +266,5 @@ else return HIGH
 
 ---
 
-**Document Owner:** AgriData AI Product Team  
+**Document Owner:** AgriData Technologies Product Team  
 **Status:** Active - MVP Pilot Phase

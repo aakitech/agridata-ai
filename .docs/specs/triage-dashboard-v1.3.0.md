@@ -1,4 +1,4 @@
-# AgriData AI: Expert Triage Dashboard Specification
+# AgriData Technologies: Expert Triage Dashboard Specification
 **Version:** 1.3.0 (Renamed Severity to Risk Level)
 **Context:** The "Command Center" for Agronomists to validate incoming WhatsApp reports.
 

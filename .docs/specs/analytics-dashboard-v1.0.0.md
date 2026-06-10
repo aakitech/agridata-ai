@@ -1,4 +1,4 @@
-# AgriData AI: Analytics Dashboard Specification
+# AgriData Technologies: Analytics Dashboard Specification
 **Version:** 1.0.0
 **Context:** A high-level internal dashboard for Organization Admins and Super Admins to visualize field data.
 

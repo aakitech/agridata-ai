@@ -1,9 +1,9 @@
-# AgriData AI: WhatsApp Bot Technical Specification
+# AgriData Technologies: WhatsApp Bot Technical Specification
 **Version:** 1.1.0 (Updated with Exact Flows)
 **Context:** Ingestion Layer for the Pest & Disease Early Warning System.
 
 ## 1. Overview
-This document defines the technical implementation of the AgriData AI WhatsApp Bot. The bot serves as the primary data ingestion channel for farmers to report pest and disease outbreaks. It acts as a "Triage" system, collecting structured data (Image, Location, Description) which is then queued for verification by Agronomists.
+This document defines the technical implementation of the AgriData Technologies WhatsApp Bot. The bot serves as the primary data ingestion channel for farmers to report pest and disease outbreaks. It acts as a "Triage" system, collecting structured data (Image, Location, Description) which is then queued for verification by Agronomists.
 
 **Core Philosophy:** "One Input, One Screen." The bot uses a strict Conversational State Machine to guide users through the reporting process to avoid frustration and ensure data integrity.
 
@@ -47,7 +47,7 @@ The bot logic is a switch statement based on the user's `current_state`.
 
 | State | Trigger | System Logic | Next State |
 | :--- | :--- | :--- | :--- |
-| **IDLE** | User sends "Hi" | 1. Check/Create User.<br>2. Send Menu Template.<br>**Header:** AgriData AI<br>**Body:** "Mhoro! I am your crop protection assistant. How can I help you today?"<br>**Buttons:**<br>1. Report Crop Problem<br>2. Check Local Risk | **AWAITING_MENU_CHOICE** |
+| **IDLE** | User sends "Hi" | 1. Check/Create User.<br>2. Send Menu Template.<br>**Header:** AgriData Technologies<br>**Body:** "Mhoro! I am your crop protection assistant. How can I help you today?"<br>**Buttons:**<br>1. Report Crop Problem<br>2. Check Local Risk | **AWAITING_MENU_CHOICE** |
 
 ### Flow B: Report Crop Problem (The Core Loop)
 

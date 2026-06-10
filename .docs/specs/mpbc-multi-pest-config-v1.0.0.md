@@ -12,7 +12,7 @@ The current African Armyworm workflow remains the baseline and reference impleme
 This specification intentionally starts with product model and UI requirements before implementation details. The system must remain understandable to admins, usable by officers in WhatsApp, and maintainable by the engineering team.
 
 ## 2. Background
-AgriData AI originally digitized a single, well-defined reporting workflow for African Armyworm surveillance. That first version assumed:
+AgriData Technologies originally digitized a single, well-defined reporting workflow for African Armyworm surveillance. That first version assumed:
 
 - One pest: `African Armyworm`
 - One monitoring method: `pheromone trap`

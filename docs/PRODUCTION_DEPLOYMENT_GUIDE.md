@@ -1,6 +1,6 @@
 # Production Deployment Guide
 
-This guide walks through the complete setup process for deploying AgriData AI to production with separate development and production environments.
+This guide walks through the complete setup process for deploying AgriData Technologies to production with separate development and production environments.
 
 ## 📋 Overview
 
@@ -132,7 +132,7 @@ Protect your `main` branch:
 ### 3.1 Configure Vercel Project
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Select your AgriData AI project
+2. Select your AgriData Technologies project
 3. Go to Settings → Git
 
 #### Production Branch Configuration

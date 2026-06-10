@@ -1,4 +1,4 @@
-# AgriData AI: Multi-Tenancy & Data Isolation Specification
+# AgriData Technologies: Multi-Tenancy & Data Isolation Specification
 **Version:** 1.0.0
 **Context:** Specification for role-based access control and organization-level data isolation.
 

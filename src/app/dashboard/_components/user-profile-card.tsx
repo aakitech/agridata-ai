@@ -92,7 +92,7 @@ export function UserProfileCard({ user }: UserProfileCardProps) {
       </div>
       
       <div className="p-3 bg-muted/30 border-t flex items-center justify-between text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-        <span>AgriData AI v1.0</span>
+        <span>AgriData Technologies v1.0</span>
         <div className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
           Support <ExternalLink className="h-2.5 w-2.5" />
         </div>

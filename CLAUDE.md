@@ -1,8 +1,8 @@
-# AgriData AI — Claude Code Instructions
+# AgriData Technologies — Claude Code Instructions
 
 ## What this product is
 
-AgriData AI is a WhatsApp-first field intelligence platform for agriculture in Southern Africa. Field officers and farmers submit structured pest and disease reports via WhatsApp. Those reports feed a multi-tenant dashboard with maps, triage workflows, alert thresholds, and PDF report generation. The platform is config-driven and multi-tenant — each organisation (pilot) has its own pest configurations, workflows, and data isolation.
+AgriData Technologies is a WhatsApp-first field intelligence platform for agriculture in Southern Africa. It is a product of AakiTech. Field officers and farmers submit structured pest and disease reports via WhatsApp. Those reports feed a multi-tenant dashboard with maps, triage workflows, alert thresholds, and PDF report generation. The platform is config-driven and multi-tenant — each organisation (pilot) has its own pest configurations, workflows, and data isolation.
 
 The WhatsApp bot is the field interface. The real product is the intelligence layer behind it: structured data collection, surveillance, dashboards, escalation, and reporting.
 
@@ -23,8 +23,8 @@ Each pilot has its own seed scripts and pest configurations. See `scripts/seed-*
 | Brighton (dev-thandabantu) | CEO / product |
 | Kundai (kundai@aakitech.com) | CTO (part-time) |
 | Munashe (munashe@aakitech.com) | Developer |
-| Law (law001-mugah) | Non-technical |
-| Ona | Non-technical |
+| Law (law001-mugah) | Non-technical — handles external communications |
+| Ona (OnaJonas22 / Onthatile) | Non-technical |
 
 Work is sprint-based. Ownership is assigned at sprint refinement based on capacity. Most team members are part-time. Do not assume someone is available — check the current sprint.
 

@@ -1,4 +1,4 @@
-# Contributing to AgriData AI
+# Contributing to AgriData Technologies
 
 ## Prerequisites
 

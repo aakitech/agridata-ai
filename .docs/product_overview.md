@@ -1,9 +1,9 @@
-# AgriData AI: Product Overview & Features
+# AgriData Technologies: Product Overview & Features
 
-Welcome to AgriData AI. This document provides a high-level overview of our platform's capabilities, user roles, and how we manage data across different organizations.
+Welcome to AgriData Technologies. This document provides a high-level overview of our platform's capabilities, user roles, and how we manage data across different organizations.
 
 ## 1. The Core Mission
-AgriData AI is designed to bridge the gap between field-level pest/disease reporting and strategic agricultural management. We provide a seamless flow of information from the field (via WhatsApp) to a centralized analytics dashboard for decision-makers.
+AgriData Technologies is designed to bridge the gap between field-level pest/disease reporting and strategic agricultural management. We provide a seamless flow of information from the field (via WhatsApp) to a centralized analytics dashboard for decision-makers.
 
 ---
 
@@ -57,7 +57,7 @@ Every dashboard user (Super Admin or Org Admin) follows a lifecycle to ensure ac
 ---
 
 ## 4. Onboarding Workflow
-AgriData AI uses an **invite-only** system to maintain security and multi-tenant isolation. There is no public registration.
+AgriData Technologies uses an **invite-only** system to maintain security and multi-tenant isolation. There is no public registration.
 
 ### 🏁 Initial Setup (Bootstrap)
 The very first **Super Admin** is created via the command line:
@@ -73,4 +73,4 @@ This ensures the core platform owner has the necessary permissions to start sett
 4. **Access**: Once setup is complete, they are granted access to their dashboard.
 
 ---
-*AgriData AI — Empowering agriculture through data-driven insights.*
+*AgriData Technologies — Empowering agriculture through data-driven insights.*

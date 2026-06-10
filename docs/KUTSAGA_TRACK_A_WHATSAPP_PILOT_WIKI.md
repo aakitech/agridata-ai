@@ -1,6 +1,6 @@
 # Kutsaga Track A WhatsApp Pilot Wiki
 
-This wiki documents the Track A work for the Kutsaga pilot: adapting AgriData AI into a repeatable, multi-tenant, farmer-friendly WhatsApp reporting system for tobacco pest surveillance.
+This wiki documents the Track A work for the Kutsaga pilot: adapting AgriData Technologies into a repeatable, multi-tenant, farmer-friendly WhatsApp reporting system for tobacco pest surveillance.
 
 Track B, the aphid forecasting proof of concept, is owned separately by another developer. Track B focuses on ingesting historical aphid data, combining it with weather data, and producing exploratory forecasting outputs. Track A does not implement forecasting; it builds the real-time field data infrastructure that can later support forecasting and early-warning systems.
 

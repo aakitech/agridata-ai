@@ -43,7 +43,7 @@ export default function OnboardingPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Welcome to AgriData AI</CardTitle>
+          <CardTitle className="text-2xl">Welcome to AgriData Technologies</CardTitle>
           <CardDescription>
             Please complete your profile to access the dashboard.
           </CardDescription>

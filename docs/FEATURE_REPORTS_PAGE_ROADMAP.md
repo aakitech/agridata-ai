@@ -318,7 +318,7 @@ Create a new `/dashboard/reports` route that provides comprehensive report visib
 
 ---
 
-**Document Owner:** AgriData AI Product Team  
+**Document Owner:** AgriData Technologies Product Team  
 **Status:** In Development  
 **Priority:** High (user-requested feature)
 

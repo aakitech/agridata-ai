@@ -1,7 +1,7 @@
-# AgriData AI - Architecture Guide
+# AgriData Technologies - Architecture Guide
 
 ## Project Overview
-AgriData AI is a T3 Stack application for agricultural pest and disease reporting via WhatsApp, with an expert triage dashboard for agronomists.
+AgriData Technologies is a T3 Stack application for agricultural pest and disease reporting via WhatsApp, with an expert triage dashboard for agronomists.
 
 **Tech Stack:**
 - **Framework**: Next.js 15 (App Router)
