@@ -1,6 +1,6 @@
 import { db } from "~/server/db";
 import { reports } from "~/server/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export class TriageService {
   constructor(private database: typeof db, private orgId: string | undefined, private userRole: "super_admin" | "org_admin" | "officer") {}
@@ -35,9 +35,12 @@ export class TriageService {
         organization: true, // Always fetch organization for display
         weather: true,
       },
-      orderBy: (reports, { desc }) => 
-        status === "PENDING_TRIAGE" 
-          ? [desc(reports.createdAt)] 
+      orderBy: (reports, { desc }) =>
+        status === "PENDING_TRIAGE"
+          ? [
+              sql`${reports.severity} DESC NULLS LAST`,
+              desc(reports.createdAt),
+            ]
           : [desc(reports.verifiedAt)],
     });
   }

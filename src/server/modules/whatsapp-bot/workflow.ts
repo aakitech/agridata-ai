@@ -127,7 +127,7 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
   // Use Name if available, otherwise fallback to phone number
   const officerName = user.fullName || phoneNumber;
   const processor = hasActivePestConfigs
-    ? new MpbcPestConfigProcessor(user.id, org.id, officerName, org.name)
+    ? new MpbcPestConfigProcessor(user.id, org.id, officerName, org.name, org.slug)
     : workflowId && workflowConfig
       ? new WorkflowProcessor(workflowConfig, user.id, org.id, officerName)
       : null;
