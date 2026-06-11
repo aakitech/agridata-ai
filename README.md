@@ -1,29 +1,57 @@
-# Create T3 App
+# AgriData Technologies
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+AgriData Technologies is a WhatsApp-first field intelligence platform for agriculture in Southern Africa. Field officers and farmers submit structured pest and disease observations via WhatsApp. Those reports feed a multi-tenant dashboard with maps, triage workflows, severity alerts, and PDF report generation — giving institutions, research boards, and agricultural programs real-time visibility into what is happening on the ground.
 
-## What's next? How do I make an app with this?
+## Active pilots
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+| Pilot | Focus | Status |
+|---|---|---|
+| **MPBC** | Migratory pest surveillance (Quelea, Fall Armyworm) | Live in production |
+| **Kutsaga Research Board** | Tobacco pest reporting, farmer/contractor advisory | Pilot shipped, commercial discussion in progress |
+| **ZSAES** | Sugarcane pest scout digitisation, 100-stalk sampling | Demo complete |
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## Features
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+- WhatsApp bot with configurable, org-specific pest reporting workflows
+- Multi-tenant — each organisation has isolated data, pest configs, and alert thresholds
+- Triage dashboard for expert report review and verification
+- Map with clustered markers, severity colour coding, and recency weighting
+- Severity alerts with configurable per-org thresholds
+- Automatic weather enrichment (temperature, humidity, rainfall) on every report
+- PDF report generation for institutional reporting
+- Role-based access: super admin, org admin, field officer
 
-## Learn More
+## Tech stack
 
-To learn more about the [T3 Stack](https://create-t3.gg/), take a look at the following resources:
+- Next.js 15, tRPC, Drizzle ORM, PostgreSQL
+- Supabase (auth + storage), Twilio (WhatsApp), Open-Meteo (weather)
+- Deployed on Vercel via GitHub Actions
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+See [CLAUDE.md](CLAUDE.md) for the full stack reference, module map, data model, and contributor constraints.
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+## Local development
 
-## How do I deploy this?
+```bash
+pnpm install
+cp .env.example .env        # fill in DATABASE_URL, Supabase keys, Twilio creds
+pnpm db:push                # push schema to local DB
+pnpm seed:workflows         # seed WhatsApp bot workflow steps
+pnpm bootstrap-admin        # create initial super admin user
+pnpm dev                    # start dev server
+```
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create-t3.gg/en/deployment/netlify) and [Docker](https://create-t3.gg/en/deployment/docker) for more information.
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the full setup guide, branch conventions, and seed script reference.
+
+## Documentation
+
+| Resource | What it covers |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | Full project context for contributors and AI-assisted development |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Local setup, branching, PR process, migrations, seed scripts |
+| [Wiki — Architecture](../../wiki/Architecture) | System architecture, data flow, module map, data model |
+| [Wiki — Pilots](../../wiki/Pilots) | Active pilot reference: status, configs, seed scripts |
+| [docs/](docs/) | Feature docs, pilot wikis, deployment guides |
+
+## Discussions
+
+Team announcements, onboarding, and broader conversations happen in [GitHub Discussions](../../discussions).

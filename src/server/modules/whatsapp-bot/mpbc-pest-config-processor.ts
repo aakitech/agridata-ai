@@ -110,7 +110,7 @@ export class MpbcPestConfigProcessor {
     private userId: string,
     private orgId: string,
     private officerName: string,
-    private organizationName = "AgriData AI",
+    private organizationName = "AgriData Technologies",
     private organizationSlug?: string
   ) {}
 
