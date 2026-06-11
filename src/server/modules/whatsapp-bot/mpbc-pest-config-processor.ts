@@ -29,6 +29,66 @@ const KUTSAGA_PEST_KEYS = new Set([
   "budworm",
   "falsewire_worm",
 ]);
+const KUTSAGA_ORG_SLUG = "kutsaga";
+
+type DiseaseField = {
+  key: string;
+  prompt: string;
+  options: string[];
+};
+
+const KUTSAGA_DISEASE_FIELDS: DiseaseField[] = [
+  {
+    key: "affected_part",
+    prompt: "Which part of the tobacco plant looks affected?",
+    options: ["Leaves", "Stem", "Roots", "Whole plant", "Seedbed", "Not sure"],
+  },
+  {
+    key: "visible_symptoms",
+    prompt: "What do you see on the plant?",
+    options: [
+      "Yellowing",
+      "Wilting",
+      "Spots or lesions",
+      "Mould or fungal growth",
+      "Rotting",
+      "Stunted growth",
+      "Leaves curling",
+      "Other / not sure",
+    ],
+  },
+  {
+    key: "spread",
+    prompt: "How many plants seem affected?",
+    options: [
+      "One/few plants",
+      "Several plants",
+      "Many plants",
+      "Most of the field",
+      "Not sure",
+    ],
+  },
+  {
+    key: "first_noticed",
+    prompt: "When did you first notice this problem?",
+    options: [
+      "Today",
+      "Last few days",
+      "About a week ago",
+      "More than a week ago",
+      "Not sure",
+    ],
+  },
+  {
+    key: "recent_treatment",
+    prompt: "Has the crop been sprayed or treated recently?",
+    options: [
+      "Recently sprayed or treated",
+      "No recent treatment",
+      "Not sure",
+    ],
+  },
+];
 
 type IncomingMessage = {
   From: string;
@@ -50,7 +110,8 @@ export class MpbcPestConfigProcessor {
     private userId: string,
     private orgId: string,
     private officerName: string,
-    private organizationName = "AgriData AI"
+    private organizationName = "AgriData Technologies",
+    private organizationSlug?: string
   ) {}
 
   async processMessage(
@@ -69,13 +130,39 @@ export class MpbcPestConfigProcessor {
     }
 
     if (!currentStepId) {
-      const step = await this.buildPestSelectionStep();
+      const step = this.isKutsagaDiseaseFlowEnabled()
+        ? this.buildReportTypeSelectionStep()
+        : await this.buildPestSelectionStep();
       await this.updateSession(step.id, data);
       return {
         message: this.formatMessage(step.question),
         done: false,
         currentStep: step,
       };
+    }
+
+    if (currentStepId === "report_type_selection") {
+      const selection = this.parseListSelection(msg.Body, 3);
+      if (!selection.valid) {
+        const step = this.buildReportTypeSelectionStep();
+        return { message: `❌ ${selection.error}`, done: false, currentStep: step };
+      }
+
+      if (selection.index === 1) {
+        data.report_type = "PEST";
+        const step = await this.buildPestSelectionStep();
+        await this.updateSession(step.id, data);
+        return { message: step.question, done: false, currentStep: step };
+      }
+
+      data.report_type = "DISEASE";
+      data.report_type_label =
+        selection.index === 2 ? "Disease/Symptom" : "Other / Not sure";
+      data.crop = "Tobacco";
+
+      const step = this.toDiseaseFieldStep(KUTSAGA_DISEASE_FIELDS[0]!);
+      await this.updateSession(step.id, data);
+      return { message: step.question, done: false, currentStep: step };
     }
 
     if (currentStepId === "pest_selection") {
@@ -184,13 +271,35 @@ export class MpbcPestConfigProcessor {
       return { message: nextStep.question, done: false, currentStep: nextStep };
     }
 
+    if (currentStepId.startsWith("disease_field:")) {
+      const fieldKey = currentStepId.replace("disease_field:", "");
+      const field = KUTSAGA_DISEASE_FIELDS.find((item) => item.key === fieldKey);
+      if (!field) {
+        throw new Error(`Unknown disease field step ${fieldKey}`);
+      }
+
+      const validation = this.validateDiseaseFieldInput(field, msg);
+      if (!validation.valid) {
+        return {
+          message: `❌ ${validation.error}`,
+          done: false,
+          currentStep: this.toDiseaseFieldStep(field),
+        };
+      }
+
+      data[field.key] = validation.value;
+      const nextStep = this.buildNextDiseaseStep(field.key);
+      await this.updateSession(nextStep.id, data);
+      return { message: nextStep.question, done: false, currentStep: nextStep };
+    }
+
     if (currentStepId === "photo") {
       const validation = await this.validatePhotoInput(msg);
       if (!validation.valid) {
         return {
           message: `❌ ${validation.error}`,
           done: false,
-          currentStep: this.buildPhotoStep(),
+          currentStep: this.buildPhotoStep(data),
         };
       }
 
@@ -237,6 +346,24 @@ export class MpbcPestConfigProcessor {
     return text
       .replace(/{{OfficerName}}/g, this.officerName)
       .replace(/{{OrganizationName}}/g, this.organizationName);
+  }
+
+  private isKutsagaDiseaseFlowEnabled() {
+    return this.organizationSlug === KUTSAGA_ORG_SLUG;
+  }
+
+  private buildReportTypeSelectionStep(): WorkflowStep {
+    return {
+      id: "report_type_selection",
+      type: "list",
+      question:
+        "Hello {{OfficerName}}\n\nThis is the {{OrganizationName}} reporting system.\nWhat did you see?",
+      listOptions: [
+        { id: "pest", title: "Insects or pests" },
+        { id: "disease", title: "Plant damage or symptoms" },
+        { id: "other", title: "Other / not sure" },
+      ],
+    };
   }
 
   private async getActivePests() {
@@ -342,7 +469,17 @@ export class MpbcPestConfigProcessor {
     };
   }
 
-  private buildPhotoStep(): WorkflowStep {
+  private buildPhotoStep(data?: SessionData): WorkflowStep {
+    if (data?.report_type === "DISEASE") {
+      return {
+        id: "photo",
+        type: "photo",
+        optional: true,
+        question:
+          "Optional: please send a clear photo if you can.\n\nHelpful photos:\n1. The whole affected plant\n2. A close-up of the affected leaf, stem, or root\n3. A wider field or seedbed view\n\nReply SKIP to continue without a photo.",
+      };
+    }
+
     return {
       id: "photo",
       type: "photo",
@@ -350,6 +487,36 @@ export class MpbcPestConfigProcessor {
       question:
         "Optional: please upload a photo of the observation, or reply SKIP to continue.",
     };
+  }
+
+  private toDiseaseFieldStep(field: DiseaseField): WorkflowStep {
+    return {
+      id: `disease_field:${field.key}`,
+      type: "list",
+      question: field.prompt,
+      listOptions: field.options.map((option) => ({ id: option, title: option })),
+    };
+  }
+
+  private validateDiseaseFieldInput(field: DiseaseField, msg: IncomingMessage) {
+    const selection = this.parseListSelection(msg.Body, field.options.length);
+    if (!selection.valid) {
+      return { valid: false, error: selection.error };
+    }
+
+    return { valid: true, value: field.options[selection.index! - 1] };
+  }
+
+  private buildNextDiseaseStep(currentFieldKey: string): WorkflowStep {
+    const currentIndex = KUTSAGA_DISEASE_FIELDS.findIndex(
+      (field) => field.key === currentFieldKey
+    );
+    const nextField = KUTSAGA_DISEASE_FIELDS[currentIndex + 1];
+    if (nextField) {
+      return this.toDiseaseFieldStep(nextField);
+    }
+
+    return this.buildPhotoStep({ report_type: "DISEASE" });
   }
 
   private buildLocationStep(data?: SessionData): WorkflowStep {
@@ -504,6 +671,10 @@ export class MpbcPestConfigProcessor {
   }
 
   private async completeReport(data: SessionData) {
+    if (data.report_type === "DISEASE") {
+      return this.completeDiseaseReport(data);
+    }
+
     const alertsService = new AlertsService(db, this.orgId, "org_admin");
     const pestKey = String(data.pest_key ?? data.pest_name ?? "");
     const assessment = await alertsService.computePestAssessment({
@@ -613,6 +784,124 @@ export class MpbcPestConfigProcessor {
     return report;
   }
 
+  private async completeDiseaseReport(data: SessionData) {
+    const severity = this.getDiseaseSeverity(data.spread);
+    const alertTriggered = severity === "HIGH";
+    const normalizedPayload = {
+      raw: this.stripSystemKeys(data),
+      derived: {
+        severityBasis: "spread",
+      },
+      context: {},
+      meta: {
+        reportType: "DISEASE",
+        reportTypeLabel: "Disease/Symptom",
+        crop: "Tobacco",
+        reviewModel: "OFFICER_REVIEW",
+      },
+    };
+
+    const [report] = await db
+      .insert(reports)
+      .values({
+        userId: this.userId,
+        orgId: this.orgId,
+        workflowId: "multi_pest_config",
+        pestConfigurationId: null,
+        pestKey: "disease_symptom",
+        observationMethod: "FIELD_OBSERVATION",
+        label: "Disease/Symptom",
+        dataPayload: normalizedPayload,
+        status: "PENDING_TRIAGE",
+        category: "DISEASE",
+        location: typeof data.location === "string" ? data.location : null,
+        mediaUrl:
+          typeof data.photo === "string"
+            ? data.photo
+            : typeof data.photos === "string"
+              ? data.photos
+              : null,
+        observedCount: null,
+        severity,
+        severitySource: "SELF_REPORT",
+        alertTriggered,
+        alertTriggerReason: alertTriggered ? "disease_spread_high" : null,
+      })
+      .returning();
+
+    if (!report) {
+      throw new Error("Failed to insert disease report");
+    }
+
+    if (report.location && env.WEATHER_ENRICHMENT_ENABLED) {
+      try {
+        const coords = parseLocation(report.location);
+        if (coords) {
+          const observedLocalDate = toObservedLocalDate(
+            report.createdAt,
+            DEFAULT_WEATHER_TIMEZONE
+          );
+          await db.insert(reportWeather).values({
+            reportId: report.id,
+            orgId: report.orgId,
+            lat: coords.lat.toFixed(6),
+            lon: coords.lon.toFixed(6),
+            observedAt: report.createdAt,
+            observedLocalDate,
+            timezone: DEFAULT_WEATHER_TIMEZONE,
+            gridKey: computeGridKey(coords.lat, coords.lon, observedLocalDate),
+            source: env.WEATHER_PROVIDER,
+            status: "PENDING",
+          });
+
+          if (
+            env.WEATHER_INLINE_ENRICHMENT_ENABLED &&
+            INLINE_WEATHER_TIMEOUT_MS > 0
+          ) {
+            const weatherService = new WeatherEnrichmentService(db);
+            const inlineEnrichment = weatherService
+              .enrichReportWeather(report.id)
+              .catch(() => "FAILED" as const);
+
+            await Promise.race([
+              inlineEnrichment,
+              new Promise<"TIMEOUT">((resolve) =>
+                setTimeout(() => resolve("TIMEOUT"), INLINE_WEATHER_TIMEOUT_MS)
+              ),
+            ]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to enqueue weather enrichment for disease report:", report.id, error);
+      }
+    }
+
+    await db
+      .update(botSessions)
+      .set({
+        currentStep: null,
+        dataCollected: null,
+        workflowId: null,
+        status: "COMPLETED",
+        lastActive: new Date(),
+      })
+      .where(eq(botSessions.userId, this.userId));
+
+    return report;
+  }
+
+  private getDiseaseSeverity(spread: unknown) {
+    if (spread === "Many plants" || spread === "Most of the field") {
+      return "HIGH" as const;
+    }
+
+    if (spread === "Several plants") {
+      return "WARNING" as const;
+    }
+
+    return "NORMAL" as const;
+  }
+
   private async claimLocationSubmission(data: SessionData) {
     const [session] = await db
       .update(botSessions)
@@ -634,6 +923,10 @@ export class MpbcPestConfigProcessor {
   }
 
   private getConfirmationMessage(report: typeof reports.$inferSelect) {
+    if (report.category === "DISEASE") {
+      return this.getDiseaseConfirmationMessage(report);
+    }
+
     const pestName = report.label ?? "pest";
     const count = report.observedCount ?? "?";
     const isTrapFlow = report.observationMethod === "PHEROMONE_TRAP";
@@ -750,7 +1043,19 @@ export class MpbcPestConfigProcessor {
     }
   }
 
+  private getDiseaseConfirmationMessage(report: typeof reports.$inferSelect) {
+    if (report.severity === "HIGH") {
+      return "⚠️ Report received.\n\nYour disease/symptom report has been sent to Kutsaga for urgent review because many plants appear to be affected.\n\nA Kutsaga officer may follow up if more information is needed.";
+    }
+
+    return "✅ Report received.\n\nYour disease/symptom report has been sent to Kutsaga for review.\n\nA Kutsaga officer may follow up if more information is needed.";
+  }
+
   private buildObservationSummary(report: typeof reports.$inferSelect) {
+    if (report.category === "DISEASE") {
+      return this.buildDiseaseObservationSummary(report);
+    }
+
     if (KUTSAGA_PEST_KEYS.has(report.pestKey ?? "")) {
       return this.buildKutsagaObservationSummary(report);
     }
@@ -881,6 +1186,23 @@ export class MpbcPestConfigProcessor {
       default:
         return `${pestName} observation recorded`;
     }
+  }
+
+  private buildDiseaseObservationSummary(report: typeof reports.$inferSelect) {
+    const raw = this.getRawPayload(report);
+    const symptoms = this.asReadableValue(raw.visible_symptoms) ?? "Not recorded";
+    const affectedPart = this.asReadableValue(raw.affected_part);
+    const spread = this.asReadableValue(raw.spread);
+    const lines = [`Disease/Symptom: ${symptoms}`];
+
+    if (affectedPart) {
+      lines.push(`Affected part: ${affectedPart}`);
+    }
+    if (spread) {
+      lines.push(`Spread: ${spread}`);
+    }
+
+    return lines.join("\n");
   }
 
   private buildGenericObservationSummary(report: typeof reports.$inferSelect) {

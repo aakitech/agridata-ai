@@ -57,14 +57,14 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
 
   if (!user) {
     console.log(`⛔ Access denied for ${phoneNumber} - User not found in database`);
-    await sendText(phoneNumber, "Welcome to AgriData AI. This is a closed beta system.\n\nPlease contact admin@agridata.ai to request access.");
+    await sendText(phoneNumber, "Welcome to AgriData Technologies. This is a closed beta system.\n\nPlease contact software@aakitech.com to request access.");
     return;
   }
 
   if (!user.isActive) {
     console.log(`⛔ Access denied for ${phoneNumber} - User found but isActive=false`);
     console.log(`   User ID: ${user.id}, Name: ${user.fullName || "N/A"}, Phone in DB: ${user.phoneNumber}`);
-    await sendText(phoneNumber, "Welcome to AgriData AI. This is a closed beta system.\n\nPlease contact admin@agridata.ai to request access.");
+    await sendText(phoneNumber, "Welcome to AgriData Technologies. This is a closed beta system.\n\nPlease contact software@aakitech.com to request access.");
     return;
   }
 
@@ -127,7 +127,7 @@ export async function handleIncomingMessage(msg: IncomingMessage) {
   // Use Name if available, otherwise fallback to phone number
   const officerName = user.fullName || phoneNumber;
   const processor = hasActivePestConfigs
-    ? new MpbcPestConfigProcessor(user.id, org.id, officerName, org.name)
+    ? new MpbcPestConfigProcessor(user.id, org.id, officerName, org.name, org.slug)
     : workflowId && workflowConfig
       ? new WorkflowProcessor(workflowConfig, user.id, org.id, officerName)
       : null;

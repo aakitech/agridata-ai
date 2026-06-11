@@ -9,8 +9,8 @@ import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
-  title: "AgriData AI Triage",
-  description: "Triage Dashboard for AgriData AI",
+  title: "AgriData Technologies Triage",
+  description: "Triage Dashboard for AgriData Technologies",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
@@ -38,7 +38,7 @@ export default function RootLayout({
               {children}
             </div>
             <footer className="py-4 text-center text-sm text-muted-foreground bg-background border-t print:hidden shrink-0">
-              © {new Date().getFullYear()} AgriData AI. All rights reserved.
+              © {new Date().getFullYear()} AgriData Technologies. All rights reserved.
             </footer>
             <Toaster />
           </TooltipProvider>

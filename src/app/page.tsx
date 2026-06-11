@@ -242,7 +242,7 @@ export default async function Home() {
               From field to insight, faster
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              AgriData AI helps extension officers and cooperatives spot threats
+              AgriData Technologies helps extension officers and cooperatives spot threats
               early, prioritize response, and keep stakeholders informed—all
               from the devices they already use. We&apos;re testing these
               outcomes with pilot partners in Zimbabwe.
@@ -291,12 +291,12 @@ export default async function Home() {
               Built for agriculture, powered by AI
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              AgriData AI is in closed beta as we run a pilot with chosen
+              AgriData Technologies is in closed beta as we run a pilot with chosen
               partners in Zimbabwe. Access is by invitation only—we&apos;re not
               open for general sign-up yet.
             </p>
             <p className="text-muted-foreground leading-relaxed mb-8">
-              AgriData AI is a crop-protection platform that connects field
+              AgriData Technologies is a crop-protection platform that connects field
               scouts, cooperatives, and decision-makers. Reports flow in via
               WhatsApp; dashboards and alerts help teams act before outbreaks
               spread. We focus on simplicity, privacy, and reliability so you

@@ -239,7 +239,7 @@ export class WorkflowProcessor {
   private getSeverityConfirmation(
     report: any,
     data: SessionData,
-    severitySource: "ORG_CONFIG" | "DEFAULT_FALLBACK" | null
+    severitySource: "ORG_CONFIG" | "DEFAULT_FALLBACK" | "SELF_REPORT" | null
   ): string {
     const count = data["count"] ?? "?";
     const pestName = data["pest_name"] ?? "pest";
@@ -313,7 +313,11 @@ export class WorkflowProcessor {
 
     // 3. Compute severity and alert outcome using AlertsService
     let severity: "NORMAL" | "WARNING" | "HIGH" | null = null;
-    let severitySource: "ORG_CONFIG" | "DEFAULT_FALLBACK" | null = null;
+    let severitySource:
+      | "ORG_CONFIG"
+      | "DEFAULT_FALLBACK"
+      | "SELF_REPORT"
+      | null = null;
     let pestConfigurationId: string | null = null;
     let normalizedPestKey: string | null = typeof pestKey === "string" ? pestKey : null;
     let observationMethod: "PHEROMONE_TRAP" | "FIELD_OBSERVATION" | "EVENT_OBSERVATION" | "SIGN_BASED" | null = null;
