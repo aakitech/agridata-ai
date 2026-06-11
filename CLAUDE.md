@@ -6,7 +6,7 @@ Before doing anything else, ask:
 
 1. **Who is working?** — Brighton, Kundai, or Munashe (this changes how you respond)
    - Brighton: concise, backend + product-impact framing. He owns backend architecture and strategy, wears the CTO hat day-to-day.
-   - Kundai: frontend-first framing, part-time co-founder who owns frontend and co-owns product direction.
+   - Kundai: frontend-first framing, part-time, owns frontend and co-owns product direction.
    - Munashe: implementation detail, PR workflow context — most junior but full-time.
 2. **What are we working on?** — ask for the GitHub issue number if there is one, or a short description if it's exploratory. Read the issue before starting.
 
@@ -33,10 +33,10 @@ Each pilot has its own seed scripts and pest configurations. See `scripts/seed-*
 | Person | Role |
 |---|---|
 | Brighton (dev-thandabantu) | CEO / product / backend ownership |
-| Kundai (kundai@aakitech.com) | Co-founder, CTO (part-time), owns frontend |
-| Munashe (munashe@aakitech.com) | Co-founder, developer (full-time) |
-| Law (law001-mugah) | Non-technical — handles external communications |
-| Ona (OnaJonas22 / Onthatile) | Non-technical |
+| Kundai (KundaiClayton) | Part-time, owns frontend, co-owns product direction |
+| Munashe (dev-munashe) | Full-time developer |
+| Law (law001-mugah) | External communications, partner relationships |
+| Ona (OnaJonas22) | Design, funding applications, comms support |
 
 Work is sprint-based. Most team members are part-time. Do not assume someone is available — check the current sprint.
 
