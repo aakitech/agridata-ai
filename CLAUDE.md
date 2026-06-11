@@ -23,8 +23,8 @@ AgriData Technologies is a WhatsApp-first field intelligence platform for agricu
 | Org | Focus | Status |
 |---|---|---|
 | **MPBC** | Migratory pest surveillance (Quelea, Fall Armyworm, etc.) | Live, seeded in production |
-| **Kutsaga** | Tobacco pest reporting, farmer/contractor advisory | Pilot shipped, commercial terms in active discussion |
-| **ZSAES** | Sugarcane pest scout digitisation and reporting | Demo complete, commercial direction being set |
+| **Kutsaga** | Tobacco pest reporting, farmer/contractor advisory | Pilot shipped |
+| **ZSAES** | Sugarcane pest scout digitisation and reporting | Demo complete |
 
 Each pilot has its own seed scripts and pest configurations. See `scripts/seed-*.ts` and the [[Pilots]] wiki page.
 
@@ -47,7 +47,7 @@ Work is sprint-based. Most team members are part-time. Do not assume someone is 
 - **Database:** PostgreSQL via Drizzle ORM — all tables prefixed `agridata_`. Never edit existing migration files — always `pnpm db:generate` for new migrations.
 - **Auth:** Supabase Auth (`@supabase/ssr`)
 - **Storage:** Supabase Storage — `reports` bucket must be public
-- **WhatsApp:** Twilio — production number `whatsapp:+263713618310`
+- **WhatsApp:** Twilio — production number in `.env` (`TWILIO_PHONE_NUMBER`)
 - **Weather:** Open-Meteo (free, no API key)
 - **Styling:** Tailwind CSS v4 — config syntax differs from v3
 
@@ -128,11 +128,11 @@ CI runs typecheck + build on every push to `develop` and `main`, and on all PRs.
 | [Onboarding](https://github.com/aakitech/agridata-ai/wiki/Onboarding) | How to add a new organisation — runbook, readiness checklist |
 | [Deployment](https://github.com/aakitech/agridata-ai/wiki/Deployment) | Deployment setup, env vars, Twilio config, pre-launch checklist |
 | [Security](https://github.com/aakitech/agridata-ai/wiki/Security) | Security audit findings, non-negotiable constraints |
-| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Local setup, branching, PR process, seed scripts |
+| [Contributing](https://github.com/aakitech/agridata-ai/wiki/Contributing) | Local setup, branching, PR process, seed scripts |
 
 ## Open strategic context
 
-Pre-revenue. Three pilots on MOU terms. 60-day priority: convert Kutsaga to a paid commercial pilot. See GitHub issues #33–#36 and [Roadmap](https://github.com/aakitech/agridata-ai/wiki/Roadmap).
+See GitHub issues #33–#36 and [Roadmap](https://github.com/aakitech/agridata-ai/wiki/Roadmap) for current priorities.
 
 ---
 

@@ -7,7 +7,7 @@ AgriData Technologies is a WhatsApp-first field intelligence platform for agricu
 | Pilot | Focus | Status |
 |---|---|---|
 | **MPBC** | Migratory pest surveillance (Quelea, Fall Armyworm) | Live in production |
-| **Kutsaga Research Board** | Tobacco pest reporting, farmer/contractor advisory | Pilot shipped, commercial discussion in progress |
+| **Kutsaga Research Board** | Tobacco pest reporting, farmer/contractor advisory | Pilot shipped |
 | **ZSAES** | Sugarcane pest scout digitisation, 100-stalk sampling | Demo complete |
 
 ## Features
@@ -40,17 +40,16 @@ pnpm bootstrap-admin        # create initial super admin user
 pnpm dev                    # start dev server
 ```
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the full setup guide, branch conventions, and seed script reference.
+See [Contributing](../../wiki/Contributing) for the full setup guide, branch conventions, and seed script reference.
 
 ## Documentation
 
 | Resource | What it covers |
 |---|---|
 | [CLAUDE.md](CLAUDE.md) | Full project context for contributors and AI-assisted development |
-| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Local setup, branching, PR process, migrations, seed scripts |
+| [Wiki — Contributing](../../wiki/Contributing) | Local setup, branching, PR process, migrations, seed scripts |
 | [Wiki — Architecture](../../wiki/Architecture) | System architecture, data flow, module map, data model |
 | [Wiki — Pilots](../../wiki/Pilots) | Active pilot reference: status, configs, seed scripts |
-| [docs/](docs/) | Feature docs, pilot wikis, deployment guides |
 
 ## Discussions
 
