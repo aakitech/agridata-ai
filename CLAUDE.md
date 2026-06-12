@@ -22,9 +22,9 @@ AgriData Technologies is a WhatsApp-first field intelligence platform for agricu
 
 | Org | Focus | Status |
 |---|---|---|
-| **MPBC** | Migratory pest surveillance (Quelea, Fall Armyworm, etc.) | Live, seeded in production |
-| **Kutsaga** | Tobacco pest reporting, farmer/contractor advisory | Pilot shipped |
-| **ZSAES** | Sugarcane pest scout digitisation and reporting | Demo complete |
+| **MPBC** | Migratory pest surveillance — Zimbabwe govt dept (Quelea, FAW, etc.) | Active pilot, MOU not yet signed |
+| **Kutsaga** | Tobacco pest reporting, farmer/contractor advisory | Pilot shipped, commercial discussion active |
+| **ZSAES** | Sugarcane pest scout digitisation and reporting | Demo complete, direction being set |
 
 Each pilot has its own seed scripts and pest configurations. See `scripts/seed-*.ts` and the [[Pilots]] wiki page.
 
